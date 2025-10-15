@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "rootDir": "./",               // ✅ all .ts files inside current folder
+    "outDir": "./dist",            // ✅ compiled JS output
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "typeRoots": ["./types", "./node_modules/@types"]
+  },
+  "include": ["./**/*.ts","types/**/*.d.ts"],        // ✅ ensure all ts files are compiled
+  "exclude": ["node_modules", "dist"]
+}
