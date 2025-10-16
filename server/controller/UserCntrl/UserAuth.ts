@@ -22,7 +22,7 @@ export const createAdmin = async (
       return res.status(400).json({ message: "Invalid role!" });
     }
 
-    const existingUser = await USER.findOne({ username });
+    const existingUser = await USER.findOne({ username ,isDeleted:false });
     if (existingUser) {
       return res
         .status(400)
@@ -71,7 +71,7 @@ export const loginUser = async (
     if (!password)
       return res.status(400).json({ message: "Password is required!" });
 
-    const user: IUser | null = await USER.findOne({ username });
+    const user: IUser | null = await USER.findOne({ username ,isDeleted:false});
     if (!user) return res.status(400).json({ message: "Invalid username!" });
 
     const isMatch = await bcrypt.compare(password, user.password);

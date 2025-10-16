@@ -65,3 +65,49 @@ export interface IPosition extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface ICustomer extends Document {
+  branchId?: Types.ObjectId | null;
+  name?: string;
+  phone?: number ;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface IEmployee extends Document {
+  branchId?: Types.ObjectId | null;
+  position?:Types.ObjectId | null;
+  department?:Types.ObjectId | null;
+  salary?:number;
+  dateOfJoining:string;
+  firstName?: string;
+  lastName?:string;
+  contactNo2?:string;
+  nationality?:string;
+  motherName?:string;
+  fieldOfStudy?:string;
+  residentialAddress?:string;
+  gender?: number ;
+  contactNo?: Types.ObjectId | null;
+  email?:string;
+  fatherName?:string;
+  qualification?:string;
+  meritalStatsu?:string;
+
+  documents?:{
+    doc_name:string | null ;
+    doc_file:string |null
+    doc_type:string |null
+  }[];
+
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
