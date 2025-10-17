@@ -1,8 +1,9 @@
 import express from 'express';
 import { createAdmin, getUser, loginUser } from '../controller/UserCntrl/UserAuth';
 import { verifyUser } from '../middleware/auth';
-import { createBranch, getAllBranches } from '../controller/branchCntrl/branch';
+import { createBranch, getAllBranches, updateBranch } from '../controller/branchCntrl/branch';
 import { createDepartment, createPosition, deleteDepartment, deletePosition, getAllDepartment, getALLPosition, updateDepartment, updatePosition } from '../controller/EmployeeCntrl/Employee';
+import { upload } from '../middleware/imgUpload';
 const router = express.Router();
 
 
@@ -12,8 +13,9 @@ router.get('/user',verifyUser,getUser);
 
 
 //branch
-router.post("/create-branch",verifyUser,createBranch);
+router.post("/branch",verifyUser,upload.single('logo'),createBranch);
 router.get("/branch",verifyUser,getAllBranches);
+router.put("/branch",verifyUser,upload.single('logo'),updateBranch);
 
 
 //departemnt
@@ -29,10 +31,13 @@ router.put('/position',verifyUser,updatePosition)
 router.delete('/position/:branchId',verifyUser,deletePosition);
 
 
-//customer
+//customer;
 
 
 
+
+
+  
 
 
 

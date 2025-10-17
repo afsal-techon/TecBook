@@ -3,16 +3,15 @@ import { Types, Document } from "mongoose";
 export interface IBranch extends Document {
   comapnyAdminId?: Types.ObjectId | null;
   branchName?: string;
-  branchCode?: string;
   country?: string;
+  trn?:string;
   city?: string;
-  contact1?: string;
-  contact2: string;
+  phone?: string;
+  landline: string;
   state?: string;
   address?: string;
-  email?: string;
   logo?: string;
-  vatPercentage?: number;
+  // vatPercentage?: number;
   currency?: string;
   currencySymbol?: string;
   status?: boolean;
@@ -26,18 +25,17 @@ export interface IBranch extends Document {
 
 export interface createBranchBody {
   branchName: string,
-  branchCode: string,
+  trn: string,
   state: string,
   country:string,
   city: string,
   address: string,
-  contact1: string,
-  contact2: string,
-  email: string,
+  phone: string,
+  landline: string,
   logo: string,
-  vatPercentage:string,
+  // vatPercentage:string,
   currency:string,
-   currencySymbol:string,
+  currencySymbol:string,
 }
 
 
@@ -81,8 +79,9 @@ export interface ICustomer extends Document {
 
 export interface IEmployee extends Document {
   branchId?: Types.ObjectId | null;
-  position?:Types.ObjectId | null;
-  department?:Types.ObjectId | null;
+  positionId?:Types.ObjectId | null;
+  departmentId?:Types.ObjectId | null;
+  empId?:string;
   salary?:number;
   dateOfJoining:string;
   firstName?: string;
@@ -97,7 +96,7 @@ export interface IEmployee extends Document {
   email?:string;
   fatherName?:string;
   qualification?:string;
-  meritalStatsu?:string;
+  meritalStatus?:string;
 
   documents?:{
     doc_name:string | null ;

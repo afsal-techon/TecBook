@@ -4,12 +4,13 @@ import { IEmployee } from "../types/common.types";
 const EmployeeSchema = new Schema<IEmployee>(
   {
     branchId: { type: Schema.Types.ObjectId, ref: "Branch", default: null },
-    position: { type: Schema.Types.ObjectId, ref: "Position", default: null },
-    department: {
+    positionId: { type: Schema.Types.ObjectId, ref: "Position", default: null },
+    departmentId: {
       type: Schema.Types.ObjectId,
       ref: "Department",
       default: null,
     },
+    empId : { type:String, default:null},
 
     salary: { type: Number, default: 0 },
     dateOfJoining: { type: String, required: true },
@@ -22,11 +23,11 @@ const EmployeeSchema = new Schema<IEmployee>(
     fieldOfStudy: { type: String, default: null },
     residentialAddress: { type: String, default: null },
     gender: { type: Number, default: null },
-    contactNo: { type: String, default:null},
+    contactNo: { type: String, default: null },
     email: { type: String, default: null },
     fatherName: { type: String, default: null },
     qualification: { type: String, default: null },
-    meritalStatsu: { type: String, default: null },
+    meritalStatus: { type: String, default: null },
 
     // 👇 documents field (array of name + file)
     documents: [
@@ -49,7 +50,6 @@ EmployeeSchema.index({ branchId: 1, department: 1 });
 EmployeeSchema.index({ branchId: 1, position: 1 });
 EmployeeSchema.index({ firstName: 1, lastName: 1 });
 EmployeeSchema.index({ email: 1 });
-
 
 const employeeModel: Model<IEmployee> = mongoose.model<IEmployee>(
   "Employee",

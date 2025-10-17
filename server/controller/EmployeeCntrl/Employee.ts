@@ -4,6 +4,7 @@ import express, { NextFunction, Request, Response } from "express";
 import USER from "../../models/user";
 import BRANCH from "../../models/branch";
 import { IDepartment } from "../../types/common.types";
+import EMPLOYEE from '../../models/employee'
 import mongoose from "mongoose";
 
 export const createDepartment = async (
@@ -521,6 +522,127 @@ export const deletePosition = async (
     return res.status(200).json({
       message: "Position deleted successfully!",
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+
+export const generateUniqueEmployeeId = async (): Promise<number> => {
+  let uniqueId=0;
+  let exists = true;
+
+  while (exists) {
+    uniqueId = Math.floor(100000 + Math.random() * 900000); // 6-digit number
+    const existing = await EMPLOYEE.findOne({ empId: uniqueId }).lean();
+    exists = !!existing; // convert to boolean
+  }
+
+  return uniqueId;
+};
+
+
+
+//employee
+export const createEmployee = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+
+     const {
+      branchId,
+      positionId,
+      departmentId,
+      salary,
+      dateOfJoining,
+      firstName,
+      lastName,
+      contactNo,
+      contactNo2,
+      email,
+      nationality,
+      fatherName,
+      motherName,
+      qualification,
+      fieldOfStudy,
+      residentialAddress,
+      gender,
+      meritalStatus,
+      documents, 
+    } = req.body;
+
+    const userId = req.user?.id;
+
+       const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+      if (!branchId) {
+      return res.status(400).json({ message: "Branch ID is required!" });
+    }
+
+    if(!positionId){
+      return res.status(400).json({ message:"Position is required!"})
+    }
+     if(!departmentId){
+      return res.status(400).json({ message:"Department is required!"})
+    }
+    if(!firstName){
+        return res.status(400).json({ message: "First name is required!" })
+    }
+
+     if(!dateOfJoining){
+       return res.status(400).json({ message: "Date of joining is required!" });
+    }
+     if (!contactNo) {
+      return res.status(400).json({ message: "Contact number is required!" });
+    }
+
+      if (!gender) {
+      return res.status(400).json({ message: "Gender is required!" });
+    }
+
+    if(email){
+      const exist = await EMPLOYEE.findOne({ email });
+      if(exist){
+        return res.status(400).json({ message: "Email already exists!" });
+      }
+    }
+
+    const existContact = await EMPLOYEE.findOne({ contactNo });
+    if(existContact) return res.status(400).json({ message:"Contact number is already exists!"})
+
+
+   const employeeId = await generateUniqueEmployeeId();
+
+
+    const newEmployee = await EMPLOYEE.create({
+      branchId,
+      positionId,
+      departmentId,
+      empId:employeeId,
+      salary,
+      dateOfJoining,
+      firstName,
+      lastName,
+      contactNo,
+      contactNo2,
+      email,
+      nationality,
+      fatherName,
+      motherName,
+      qualification,
+      fieldOfStudy,
+      residentialAddress,
+      gender,
+      meritalStatus,
+      documents: Array.isArray(documents) ? documents : [],
+    });
+
   } catch (err) {
     next(err);
   }
