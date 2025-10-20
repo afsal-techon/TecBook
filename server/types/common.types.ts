@@ -91,7 +91,7 @@ export interface IEmployee extends Document {
   motherName?:string;
   fieldOfStudy?:string;
   residentialAddress?:string;
-  gender?: number ;
+  gender?: string ;
   contactNo?: Types.ObjectId | null;
   email?:string;
   fatherName?:string;
@@ -103,7 +103,7 @@ export interface IEmployee extends Document {
     doc_file:string |null
     doc_type:string |null
   }[];
-
+ isDeleted?: boolean;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
   deletedBy?: string | null;

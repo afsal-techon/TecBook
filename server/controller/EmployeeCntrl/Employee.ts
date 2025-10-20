@@ -3,9 +3,10 @@ import POSITION from "../../models/position";
 import express, { NextFunction, Request, Response } from "express";
 import USER from "../../models/user";
 import BRANCH from "../../models/branch";
-import { IDepartment } from "../../types/common.types";
-import EMPLOYEE from '../../models/employee'
+import { IDepartment, IEmployee } from "../../types/common.types";
+import EMPLOYEE from "../../models/employee";
 import mongoose from "mongoose";
+import { imagekit } from "../../config/imageKit";
 
 export const createDepartment = async (
   req: Request,
@@ -37,7 +38,7 @@ export const createDepartment = async (
     }
 
     for (const department of departments) {
-      if (!department.dept_name) {
+      if (!department) {
         return res
           .status(400)
           .json({ message: "Department name is required!" });
@@ -45,9 +46,7 @@ export const createDepartment = async (
     }
 
     // 4️ Check duplicates in DB
-    const departmentNames = departments.map((dept) =>
-      dept.dept_name.trim().toLowerCase()
-    );
+    const departmentNames = departments.map((dept) => dept);
 
     const existingDepartments = await DEPARTMENT.find({
       branchId: { $in: branchIds },
@@ -56,11 +55,9 @@ export const createDepartment = async (
     }).collation({ locale: "en", strength: 2 });
 
     if (existingDepartments.length > 0) {
-      const duplicateNames = existingDepartments.map((d) => d.dept_name);
+      existingDepartments.map((d) => d);
       return res.status(400).json({
-        message: `The following departments already exist in one or more branches: ${duplicateNames.join(
-          ", "
-        )}`,
+        message: `The following departments already exist in one or more branches`,
       });
     }
 
@@ -71,7 +68,7 @@ export const createDepartment = async (
       for (const department of departments) {
         departmentData.push({
           branchId,
-          dept_name: department.dept_name.trim(),
+          dept_name: department.trim(),
           //   createdById: userId,
           isDeleted: false,
         });
@@ -96,27 +93,35 @@ export const getAllDepartment = async (
 ): Promise<Response | void> => {
   try {
     const { branchId } = req.params;
-
     const userId = req.user?.id;
 
+    // validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
 
+    // validate branchId
     if (!branchId) {
       return res.status(400).json({ message: "Branch Id is required!" });
     }
 
-    //pagination
+    // pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
-    const search = (req.query.search as string) || "";
 
-    // Build query
-    const query: any = { branchId, isDeleted: false };
-    if (search) {
+    // search term
+    const search = ((req.query.search as string) || "").trim();
+
+    // build query
+    const query: any = {
+      branchId: new mongoose.Types.ObjectId(branchId),
+      isDeleted: false,
+    };
+
+    //  only add dept_name when search has content
+    if (search.length > 0) {
       query.dept_name = { $regex: search, $options: "i" };
     }
 
@@ -126,6 +131,7 @@ export const getAllDepartment = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
     return res.status(200).json({ data: departments, totalCount, page, limit });
   } catch (err) {
     next(err);
@@ -273,9 +279,9 @@ export const createPosition = async (
 
     for (const position of positions) {
       if (
-        !position.pos_name ||
-        typeof position.pos_name !== "string" ||
-        position.pos_name.trim().length === 0
+        !position ||
+        typeof position !== "string" ||
+        position.trim().length === 0
       ) {
         return res
           .status(400)
@@ -284,7 +290,7 @@ export const createPosition = async (
     }
 
     const positionNames = positions.map((position) =>
-      position.pos_name.trim().toLowerCase()
+      position.trim().toLowerCase()
     );
     const existingPositions = await POSITION.find({
       departmentId,
@@ -294,18 +300,13 @@ export const createPosition = async (
     }).collation({ locale: "en", strength: 2 });
 
     if (existingPositions.length > 0) {
-      const duplicateNames = existingPositions.map(
-        (position) => position.pos_name
-      );
       return res.status(400).json({
-        message: `The following position already exist in one or more branches: ${duplicateNames.join(
-          ", "
-        )}`,
+        message: `The following position already exist in one or more branches!`,
       });
     }
 
     const positionData = positions.map((position) => ({
-      pos_name: position.pos_name.trim(),
+      pos_name: position.trim(),
       departmentId,
       branchId,
       createdById: user._id,
@@ -377,7 +378,9 @@ export const getALLPosition = async (
       {
         $project: {
           _id: 1,
-          positionName: "$pos_name",
+          pos_name: "$pos_name",
+          branchId: 1,
+          departmentId: 1,
           departmentName: {
             $ifNull: ["$department.dept_name", "No Department"],
           },
@@ -470,11 +473,9 @@ export const updatePosition = async (
     }
 
     if (position.pos_name === pos_name.trim()) {
-      return res
-        .status(400)
-        .json({
-          message: "New position name is the same as the current name!",
-        });
+      return res.status(400).json({
+        message: "New position name is the same as the current name!",
+      });
     }
 
     position.pos_name = pos_name.trim();
@@ -487,7 +488,6 @@ export const updatePosition = async (
     next(err);
   }
 };
-
 
 export const deletePosition = async (
   req: Request,
@@ -527,11 +527,8 @@ export const deletePosition = async (
   }
 };
 
-
-
-
 export const generateUniqueEmployeeId = async (): Promise<number> => {
-  let uniqueId=0;
+  let uniqueId = 0;
   let exists = true;
 
   while (exists) {
@@ -543,8 +540,6 @@ export const generateUniqueEmployeeId = async (): Promise<number> => {
   return uniqueId;
 };
 
-
-
 //employee
 export const createEmployee = async (
   req: Request,
@@ -552,8 +547,7 @@ export const createEmployee = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
-     const {
+    const {
       branchId,
       positionId,
       departmentId,
@@ -572,59 +566,88 @@ export const createEmployee = async (
       residentialAddress,
       gender,
       meritalStatus,
-      documents, 
     } = req.body;
 
     const userId = req.user?.id;
 
-       const user = await USER.findOne({ _id: userId, isDeleted: false });
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
-      if (!branchId) {
+    if (!branchId) {
       return res.status(400).json({ message: "Branch ID is required!" });
     }
 
-    if(!positionId){
-      return res.status(400).json({ message:"Position is required!"})
+    if (!positionId) {
+      return res.status(400).json({ message: "Position is required!" });
     }
-     if(!departmentId){
-      return res.status(400).json({ message:"Department is required!"})
+    if (!departmentId) {
+      return res.status(400).json({ message: "Department is required!" });
     }
-    if(!firstName){
-        return res.status(400).json({ message: "First name is required!" })
+    if (!firstName) {
+      return res.status(400).json({ message: "First name is required!" });
     }
 
-     if(!dateOfJoining){
-       return res.status(400).json({ message: "Date of joining is required!" });
+    if (!dateOfJoining) {
+      return res.status(400).json({ message: "Date of joining is required!" });
     }
-     if (!contactNo) {
+    if (!contactNo) {
       return res.status(400).json({ message: "Contact number is required!" });
     }
 
-      if (!gender) {
+    if (!gender) {
       return res.status(400).json({ message: "Gender is required!" });
     }
 
-    if(email){
+    if (email) {
       const exist = await EMPLOYEE.findOne({ email });
-      if(exist){
+      if (exist) {
         return res.status(400).json({ message: "Email already exists!" });
       }
     }
 
     const existContact = await EMPLOYEE.findOne({ contactNo });
-    if(existContact) return res.status(400).json({ message:"Contact number is already exists!"})
+    if (existContact)
+      return res
+        .status(400)
+        .json({ message: "Contact number is already exists!" });
 
+    const employeeId = await generateUniqueEmployeeId();
 
-   const employeeId = await generateUniqueEmployeeId();
+    let uploadedDocuments: Array<{
+      doc_name: string;
+      doc_file: string;
+      doc_type: string;
+    }> = [];
+    const documentsMetadata = req.body.metadata
+      ? JSON.parse(req.body.metadata)
+      : [];
 
+    if (req.files && Array.isArray(req.files)) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        console.log(documentsMetadata, [i]);
+        const meta = documentsMetadata[i] || {}; // fallback in case metadata missing
 
-    const newEmployee = await EMPLOYEE.create({
+        const uploadResponse = await imagekit.upload({
+          file: file.buffer.toString("base64"),
+          fileName: file.originalname,
+          folder: "/images",
+        });
+
+        uploadedDocuments.push({
+          doc_name: meta.doc_name || file.originalname,
+          doc_file: uploadResponse.url,
+          doc_type: meta.doc_type || "unknown",
+        });
+      }
+    }
+
+    await EMPLOYEE.create({
       branchId,
       positionId,
       departmentId,
-      empId:employeeId,
+      empId: employeeId,
       salary,
       dateOfJoining,
       firstName,
@@ -640,9 +663,313 @@ export const createEmployee = async (
       residentialAddress,
       gender,
       meritalStatus,
-      documents: Array.isArray(documents) ? documents : [],
+      documents: uploadedDocuments,
     });
 
+    return res.status(200).json({ message: "Employee created successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateEmployee = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const {
+      employeeId,
+      branchId,
+      positionId,
+      departmentId,
+      salary,
+      dateOfJoining,
+      firstName,
+      lastName,
+      contactNo,
+      contactNo2,
+      email,
+      nationality,
+      fatherName,
+      motherName,
+      qualification,
+      fieldOfStudy,
+      residentialAddress,
+      gender,
+      meritalStatus,
+    } = req.body;
+
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    if (!employeeId) {
+      return res.status(400).json({ message: "Employee ID is required!" });
+    }
+
+    const employee = await EMPLOYEE.findById(employeeId);
+    if (!employee)
+      return res.status(400).json({ message: "Employee not found!" });
+
+    //  Validate required fields
+    if (!branchId)
+      return res.status(400).json({ message: "Branch ID is required!" });
+    if (!positionId)
+      return res.status(400).json({ message: "Position is required!" });
+    if (!departmentId)
+      return res.status(400).json({ message: "Department is required!" });
+    if (!firstName)
+      return res.status(400).json({ message: "First name is required!" });
+    if (!dateOfJoining)
+      return res.status(400).json({ message: "Date of joining is required!" });
+    if (!contactNo)
+      return res.status(400).json({ message: "Contact number is required!" });
+    if (!gender)
+      return res.status(400).json({ message: "Gender is required!" });
+
+    //  Check unique email/contact
+    if (email && email !== employee.email) {
+      const exist = await EMPLOYEE.findOne({ email });
+      if (exist)
+        return res.status(400).json({ message: "Email already exists!" });
+    }
+
+    if (contactNo && contactNo !== employee.contactNo) {
+      const existContact = await EMPLOYEE.findOne({ contactNo });
+      if (existContact)
+        return res
+          .status(400)
+          .json({ message: "Contact number already exists!" });
+    }
+
+    let uploadedDocuments: Array<{
+      doc_name: string;
+      doc_file: string;
+      doc_type: string;
+    }> = [];
+
+    const documentsMetadata = req.body.metadata
+      ? JSON.parse(req.body.metadata)
+      : [];
+
+    if (req.files && Array.isArray(req.files)) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        const meta = documentsMetadata[i] || {};
+
+        const uploadResponse = await imagekit.upload({
+          file: file.buffer.toString("base64"),
+          fileName: file.originalname,
+          folder: "/images",
+        });
+
+        uploadedDocuments.push({
+          doc_name: meta.doc_name || file.originalname || "",
+          doc_file: uploadResponse.url || "",
+          doc_type: meta.doc_type || "unknown",
+        });
+      }
+    }
+
+    //  Update employee
+    employee.branchId = branchId;
+    employee.positionId = positionId;
+    employee.departmentId = departmentId;
+    employee.salary = salary;
+    employee.dateOfJoining = dateOfJoining;
+    employee.firstName = firstName;
+    employee.lastName = lastName;
+    employee.contactNo = contactNo;
+    employee.contactNo2 = contactNo2;
+    employee.email = email;
+    employee.nationality = nationality;
+    employee.fatherName = fatherName;
+    employee.motherName = motherName;
+    employee.qualification = qualification;
+    employee.fieldOfStudy = fieldOfStudy;
+    employee.residentialAddress = residentialAddress;
+    employee.gender = gender;
+    employee.meritalStatus = meritalStatus;
+    employee.documents = uploadedDocuments;
+
+    await employee.save();
+
+    return res.status(200).json({ message: "Employee updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getEmployees = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    // Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    // Validate branchId
+
+    // Pagination
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    console.log(req.query,'qer');
+    
+
+    // Search & filters
+    const search = ((req.query.search as string) || "").trim();
+    const branchId = req.query.branchId as string;
+    const filterDepartmentName = req.query.departmentId as string; // dept_name from frontend
+    const filterPositionName = req.query.positionId as string;
+    const filterGender = ((req.query.gender as string) || "").trim();
+    
+    console.log(filterDepartmentName,'dept', filterPositionName,'pos')
+    
+
+    if (!branchId)
+      return res.status(400).json({ message: "Branch Id is required!" });
+    // Build aggregation pipeline
+    const pipeline: any[] = [
+      {
+        $match: {
+          branchId: new mongoose.Types.ObjectId(branchId),
+          isDeleted: false,
+        },
+      },
+      // Join Department
+      {
+        $lookup: {
+          from: "departments",
+          localField: "departmentId",
+          foreignField: "_id",
+          as: "department",
+        },
+      },
+      { $unwind: { path: "$department", preserveNullAndEmptyArrays: true } },
+      // Join Position
+      {
+        $lookup: {
+          from: "positions",
+          localField: "positionId",
+          foreignField: "_id",
+          as: "position",
+        },
+      },
+      { $unwind: { path: "$position", preserveNullAndEmptyArrays: true } },
+    ];
+
+    // Search across employee fields + department + position
+    if (search.length > 0) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { firstName: { $regex: search, $options: "i" } },
+            { lastName: { $regex: search, $options: "i" } },
+            { contactNo: { $regex: search, $options: "i" } },
+            { contactNo2: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { nationality: { $regex: search, $options: "i" } },
+            { fatherName: { $regex: search, $options: "i" } },
+            { motherName: { $regex: search, $options: "i" } },
+            { qualification: { $regex: search, $options: "i" } },
+            { fieldOfStudy: { $regex: search, $options: "i" } },
+            { gender: { $regex: search, $options: "i" } },
+            { meritalStatus: { $regex: search, $options: "i" } },
+            { empId: { $regex: search, $options: "i" } },
+            { "department.dept_name": { $regex: search, $options: "i" } },
+            { "position.pos_name": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // Department filter by name
+    if (filterDepartmentName) {
+      pipeline.push({
+        $match: {
+          "department.dept_name": {
+            $regex: filterDepartmentName,
+            $options: "i",
+          },
+        },
+      });
+    }
+
+    // Position filter by name
+    if (filterPositionName) {
+      pipeline.push({
+        $match: {
+          "position.pos_name": { $regex: filterPositionName, $options: "i" },
+        },
+      });
+    }
+
+    if (filterGender) {
+      pipeline.push({
+        $match: { gender: { $regex: filterGender, $options: "i" } },
+      });
+    }
+    
+    
+
+    // Count total documents after filters
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await EMPLOYEE.aggregate(countPipeline);
+
+    console.log(countResult,'count')
+
+    
+    const totalCount = countResult[0]?.total || 0;
+
+    // Pagination & sort
+    pipeline.push({ $sort: { createdAt: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Project to include dept_name & pos_name
+    pipeline.push({
+      $project: {
+        firstName: 1,
+        lastName: 1,
+        empId: 1,
+        contactNo: 1,
+        contactNo2: 1,
+        email: 1,
+        nationality: 1,
+        fatherName: 1,
+        motherName: 1,
+        qualification: 1,
+        fieldOfStudy: 1,
+        residentialAddress: 1,
+        gender: 1,
+        meritalStatus: 1,
+        salary: 1,
+        dateOfJoining: 1,
+        documents: 1,
+        dept_name: "$department.dept_name",
+        pos_name: "$position.pos_name",
+      },
+    });
+
+    const employees = await EMPLOYEE.aggregate(pipeline);
+
+    console.log(employees,'employees');
+    
+
+    return res.status(200).json({
+      data: employees,
+      totalCount,
+      page,
+      limit,
+    });
   } catch (err) {
     next(err);
   }

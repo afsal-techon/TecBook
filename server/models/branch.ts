@@ -27,6 +27,7 @@ const branchSchema = new Schema<IBranch>({
 
 branchSchema.index({ comapnyAdminId: 1, branchName: 1 });
 branchSchema.index({ branchName: 1 });
+branchSchema.index({ isDeleted:1})
 
 
 const branchModel : Model<IBranch> = mongoose.model<IBranch>("Branch",branchSchema);

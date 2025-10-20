@@ -22,21 +22,22 @@ const EmployeeSchema = new Schema<IEmployee>(
     motherName: { type: String, default: null },
     fieldOfStudy: { type: String, default: null },
     residentialAddress: { type: String, default: null },
-    gender: { type: Number, default: null },
+    gender: { type: String, default: null },
     contactNo: { type: String, default: null },
     email: { type: String, default: null },
     fatherName: { type: String, default: null },
     qualification: { type: String, default: null },
     meritalStatus: { type: String, default: null },
 
-    // 👇 documents field (array of name + file)
+    //  documents field (array of name + file)
     documents: [
       {
-        name: { type: String, default: null },
-        file: { type: String, default: null },
+        doc_name: { type: String, default: null },
+        doc_file: { type: String, default: null },
+        doc_type:{ type:String, default: null}
       },
     ],
-
+     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
     deletedById: { type: Schema.Types.ObjectId, ref: "User", default: null },
     deletedBy: { type: String, default: null },

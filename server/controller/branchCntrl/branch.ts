@@ -209,3 +209,42 @@ export const updateBranch = async (
     next(err);
   }
 };
+
+export const deleteBranch = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { branchId } = req.params;
+
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!branchId) {
+      return res.status(400).json({ message: "Branch Id is required!" });
+    }
+
+    const branch = await BRANCH.findOne({ _id: branchId });
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found!" });
+    }
+
+    await BRANCH.findByIdAndUpdate(branchId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      // deletedBy: user.username,
+    });
+
+    return res.status(200).json({
+      message: "Department deleted successfully!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
