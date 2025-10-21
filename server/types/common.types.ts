@@ -91,12 +91,13 @@ export interface IEmployee extends Document {
   motherName?:string;
   fieldOfStudy?:string;
   residentialAddress?:string;
+  dateOfBirth?:string;
   gender?: string ;
   contactNo?: Types.ObjectId | null;
   email?:string;
   fatherName?:string;
   qualification?:string;
-  meritalStatus?:string;
+  maritalStatus?:string;
 
   documents?:{
     doc_name:string | null ;

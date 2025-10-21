@@ -21,13 +21,14 @@ const EmployeeSchema = new Schema<IEmployee>(
     nationality: { type: String, default: null },
     motherName: { type: String, default: null },
     fieldOfStudy: { type: String, default: null },
+     dateOfBirth: { type: String, default: null },
     residentialAddress: { type: String, default: null },
     gender: { type: String, default: null },
     contactNo: { type: String, default: null },
     email: { type: String, default: null },
     fatherName: { type: String, default: null },
     qualification: { type: String, default: null },
-    meritalStatus: { type: String, default: null },
+    maritalStatus: { type: String, default: null },
 
     //  documents field (array of name + file)
     documents: [

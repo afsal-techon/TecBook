@@ -136,7 +136,7 @@ export const getAllDepartment = async (
   } catch (err) {
     next(err);
   }
-};
+};``
 
 export const updateDepartment = async (
   req: Request,
@@ -561,11 +561,12 @@ export const createEmployee = async (
       nationality,
       fatherName,
       motherName,
+      dateOfBirth,
       qualification,
       fieldOfStudy,
       residentialAddress,
       gender,
-      meritalStatus,
+      maritalStatus,
     } = req.body;
 
     const userId = req.user?.id;
@@ -597,6 +598,10 @@ export const createEmployee = async (
 
     if (!gender) {
       return res.status(400).json({ message: "Gender is required!" });
+    }
+    
+    if (!dateOfBirth) {
+      return res.status(400).json({ message: "dob is required!" });
     }
 
     if (email) {
@@ -658,11 +663,12 @@ export const createEmployee = async (
       nationality,
       fatherName,
       motherName,
+      dateOfBirth,
       qualification,
       fieldOfStudy,
       residentialAddress,
       gender,
-      meritalStatus,
+      maritalStatus,
       documents: uploadedDocuments,
     });
 
@@ -691,13 +697,14 @@ export const updateEmployee = async (
       contactNo2,
       email,
       nationality,
+      dateOfBirth,
       fatherName,
       motherName,
       qualification,
       fieldOfStudy,
       residentialAddress,
       gender,
-      meritalStatus,
+      maritalStatus,
     } = req.body;
 
     const userId = req.user?.id;
@@ -744,6 +751,7 @@ export const updateEmployee = async (
           .json({ message: "Contact number already exists!" });
     }
 
+
     let uploadedDocuments: Array<{
       doc_name: string;
       doc_file: string;
@@ -758,6 +766,7 @@ export const updateEmployee = async (
       for (let i = 0; i < req.files.length; i++) {
         const file = req.files[i];
         const meta = documentsMetadata[i] || {};
+
 
         const uploadResponse = await imagekit.upload({
           file: file.buffer.toString("base64"),
@@ -791,8 +800,9 @@ export const updateEmployee = async (
     employee.fieldOfStudy = fieldOfStudy;
     employee.residentialAddress = residentialAddress;
     employee.gender = gender;
-    employee.meritalStatus = meritalStatus;
-    employee.documents = uploadedDocuments;
+    employee.dateOfBirth = dateOfBirth;
+    employee.maritalStatus = maritalStatus;
+    employee.documents = [...(employee.documents || []), ...uploadedDocuments];
 
     await employee.save();
 
@@ -820,8 +830,6 @@ export const getEmployees = async (
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
-
-    console.log(req.query,'qer');
     
 
     // Search & filters
@@ -831,7 +839,6 @@ export const getEmployees = async (
     const filterPositionName = req.query.positionId as string;
     const filterGender = ((req.query.gender as string) || "").trim();
     
-    console.log(filterDepartmentName,'dept', filterPositionName,'pos')
     
 
     if (!branchId)
@@ -882,8 +889,9 @@ export const getEmployees = async (
             { qualification: { $regex: search, $options: "i" } },
             { fieldOfStudy: { $regex: search, $options: "i" } },
             { gender: { $regex: search, $options: "i" } },
-            { meritalStatus: { $regex: search, $options: "i" } },
+            { maritalStatus: { $regex: search, $options: "i" } },
             { empId: { $regex: search, $options: "i" } },
+            { dateOfBirth: { $regex: search, $options: "i" } },
             { "department.dept_name": { $regex: search, $options: "i" } },
             { "position.pos_name": { $regex: search, $options: "i" } },
           ],
@@ -924,8 +932,6 @@ export const getEmployees = async (
     const countPipeline = [...pipeline, { $count: "total" }];
     const countResult = await EMPLOYEE.aggregate(countPipeline);
 
-    console.log(countResult,'count')
-
     
     const totalCount = countResult[0]?.total || 0;
 
@@ -950,18 +956,22 @@ export const getEmployees = async (
         fieldOfStudy: 1,
         residentialAddress: 1,
         gender: 1,
-        meritalStatus: 1,
+        maritalStatus: 1,
         salary: 1,
+        dateOfBirth:1,
         dateOfJoining: 1,
         documents: 1,
+        branchId:1,
         dept_name: "$department.dept_name",
         pos_name: "$position.pos_name",
+        departmentId:"$department._id",
+        positionId:"$position._id",
       },
     });
 
     const employees = await EMPLOYEE.aggregate(pipeline);
 
-    console.log(employees,'employees');
+  
     
 
     return res.status(200).json({
@@ -974,3 +984,48 @@ export const getEmployees = async (
     next(err);
   }
 };
+
+
+
+export const deleteEmployee = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const { employeeId }  =req.params;
+
+    // Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+     if (!employeeId) {
+      return res.status(400).json({ message: "Employee Id is required!" });
+    }
+
+    const employee = await EMPLOYEE.findOne({ _id: employeeId });
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found!" });
+    }
+  
+
+    await EMPLOYEE.findByIdAndUpdate(employeeId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      // deletedBy: user.name,
+    });
+
+    return res.status(200).json({
+      message: "Position deleted successfully!",
+    });
+    
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+

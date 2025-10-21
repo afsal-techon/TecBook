@@ -2,7 +2,7 @@ import express from 'express';
 import { createAdmin, getUser, loginUser } from '../controller/UserCntrl/UserAuth';
 import { verifyUser } from '../middleware/auth';
 import { createBranch, deleteBranch, getAllBranches, updateBranch } from '../controller/branchCntrl/branch';
-import { createDepartment, createEmployee, createPosition, deleteDepartment, deletePosition, getAllDepartment, getALLPosition, getEmployees, updateDepartment, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
+import { createDepartment, createEmployee, createPosition, deleteDepartment, deleteEmployee, deletePosition, getAllDepartment, getALLPosition, getEmployees, updateDepartment, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
 import { upload } from '../middleware/imgUpload';
 const router = express.Router();
 
@@ -36,7 +36,8 @@ router.delete('/position/:positionId',verifyUser,deletePosition);
 //employee
 router.post('/employee',verifyUser,upload.array('documents',10),createEmployee)
 router.put('/employee',verifyUser,upload.array('documents',10),updateEmployee);
-router.get('/employees',verifyUser,getEmployees)
+router.get('/employees',verifyUser,getEmployees);
+router.delete('/employee/:employeeId',verifyUser,deleteEmployee)
 
 
 
