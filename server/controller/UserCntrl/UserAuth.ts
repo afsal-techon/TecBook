@@ -115,3 +115,22 @@ export const getUser = async (
     next(err);
   }
 };
+
+
+
+
+export const createUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+
+     const { branchId, employeeId, username, password, permissionIds  } = req.body
+
+
+   
+  } catch (err) {
+    next(err);
+  }
+};

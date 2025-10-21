@@ -10,7 +10,7 @@ const EmployeeSchema = new Schema<IEmployee>(
       ref: "Department",
       default: null,
     },
-    empId : { type:String, default:null},
+    empId: { type: String, default: null },
 
     salary: { type: Number, default: 0 },
     dateOfJoining: { type: String, required: true },
@@ -21,7 +21,7 @@ const EmployeeSchema = new Schema<IEmployee>(
     nationality: { type: String, default: null },
     motherName: { type: String, default: null },
     fieldOfStudy: { type: String, default: null },
-     dateOfBirth: { type: String, default: null },
+    dateOfBirth: { type: String, default: null },
     residentialAddress: { type: String, default: null },
     gender: { type: String, default: null },
     contactNo: { type: String, default: null },
@@ -35,10 +35,14 @@ const EmployeeSchema = new Schema<IEmployee>(
       {
         doc_name: { type: String, default: null },
         doc_file: { type: String, default: null },
-        doc_type:{ type:String, default: null}
+        doc_typeId: {
+          type: Schema.Types.ObjectId,
+          ref: "DocumentType",
+          default: null,
+        },
       },
     ],
-     isDeleted: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
     deletedById: { type: Schema.Types.ObjectId, ref: "User", default: null },
     deletedBy: { type: String, default: null },

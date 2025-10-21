@@ -81,6 +81,7 @@ export interface IEmployee extends Document {
   branchId?: Types.ObjectId | null;
   positionId?:Types.ObjectId | null;
   departmentId?:Types.ObjectId | null;
+  documentId?:Types.ObjectId | null;
   empId?:string;
   salary?:number;
   dateOfJoining:string;
@@ -102,9 +103,54 @@ export interface IEmployee extends Document {
   documents?:{
     doc_name:string | null ;
     doc_file:string |null
-    doc_type:string |null
+    doc_typeId: Types.ObjectId |null
   }[];
  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IActionPermissions {
+  can_create: boolean;
+  can_read: boolean;
+  can_update: boolean;
+  can_delete: boolean;
+}
+
+export interface IModulePermission {
+  module: string;
+  moduleFullAccess: boolean;
+  actions: IActionPermissions;
+}
+
+export interface IPermission extends Document {
+  name: string; // role name
+  branchId?: Types.ObjectId | null;
+  permissions: IModulePermission[];
+
+  fullAdminAccess?: boolean;
+
+
+  User: Types.ObjectId | null;
+  createdBy?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface IDocumentType extends Document {
+  branchId?: Types.ObjectId | null;
+  doc_type?: string;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
   deletedBy?: string | null;

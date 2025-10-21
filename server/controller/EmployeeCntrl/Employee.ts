@@ -3,10 +3,13 @@ import POSITION from "../../models/position";
 import express, { NextFunction, Request, Response } from "express";
 import USER from "../../models/user";
 import BRANCH from "../../models/branch";
-import { IDepartment, IEmployee } from "../../types/common.types";
+import { IDepartment, IDocumentType, IEmployee } from "../../types/common.types";
 import EMPLOYEE from "../../models/employee";
 import mongoose from "mongoose";
 import { imagekit } from "../../config/imageKit";
+import DOC_TYPE from '../../models/documentType'
+import { Types } from "mongoose";
+
 
 export const createDepartment = async (
   req: Request,
@@ -136,7 +139,7 @@ export const getAllDepartment = async (
   } catch (err) {
     next(err);
   }
-};``
+};
 
 export const updateDepartment = async (
   req: Request,
@@ -250,6 +253,8 @@ export const deleteDepartment = async (
     next(err);
   }
 };
+
+
 
 //positino
 export const createPosition = async (
@@ -540,6 +545,8 @@ export const generateUniqueEmployeeId = async (): Promise<number> => {
   return uniqueId;
 };
 
+
+
 //employee
 export const createEmployee = async (
   req: Request,
@@ -622,7 +629,7 @@ export const createEmployee = async (
     let uploadedDocuments: Array<{
       doc_name: string;
       doc_file: string;
-      doc_type: string;
+      doc_typeId: Types.ObjectId | null;
     }> = [];
     const documentsMetadata = req.body.metadata
       ? JSON.parse(req.body.metadata)
@@ -631,7 +638,6 @@ export const createEmployee = async (
     if (req.files && Array.isArray(req.files)) {
       for (let i = 0; i < req.files.length; i++) {
         const file = req.files[i];
-        console.log(documentsMetadata, [i]);
         const meta = documentsMetadata[i] || {}; // fallback in case metadata missing
 
         const uploadResponse = await imagekit.upload({
@@ -643,7 +649,7 @@ export const createEmployee = async (
         uploadedDocuments.push({
           doc_name: meta.doc_name || file.originalname,
           doc_file: uploadResponse.url,
-          doc_type: meta.doc_type || "unknown",
+          doc_typeId: meta.doc_typeId ? new Types.ObjectId(meta.doc_typeId) : null,
         });
       }
     }
@@ -705,6 +711,7 @@ export const updateEmployee = async (
       residentialAddress,
       gender,
       maritalStatus,
+      existingDocuments,
     } = req.body;
 
     const userId = req.user?.id;
@@ -752,11 +759,26 @@ export const updateEmployee = async (
     }
 
 
-    let uploadedDocuments: Array<{
+    let finalDocuments: Array<{
       doc_name: string;
       doc_file: string;
-      doc_type: string;
+      doc_typeId: Types.ObjectId | null;
     }> = [];
+
+        if (existingDocuments) {
+      // front-end sends existingDocuments as JSON string
+      const parsedExistingDocs = Array.isArray(existingDocuments)
+        ? existingDocuments
+        : JSON.parse(existingDocuments);
+
+      finalDocuments = parsedExistingDocs.map((doc:any) => ({
+        doc_name: doc.doc_name,
+        doc_file: doc.doc_file,
+        doc_typeId: doc.doc_typeId ? new Types.ObjectId(doc.doc_typeId) : null,
+      }));
+    }
+
+
 
     const documentsMetadata = req.body.metadata
       ? JSON.parse(req.body.metadata)
@@ -768,16 +790,18 @@ export const updateEmployee = async (
         const meta = documentsMetadata[i] || {};
 
 
+
+
         const uploadResponse = await imagekit.upload({
           file: file.buffer.toString("base64"),
           fileName: file.originalname,
           folder: "/images",
         });
 
-        uploadedDocuments.push({
+        finalDocuments.push({
           doc_name: meta.doc_name || file.originalname || "",
           doc_file: uploadResponse.url || "",
-          doc_type: meta.doc_type || "unknown",
+          doc_typeId: meta.doc_typeId ? new Types.ObjectId(meta.doc_typeId) : null,
         });
       }
     }
@@ -802,7 +826,7 @@ export const updateEmployee = async (
     employee.gender = gender;
     employee.dateOfBirth = dateOfBirth;
     employee.maritalStatus = maritalStatus;
-    employee.documents = [...(employee.documents || []), ...uploadedDocuments];
+    employee.documents = finalDocuments
 
     await employee.save();
 
@@ -985,8 +1009,6 @@ export const getEmployees = async (
   }
 };
 
-
-
 export const deleteEmployee = async (
   req: Request,
   res: Response,
@@ -1023,6 +1045,254 @@ export const deleteEmployee = async (
     });
     
 
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+
+//docuement type 
+export const createDocumentType = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { branchIds, documents } = req.body;
+    const userId = req.user?.id; //  assuming req.user is populated from auth middleware
+
+    // 1️ Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    // 2️ Validate branchIds
+    if (!branchIds || !Array.isArray(branchIds) || branchIds.length === 0) {
+      return res.status(400).json({ message: "Branch IDs are required!" });
+    }
+
+    // 3️ Validate departments array
+    if (
+      !documents ||
+      !Array.isArray(documents) ||
+      documents.length === 0
+    ) {
+      return res.status(400).json({ message: "Documents are required!" });
+    }
+
+    for (const doc of documents) {
+      if (!doc) {
+        return res
+          .status(400)
+          .json({ message: "Document type name is required!" });
+      }
+    }
+
+    // 4️ Check duplicates in DB
+    const documentNames = documents.map((dept) => dept);
+
+    const existDocuments = await DOC_TYPE.find({
+      branchId: { $in: branchIds },
+      doc_type: { $in: documentNames },
+      isDeleted: false,
+    }).collation({ locale: "en", strength: 2 });
+
+    if (existDocuments.length > 0) {
+      existDocuments.map((d) => d);
+      return res.status(400).json({
+        message: `The following document type already exist in one or more branches`,
+      });
+    }
+
+    // 5️ Prepare bulk insert data
+    const docuementData: Partial<IDocumentType>[] = [];
+
+    for (const branchId of branchIds) {
+      for (const doc of documents) {
+        docuementData.push({
+          branchId,
+          doc_type: doc.trim(),
+          //   createdById: userId,
+          isDeleted: false,
+        });
+      }
+    }
+
+    // 6️ Insert all at once
+    await DOC_TYPE.insertMany(docuementData);
+
+    return res.status(201).json({
+      message: "Document type created successfully!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAllDocumentTypes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { branchId } = req.params;
+    const userId = req.user?.id;
+
+    // validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    // validate branchId
+    if (!branchId) {
+      return res.status(400).json({ message: "Branch Id is required!" });
+    }
+
+    // pagination
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    // search term
+    const search = ((req.query.search as string) || "").trim();
+
+    // build query
+    const query: any = {
+      branchId: new mongoose.Types.ObjectId(branchId),
+      isDeleted: false,
+    };
+
+    //  only add dept_name when search has content
+    if (search.length > 0) {
+      query.doc_type = { $regex: search, $options: "i" };
+    }
+
+    const totalCount = await DOC_TYPE.countDocuments(query);
+
+    const docs = await DOC_TYPE.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({ data: docs, totalCount, page, limit });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const updateDocument = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { documentId, branchId, doc_type } = req.body;
+
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!branchId) {
+      return res.status(400).json({ message: "Branch Id is required!" });
+    }
+
+    if (!documentId) {
+      return res.status(400).json({ message: "Document Id is required!" });
+    }
+    if (
+      !doc_type ||
+      typeof doc_type !== "string" ||
+      doc_type.trim().length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "New document type is required!" });
+    }
+
+    const branch = await BRANCH.findById(branchId);
+    if (!branch) return res.status(400).json({ message: "Branch not found!" });
+
+    const document = await DOC_TYPE.findOne({
+      _id: documentId,
+      branchId,
+    });
+    if (!document) {
+      return res.status(404).json({ message: "Document not found!" });
+    }
+
+    const existDocument = await DOC_TYPE.findOne({
+      branchId,
+      doc_type: doc_type.trim(),
+      isDeleted: false,
+      _id: { $ne: documentId }, // Exclude the current department
+    });
+
+    if (existDocument) {
+      return res.status(400).json({
+        message: `The document type already exists in the specified branch!`,
+      });
+    }
+
+    if (document.doc_type === doc_type.trim()) {
+      return res.status(400).json({
+        message: "New document type is the same as the current type!",
+      });
+    }
+
+    document.doc_type = doc_type.trim();
+    await document.save();
+
+    return res.status(200).json({
+      message: "document type updated successfully!",
+      data: document,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteDocumentType = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { documentId } = req.params;
+
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!documentId) {
+      return res.status(400).json({ message: "document type Id is required!" });
+    }
+
+    const document = await DOC_TYPE.findOne({ _id: documentId });
+    if (!document) {
+      return res.status(404).json({ message: "document type not found!" });
+    }
+
+    await DOC_TYPE.findByIdAndUpdate(documentId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      // deletedById: user._id,
+      deletedBy: user.username,
+    });
+
+    return res.status(200).json({
+      message: "Document type deleted successfully!",
+    });
   } catch (err) {
     next(err);
   }
