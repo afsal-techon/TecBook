@@ -49,7 +49,7 @@ router.delete('/permission',verifyUser,deletePermission)
 
 
 router.post("/document-type",verifyUser,createDocumentType);
-router.get("/document-type/:branchId",verifyUser,getAllDocumentTypes);
+router.get("/document-type",verifyUser,getAllDocumentTypes);
 router.put('/document-type',verifyUser,updateDocument);
 router.delete('/document-type/:documentId',verifyUser,deleteDocumentType);
 

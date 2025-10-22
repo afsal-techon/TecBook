@@ -630,6 +630,8 @@ export const createEmployee = async (
       doc_name: string;
       doc_file: string;
       doc_typeId: Types.ObjectId | null;
+      startDate:Date | null;
+      endDate:Date | null;
     }> = [];
     const documentsMetadata = req.body.metadata
       ? JSON.parse(req.body.metadata)
@@ -650,6 +652,8 @@ export const createEmployee = async (
           doc_name: meta.doc_name || file.originalname,
           doc_file: uploadResponse.url,
           doc_typeId: meta.doc_typeId ? new Types.ObjectId(meta.doc_typeId) : null,
+          startDate:meta.startDate,
+          endDate: meta.endDate,
         });
       }
     }
@@ -763,6 +767,8 @@ export const updateEmployee = async (
       doc_name: string;
       doc_file: string;
       doc_typeId: Types.ObjectId | null;
+      startDate:Date | null;
+      endDate:Date | null;
     }> = [];
 
         if (existingDocuments) {
@@ -775,6 +781,8 @@ export const updateEmployee = async (
         doc_name: doc.doc_name,
         doc_file: doc.doc_file,
         doc_typeId: doc.doc_typeId ? new Types.ObjectId(doc.doc_typeId) : null,
+        startDate:doc.startDate,
+        endDate:doc.endDate,
       }));
     }
 
@@ -791,17 +799,21 @@ export const updateEmployee = async (
 
 
 
-
         const uploadResponse = await imagekit.upload({
           file: file.buffer.toString("base64"),
           fileName: file.originalname,
           folder: "/images",
         });
 
+
+
+
         finalDocuments.push({
           doc_name: meta.doc_name || file.originalname || "",
           doc_file: uploadResponse.url || "",
           doc_typeId: meta.doc_typeId ? new Types.ObjectId(meta.doc_typeId) : null,
+           startDate:meta.startDate,
+           endDate:meta.endDate,
         });
       }
     }
@@ -895,6 +907,7 @@ export const getEmployees = async (
         },
       },
       { $unwind: { path: "$position", preserveNullAndEmptyArrays: true } },
+      
     ];
 
     // Search across employee fields + department + position
@@ -1138,7 +1151,7 @@ export const getAllDocumentTypes = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { branchId } = req.params;
+    const branchId = req.query.branchId as string
     const userId = req.user?.id;
 
     // validate user

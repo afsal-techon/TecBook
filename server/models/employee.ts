@@ -40,6 +40,8 @@ const EmployeeSchema = new Schema<IEmployee>(
           ref: "DocumentType",
           default: null,
         },
+        startDate :{ type:Date, default:null},
+        endDate:{ type:Date,default:null}
       },
     ],
     isDeleted: { type: Boolean, default: false },

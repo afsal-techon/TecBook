@@ -103,7 +103,9 @@ export interface IEmployee extends Document {
   documents?:{
     doc_name:string | null ;
     doc_file:string |null
-    doc_typeId: Types.ObjectId |null
+    doc_typeId: Types.ObjectId |null,
+     startDate: Date | null;
+      endDate: Date | null;
   }[];
  isDeleted?: boolean;
   deletedAt?: Date | null;
