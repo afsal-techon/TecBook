@@ -5,9 +5,11 @@ export interface IUser extends Document {
   username?: string;
   password: string;
   role: "User" | "CompanyAdmin";
+  employeeId?:Types.ObjectId | null;
   permissions?: Types.ObjectId[];
   status?: boolean;
   isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
   deletedBy?: string | null;

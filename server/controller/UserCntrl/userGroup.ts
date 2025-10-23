@@ -5,6 +5,7 @@ import {
   IActionPermissions,
   IModulePermission,
 } from "../../types/common.types";
+import mongoose from "mongoose";
 
 export const createUserGroup = async (
   req: Request,
@@ -89,28 +90,81 @@ export const getAlluserGroups = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { branchId } = req.params;
+    const  branchId  = req.query.branchId as string;
 
     if (!branchId) {
       return res.status(400).json({ message: "Branch Id is required!" });
     }
 
-    const permissions = await PERMISSION.find({
-      branchId,
-      isDeleted: false,
-    }).select({
-      name: 1,
-      createdAt: 1,
-      updatedAt: 1,
-      _id: 1,
-    });
+    // pagination setup
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
 
-    return res.status(200).json({ data: permissions });
+    // search setup
+    const search = ((req.query.search as string) || "").trim();
+
+    // base query
+    const query: any = {
+      branchId: new mongoose.Types.ObjectId(branchId),
+      isDeleted: false,
+    };
+
+    // add search filter if present
+    if (search.length > 0) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    // total count for pagination
+    const totalCount = await PERMISSION.countDocuments(query);
+
+    // get paginated data
+    const permissions = await PERMISSION.find(query)
+      .select({
+        name: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        _id: 1,
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      data: permissions,
+      totalCount,
+      page,
+      limit,
+    });
   } catch (err) {
     next(err);
   }
 };
 
+export const getOneUserGroups = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { permissionId } = req.params;
+
+    const userId =req.user?.id;
+
+      const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    if (!permissionId) {
+      return res.status(400).json({ message: "Permisssion Id is required!" });
+    }
+
+    const permission = await PERMISSION.findById(permissionId);
+
+    return res.status(200).json({ data: permission });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const updateUserGroup = async (
   req: Request,
