@@ -1,5 +1,5 @@
 import express from 'express';
-import { createAdmin, getUser, loginUser } from '../controller/UserCntrl/UserAuth';
+import { createAdmin, createUser, deleteUser, getAllUsers, getUser, loginUser, updateUser } from '../controller/UserCntrl/UserAuth';
 import { verifyUser } from '../middleware/auth';
 import { createBranch, deleteBranch, getAllBranches, updateBranch } from '../controller/branchCntrl/branch';
 import { createDepartment, createDocumentType, createEmployee, createPosition, deleteDepartment, deleteDocumentType, deleteEmployee, deletePosition, getAllDepartment, getAllDocumentTypes, getALLPosition, getEmployees, updateDepartment, updateDocument, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
@@ -55,6 +55,10 @@ router.put('/document-type',verifyUser,updateDocument);
 router.delete('/document-type/:documentId',verifyUser,deleteDocumentType);
 
 
+router.post('/user',verifyUser,createUser)
+router.get('/user',verifyUser,getAllUsers);
+router.put('/user',verifyUser,updateUser);
+router.delete('/user/:userId',verifyUser,deleteUser)
 
 
 

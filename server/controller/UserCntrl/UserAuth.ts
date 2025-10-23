@@ -345,3 +345,44 @@ export const updateUser = async (
     next(err);
   }
 };
+
+
+export const deleteUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userid = req.user?.id;
+
+    const { userId }  =req.params;
+
+    // Validate user
+    const user = await USER.findOne({ _id: userid, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+     if (!userId) {
+      return res.status(400).json({ message: "User Id is required!" });
+    }
+
+      const companyAdmin = await USER.findOne({ _id: userId, role: "CompanyAdmin" });
+    if (companyAdmin) {
+      return res.status(400).json({ message: "Company Admin cannot be deleted!" });
+    }
+
+
+    await USER.findByIdAndUpdate(userId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      // deletedBy: user.name,
+    });
+
+    return res.status(200).json({
+      message: "User deleted successfully!",
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
