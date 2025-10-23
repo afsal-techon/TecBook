@@ -4,7 +4,7 @@ import { verifyUser } from '../middleware/auth';
 import { createBranch, deleteBranch, getAllBranches, updateBranch } from '../controller/branchCntrl/branch';
 import { createDepartment, createDocumentType, createEmployee, createPosition, deleteDepartment, deleteDocumentType, deleteEmployee, deletePosition, getAllDepartment, getAllDocumentTypes, getALLPosition, getEmployees, updateDepartment, updateDocument, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
 import { upload } from '../middleware/imgUpload';
-import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, updateUserGroup } from '../controller/UserCntrl/userGroup';
+import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, getSingleUserUserGroup, updateUserGroup } from '../controller/UserCntrl/userGroup';
 const router = express.Router();
 
 
@@ -46,7 +46,7 @@ router.get('/permission',verifyUser,getAlluserGroups);
 router.get('/permission/one/:permissionId',verifyUser,getOneUserGroups);
 router.put('/permission',verifyUser,updateUserGroup)
 router.delete('/permission',verifyUser,deletePermission)
-
+router.get('/permission/user',verifyUser,getSingleUserUserGroup)
 
 
 router.post("/document-type",verifyUser,createDocumentType);

@@ -880,7 +880,7 @@ export const getEmployees = async (
     if (!branchId)
       return res.status(400).json({ message: "Branch Id is required!" });
     // Build aggregation pipeline
-    const pipeline: any[] = [
+     const pipeline: any[] = [
       {
         $match: {
           branchId: new mongoose.Types.ObjectId(branchId),
@@ -897,6 +897,7 @@ export const getEmployees = async (
         },
       },
       { $unwind: { path: "$department", preserveNullAndEmptyArrays: true } },
+
       // Join Position
       {
         $lookup: {
@@ -907,7 +908,51 @@ export const getEmployees = async (
         },
       },
       { $unwind: { path: "$position", preserveNullAndEmptyArrays: true } },
-      
+
+      // 👇 Join DocumentType for each document in documents array
+      {
+        $lookup: {
+          from: "documenttypes", // collection name (check your MongoDB)
+          localField: "documents.doc_typeId",
+          foreignField: "_id",
+          as: "docTypeDetails",
+        },
+      },
+      {
+        $addFields: {
+          documents: {
+            $map: {
+              input: "$documents",
+              as: "doc",
+              in: {
+                doc_name: "$$doc.doc_name",
+                doc_file: "$$doc.doc_file",
+                doc_typeId: "$$doc.doc_typeId",
+                doc_type: {
+                  $let: {
+                    vars: {
+                      matched: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$docTypeDetails",
+                              as: "d",
+                              cond: { $eq: ["$$d._id", "$$doc.doc_typeId"] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                    in: "$$matched.doc_type",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      { $unset: "docTypeDetails" },
     ];
 
     // Search across employee fields + department + position

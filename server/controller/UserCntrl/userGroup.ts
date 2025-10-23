@@ -4,6 +4,7 @@ import express, { Request, Response, NextFunction } from "express";
 import {
   IActionPermissions,
   IModulePermission,
+  IPermission,
 } from "../../types/common.types";
 import mongoose from "mongoose";
 
@@ -305,3 +306,34 @@ export const deletePermission = async (
 
 
 
+export const getSingleUserUserGroup = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+
+    const userId =req.user?.id;
+
+    
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+    }
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false })
+      .populate<{ permissions: IPermission[] }>({
+        path: "permissions",
+        match: { isDeleted: false }, // exclude deleted permissions
+      });
+
+       if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+
+    return res.status(200).json( user.permissions )
+
+
+  } catch (err) {
+    next(err);
+  }
+};
