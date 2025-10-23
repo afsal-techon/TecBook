@@ -56,7 +56,7 @@ router.delete('/document-type/:documentId',verifyUser,deleteDocumentType);
 
 
 router.post('/user',verifyUser,createUser)
-router.get('/user',verifyUser,getAllUsers);
+router.get('/users',verifyUser,getAllUsers);
 router.put('/user',verifyUser,updateUser);
 router.delete('/user/:userId',verifyUser,deleteUser)
 

@@ -225,6 +225,7 @@ export const getAllUsers = async (
           preserveNullAndEmptyArrays: true,
         },
       },
+      
     ];
 
         // search by username or employee name
@@ -254,6 +255,7 @@ export const getAllUsers = async (
           username: 1,
           role: 1,
           branchId: 1,
+          permissions:1,
           "employee._id": 1,
           "employee.firstName": 1,
           "employee.lastName": 1,
