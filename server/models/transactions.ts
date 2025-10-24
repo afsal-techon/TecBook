@@ -9,12 +9,53 @@ const transactionSchema = new Schema<ITransactions>(
       default: null,
     },
     accountId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Account",
-    required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Account",
+      required: true,
     },
     purchaseId: {
       type: Schema.Types.ObjectId,
+      ref: "Purchase",
+      default: null,
+    },
+    expenseId: {
+      type: Schema.Types.ObjectId,
+      ref: "Expense",
+      default: null,
+    },
+    customerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Customer",
+      default: null,
+    },
+    supplierId: {
+      type: Schema.Types.ObjectId,
+      ref: "Supplier",
+      default: null,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    type: {
+      type: String,
+    },
+    referenceId: {
+      type: String, // e.g., "POS Bill Payment"
+    },
+    referenceType: {
+      type: String,
+    },
+    totalBeforeVAT: {
+      type: Number,
+      default: 0,
+    },
+    vatAmount: {
+      type: Number,
+      default: 0,
+    },
+    paymentType: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Account",
       default: null,
     },

@@ -330,7 +330,7 @@ export const getSingleUserUserGroup = async (
       return res.status(404).json({ message: "User not found!" });
     }
 
-    return res.status(200).json( user.permissions )
+    return res.status(200).json( user )
 
 
   } catch (err) {

@@ -163,7 +163,10 @@ export interface IAccounts extends Document {
   description?: string;
   openingBalance?: string;
   isDeleted?: boolean;
-  parentAccountId?: Types.ObjectId | null;
+   parentAccountId?: Types.ObjectId | {
+    _id: Types.ObjectId;
+    accountName: string;
+  } | null;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
