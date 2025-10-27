@@ -6,7 +6,7 @@ import { createDepartment, createDocumentType, createEmployee, createPosition, d
 import { upload } from '../middleware/imgUpload';
 import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, getSingleUserUserGroup, updateUserGroup } from '../controller/UserCntrl/userGroup';
 import checkPermission from '../middleware/checkPermission';
-import { createAccounts, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
+import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 const router = express.Router();
 
 
@@ -67,6 +67,11 @@ router.delete('/user/:userId',verifyUser,checkPermission('admin','User','can_del
 router.post('/account',verifyUser,checkPermission('admin','Accounts','can_create'),createAccounts)
 router.get('/account',verifyUser,checkPermission('admin','Accounts','can_read'),getAccounts)
 router.put('/account',verifyUser,checkPermission('admin','Accounts','can_update'),updateAccount)
-router.post('/account',verifyUser,checkPermission('admin','Accounts','can_delete'))
+router.delete('/account/:accountId',verifyUser,checkPermission('admin','Accounts','can_delete'),deleteAcccount)
+
+
+
+
+
 
 export default router;

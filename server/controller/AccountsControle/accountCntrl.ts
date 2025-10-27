@@ -2,6 +2,8 @@ import ACCOUNTS from "../../models/accounts";
 import express, { Response, Request, NextFunction } from "express";
 import USER from "../../models/user";
 import TRANSACTION from '../../models/transactions'
+import { Types } from "mongoose";
+
 
 export const createAccounts = async (
   req: Request,
@@ -94,7 +96,7 @@ export const getAccounts = async (
 
     const match: any = {
       isDeleted: false,
-      branchId: branchId,
+        branchId: new Types.ObjectId(branchId),
     };
 
     // only add search filter when search has value
@@ -151,6 +153,7 @@ export const getAccounts = async (
         parentAccountName: "$parentAccount.accountName",
       },
     });
+
 
     // sorting & pagination
     pipeline.push(

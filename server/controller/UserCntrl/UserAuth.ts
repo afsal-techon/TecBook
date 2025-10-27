@@ -114,7 +114,6 @@ export const getUser = async (
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    console.log(userId, "user id");
     return res.status(200).json({ message: "ok done" });
   } catch (err) {
     next(err);
