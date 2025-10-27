@@ -76,6 +76,14 @@ export const getAccounts = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
+        const branchId = req.query.branchId as string;
+
+          if (!branchId) {
+      return res
+        .status(400)
+        .json({ message: "Branch Id is required!" });
+    }
+
     // pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
@@ -86,6 +94,7 @@ export const getAccounts = async (
 
     const match: any = {
       isDeleted: false,
+      branchId: branchId,
     };
 
     // only add search filter when search has value
@@ -133,6 +142,7 @@ export const getAccounts = async (
     pipeline.push({
       $project: {
         _id:1,
+        branchId,
         accountName: 1,
         accountType: 1,
         description: 1,
@@ -164,6 +174,8 @@ export const getAccounts = async (
     next(err);
   }
 };
+
+
 
 
 export const updateAccount = async (
@@ -252,6 +264,48 @@ export const updateAccount = async (
     );
 
     return res.status(200).json({ message: "Account updated successfully." });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const deleteAcccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const { accountId }  =req.params;
+
+    // Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+     if (!accountId) {
+      return res.status(400).json({ message: "Account Id is required!" });
+    }
+
+    const account = await ACCOUNTS.findOne({ _id: accountId });
+    if (!account) {
+      return res.status(404).json({ message: "Account not found!" });
+    }
+  
+
+    await ACCOUNTS.findByIdAndUpdate(accountId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      // deletedBy: user.name,
+    });
+
+    return res.status(200).json({
+      message: "Account deleted successfully!",
+    });
+    
 
   } catch (err) {
     next(err);
