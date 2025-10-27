@@ -1,7 +1,7 @@
 import express from 'express';
 import { createAdmin, createUser, deleteUser, getAllUsers, getUser, loginUser, updateUser } from '../controller/UserCntrl/UserAuth';
 import { verifyUser } from '../middleware/auth';
-import { createBranch, deleteBranch, getAllBranches, updateBranch } from '../controller/branchCntrl/branch';
+import { createBranch, deleteBranch, getAllBranches, getAllBranchesForDropdown, updateBranch } from '../controller/branchCntrl/branch';
 import { createDepartment, createDocumentType, createEmployee, createPosition, deleteDepartment, deleteDocumentType, deleteEmployee, deletePosition, getAllDepartment, getAllDocumentTypes, getALLPosition, getEmployees, updateDepartment, updateDocument, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
 import { upload } from '../middleware/imgUpload';
 import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, getSingleUserUserGroup, updateUserGroup } from '../controller/UserCntrl/userGroup';
@@ -18,6 +18,7 @@ router.get('/user',verifyUser,getUser);
 //branch
 router.post("/branch",verifyUser,checkPermission('admin','Branch','can_create'),upload.single('logo'),createBranch);
 router.get("/branch",verifyUser,checkPermission('admin','Branch','can_read'),getAllBranches);
+router.get("/branch/common",verifyUser,getAllBranchesForDropdown);
 router.put("/branch",verifyUser,checkPermission('admin','Branch','can_update'),upload.single('logo'),updateBranch);
 router.delete('/branch/:branchId',verifyUser,checkPermission('admin','Branch','can_delete'),deleteBranch)
 
@@ -48,7 +49,7 @@ router.get('/permission',verifyUser,checkPermission('admin','UserGroup','can_rea
 router.get('/permission/one/:permissionId',verifyUser,checkPermission('admin','UserGroup','can_read'),getOneUserGroups);
 router.put('/permission',verifyUser,checkPermission('admin','UserGroup','can_update'),updateUserGroup)
 router.delete('/permission',verifyUser,checkPermission('admin','UserGroup','can_delete'),deletePermission)
-router.get('/permission/user',verifyUser,checkPermission('admin','UserGroup','can_read'),getSingleUserUserGroup)
+router.get('/permission/user',verifyUser,getSingleUserUserGroup)
 
 
 router.post("/document-type",verifyUser,checkPermission('admin','DocumentType','can_create'),createDocumentType);
@@ -68,6 +69,9 @@ router.post('/account',verifyUser,checkPermission('admin','Accounts','can_create
 router.get('/account',verifyUser,checkPermission('admin','Accounts','can_read'),getAccounts)
 router.put('/account',verifyUser,checkPermission('admin','Accounts','can_update'),updateAccount)
 router.delete('/account/:accountId',verifyUser,checkPermission('admin','Accounts','can_delete'),deleteAcccount)
+
+
+
 
 
 

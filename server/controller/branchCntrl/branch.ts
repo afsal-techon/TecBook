@@ -135,6 +135,56 @@ export const getAllBranches = async (
   }
 };
 
+export const getAllBranchesForDropdown = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const user = await USER.findById(userId);
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+    const search = req.query.search as string || "";
+
+    const query: any = { isDeleted: false };
+
+    if (user.role === "CompanyAdmin") {
+      query.comapnyAdminId = user._id;
+    } else if (user.role === "User") {
+      query._id = user.branchId;
+    }
+
+    // Search filter for branchName
+    if (search) {
+      query.branchName = { $regex: search, $options: "i" };
+    }
+
+    // Get total count for pagination
+    const totalCount = await BRANCH.countDocuments(query);
+
+    // Fetch paginated data
+    const branches = await BRANCH.find(query)
+      .select("_id branchName")
+      .sort({ createdAt: -1 }) // latest first
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      data: branches,
+      totalCount,
+      page,
+      limit,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 export const updateBranch = async (
   req: Request,

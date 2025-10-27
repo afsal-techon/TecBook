@@ -63,17 +63,6 @@ export interface IPosition extends Document {
   updatedAt?: Date;
 }
 
-export interface ICustomer extends Document {
-  branchId?: Types.ObjectId | null;
-  name?: string;
-  phone?: number;
-  createdById?: Types.ObjectId | null;
-  deletedAt?: Date | null;
-  deletedById?: Types.ObjectId | null;
-  deletedBy?: string | null;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
 
 export interface IEmployee extends Document {
   branchId?: Types.ObjectId | null;
@@ -192,6 +181,37 @@ export interface ITransactions extends Document {
   paymentType:Types.ObjectId | null;
   isDeleted?: boolean;
   parentAccountId?: Types.ObjectId | null;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface ICustomer extends Document {
+  branchId?: Types.ObjectId | null;
+  name?: string;
+  phone?: number;
+  openingBalance?:number;
+  note?:string;
+    billingInfo?: {
+    country?: string | null;
+    billingAddress?: string | null;
+    city?: Types.ObjectId | null;
+    zipCode?: Date | null;
+  };
+     shippingInfo?: {
+    country?: string | null;
+    shippingAddress?: string | null;
+    city?: Types.ObjectId | null;
+    zipCode?: Date | null;
+  };
+  taxTreatment?:string | null;
+  trn?:string | null;
+  placeOfSupplay?: string | null;
+  isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
