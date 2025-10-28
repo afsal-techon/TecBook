@@ -5,6 +5,7 @@ import { ICategory } from '../../types/common.types';
 import mongoose from 'mongoose';
 import BRANCH from '../../models/branch'
 
+
 export const createCategory = async (
   req: Request,
   res: Response,
@@ -251,3 +252,89 @@ export const deleteCategory = async (
     next(err);
   }
 };
+
+
+
+
+
+//unit
+// export const createUnit = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<Response | void> => {
+//   try {
+//     const { branchIds, units } = req.body;
+//     const userId = req.user?.id; //  assuming req.user is populated from auth middleware
+
+//     // 1️ Validate user
+//     const user = await USER.findOne({ _id: userId, isDeleted: false });
+//     if (!user) {
+//       return res.status(400).json({ message: "User not found!" });
+//     }
+
+//     // 2️ Validate branchIds
+//     if (!branchIds || !Array.isArray(branchIds) || branchIds.length === 0) {
+//       return res.status(400).json({ message: "Branch IDs are required!" });
+//     }
+
+//     //  Validate departments array
+//     if (
+//       !units ||
+//       !Array.isArray(units) ||
+//       units.length === 0
+//     ) {
+//       return res.status(400).json({ message: "Units are required!" });
+//     }
+
+//     for (const unit of units) {
+//       if (!unit) {
+//         return res
+//           .status(400)
+//           .json({ message: "unit name is required!" });
+//       }
+//     }
+
+//     // 4️ Check duplicates in DB
+//     const unitNames = units.map((dept) => dept);
+
+//     const existunits = await CATEGORY.find({
+//       branchId: { $in: branchIds },
+//       name: { $in: categoryNames },
+//       isDeleted: false,
+//     }).collation({ locale: "en", strength: 2 });
+
+//     if (existunits.length > 0) {
+//       existunits.map((d) => d);
+//       return res.status(400).json({
+//         message: `The following units already exist in one or more branches`,
+//       });
+//     }
+
+//     // 5️ Prepare bulk insert data
+//     const categoryData: Partial<ICategory>[] = [];
+
+//     for (const branchId of branchIds) {
+//       for (const category of units) {
+//         categoryData.push({
+//           branchId,
+//           name: category.trim(),
+//           //   createdById: userId,
+//           isDeleted: false,
+//         });
+//       }
+//     }
+
+//     // 6️ Insert all at once
+//     await CATEGORY.insertMany(categoryData);
+
+//     return res.status(201).json({
+//       message: "units created successfully!",
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
