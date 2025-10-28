@@ -219,3 +219,16 @@ export interface ICustomer extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+
+export interface ICategory extends Document {
+  branchId?: Types.ObjectId | null;
+  name?: string;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}

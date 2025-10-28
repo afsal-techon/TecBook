@@ -612,17 +612,17 @@ export const createEmployee = async (
     }
 
     if (email) {
-      const exist = await EMPLOYEE.findOne({ email });
+      const exist = await EMPLOYEE.findOne({ email ,branchId,isDeleted:false });
       if (exist) {
         return res.status(400).json({ message: "Email already exists!" });
       }
     }
 
-    const existContact = await EMPLOYEE.findOne({ contactNo });
+    const existContact = await EMPLOYEE.findOne({ contactNo,branchId ,isDeleted:false });
     if (existContact)
       return res
         .status(400)
-        .json({ message: "Contact number is already exists!" });
+        .json({ message: "Phone number is already exists!" });
 
     const employeeId = await generateUniqueEmployeeId();
 
@@ -749,17 +749,17 @@ export const updateEmployee = async (
 
     //  Check unique email/contact
     if (email && email !== employee.email) {
-      const exist = await EMPLOYEE.findOne({ email });
+      const exist = await EMPLOYEE.findOne({ email,isDeleted:false,branchId });
       if (exist)
         return res.status(400).json({ message: "Email already exists!" });
     }
 
     if (contactNo && contactNo !== employee.contactNo) {
-      const existContact = await EMPLOYEE.findOne({ contactNo });
+      const existContact = await EMPLOYEE.findOne({ contactNo,branchId ,isDeleted:false });
       if (existContact)
         return res
           .status(400)
-          .json({ message: "Contact number already exists!" });
+          .json({ message: "Phone number already exists!" });
     }
 
 

@@ -35,6 +35,7 @@ const customerSchema = new Schema<ICustomer>(
 
 customerSchema.index({ branchId: 1, name: 1 });
 customerSchema.index({ branchId: 1,phone: 1 });
+customerSchema.index({ branchId: 1,phone: 1 ,isDeleted:1 });
 
 const employeeModel: Model<ICustomer> = mongoose.model<ICustomer>(
   "Customer",

@@ -55,6 +55,8 @@ const EmployeeSchema = new Schema<IEmployee>(
 );
 
 EmployeeSchema.index({ branchId: 1, department: 1 });
+EmployeeSchema.index({ branchId: 1, email: 1 ,isDeleted:1 });
+EmployeeSchema.index({ branchId: 1, contactNo: 1 ,isDeleted:1 });
 EmployeeSchema.index({ branchId: 1, position: 1 });
 EmployeeSchema.index({ firstName: 1, lastName: 1 });
 EmployeeSchema.index({ email: 1 });

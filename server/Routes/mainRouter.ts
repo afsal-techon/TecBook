@@ -7,6 +7,7 @@ import { upload } from '../middleware/imgUpload';
 import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, getSingleUserUserGroup, updateUserGroup } from '../controller/UserCntrl/userGroup';
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
+import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
 const router = express.Router();
 
 
@@ -71,6 +72,10 @@ router.put('/account',verifyUser,checkPermission('admin','Accounts','can_update'
 router.delete('/account/:accountId',verifyUser,checkPermission('admin','Accounts','can_delete'),deleteAcccount)
 
 
+router.post('/customer',verifyUser,checkPermission('admin','Customer','can_create'),createCustomer)
+router.get('/customer',verifyUser,checkPermission('admin','Customer','can_read'),getCustomers)
+router.put('/customer',verifyUser,checkPermission('admin','Customer','can_update'),updateCustomer)
+router.delete('/customer/:customerId',verifyUser,checkPermission('admin','Customer','can_delete'),deleteCustomer)
 
 
 
