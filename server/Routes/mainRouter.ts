@@ -8,6 +8,7 @@ import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, 
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
+import { createCategory, deleteCategory, getAllCategories, updateCategory } from '../controller/InventoryController/Inventory';
 const router = express.Router();
 
 
@@ -78,6 +79,11 @@ router.put('/customer',verifyUser,checkPermission('admin','Customer','can_update
 router.delete('/customer/:customerId',verifyUser,checkPermission('admin','Customer','can_delete'),deleteCustomer)
 
 
+//inventory
+router.post('/category',verifyUser,checkPermission('admin','Category','can_create'),createCategory)
+router.get('/category',verifyUser,checkPermission('admin','Category','can_read'),getAllCategories)
+router.put('/category',verifyUser,checkPermission('admin','Category','can_update'),updateCategory)
+router.delete('/category/:categoryId',verifyUser,checkPermission('admin','Category','can_delete'),deleteCategory)
 
 
 

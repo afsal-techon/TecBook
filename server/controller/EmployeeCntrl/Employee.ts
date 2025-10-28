@@ -89,6 +89,7 @@ export const createDepartment = async (
   }
 };
 
+
 export const getAllDepartment = async (
   req: Request,
   res: Response,

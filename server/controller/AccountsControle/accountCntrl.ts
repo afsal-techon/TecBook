@@ -151,6 +151,7 @@ export const getAccounts = async (
         createdAt: 1,
         parentAccountId: "$parentAccount._id",
         parentAccountName: "$parentAccount.accountName",
+        updatedAt:1,
       },
     });
 
