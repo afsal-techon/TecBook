@@ -180,8 +180,6 @@ export const getAccounts = async (
 };
 
 
-
-
 export const updateAccount = async (
   req: Request,
   res: Response,
@@ -315,3 +313,7 @@ export const deleteAcccount = async (
     next(err);
   }
 };
+
+
+
+
