@@ -73,7 +73,7 @@ accountSchema.index({ accountName: 1 });
 accountSchema.index({ branchId: 1, isDeleted: 1 });
 
 const accountModel: Model<IAccounts> = mongoose.model<IAccounts>(
-  "account",
+  "Account",
   accountSchema
 );
 

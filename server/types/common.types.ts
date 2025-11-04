@@ -63,7 +63,6 @@ export interface IPosition extends Document {
   updatedAt?: Date;
 }
 
-
 export interface IEmployee extends Document {
   branchId?: Types.ObjectId | null;
   positionId?: Types.ObjectId | null;
@@ -152,10 +151,13 @@ export interface IAccounts extends Document {
   description?: string;
   openingBalance?: string;
   isDeleted?: boolean;
-   parentAccountId?: Types.ObjectId | {
-    _id: Types.ObjectId;
-    accountName: string;
-  } | null;
+  parentAccountId?:
+    | Types.ObjectId
+    | {
+        _id: Types.ObjectId;
+        accountName: string;
+      }
+    | null;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
@@ -172,13 +174,13 @@ export interface ITransactions extends Document {
   customerId?: Types.ObjectId | null;
   supplierId?: Types.ObjectId | null;
   amount: number;
-  type:string;
-  referenceId : string;
-  referenceType:string;
-  description:string;
-  totalBeforeVAT:number;
-  vatAmount:number;
-  paymentType:Types.ObjectId | null;
+  type: string;
+  referenceId: string;
+  referenceType: string;
+  description: string;
+  totalBeforeVAT: number;
+  vatAmount: number;
+  paymentType: Types.ObjectId | null;
   isDeleted?: boolean;
   parentAccountId?: Types.ObjectId | null;
   createdById?: Types.ObjectId | null;
@@ -189,27 +191,26 @@ export interface ITransactions extends Document {
   updatedAt?: Date;
 }
 
-
 export interface ICustomer extends Document {
   branchId?: Types.ObjectId | null;
   name?: string;
   phone?: number;
-  openingBalance?:number;
-  note?:string;
-    billingInfo?: {
+  openingBalance?: number;
+  note?: string;
+  billingInfo?: {
     country?: string | null;
     billingAddress?: string | null;
     city?: Types.ObjectId | null;
     zipCode?: Date | null;
   };
-     shippingInfo?: {
+  shippingInfo?: {
     country?: string | null;
     shippingAddress?: string | null;
     city?: Types.ObjectId | null;
     zipCode?: Date | null;
   };
-  taxTreatment?:string | null;
-  trn?:string | null;
+  taxTreatment?: string | null;
+  trn?: string | null;
   placeOfSupplay?: string | null;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
@@ -219,7 +220,6 @@ export interface ICustomer extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
-
 
 export interface ICategory extends Document {
   branchId?: Types.ObjectId | null;
@@ -248,6 +248,60 @@ export interface ICategory extends Document {
 export interface IUnit extends Document {
   branchId?: Types.ObjectId | null;
   unit?: string;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IItem extends Document {
+  branchId?: Types.ObjectId | null;
+  categoryId?: Types.ObjectId | null;
+  unitId?: Types.ObjectId | null;
+  name:string;
+  type: string;
+  salesInfo?: {
+    sellingPrice?: string | null;
+    accountId?: Types.ObjectId | null;
+    description?: Types.ObjectId | null;
+  };
+  purchaseInfo?: {
+    costPrice?: string | null;
+    accountId?: Types.ObjectId | null;
+    description?: Types.ObjectId | null;
+  };
+  sellable:boolean,
+  purchasable:boolean,
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface IQuotes extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  quoteId:string;
+  quoteDate: string;
+  ExpDate: string;
+  salesPersonId:string;
+  termsAndCondition:string;
+  projectName:string;
+  note:string;
+  documents:[];
+  itemDetails?: {
+    itemId: Types.ObjectId | null;
+    qty: string | null;
+    rate: Types.ObjectId | null;
+    amount: Date | null;
+  }[];
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
