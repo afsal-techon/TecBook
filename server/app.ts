@@ -1,5 +1,8 @@
+console.log("🚀 App starting...");
 import express , { Application, NextFunction, Request,Response } from 'express';
+console.log("✅ Express imported");
 import dotenv from 'dotenv';
+console.log("✅ .env loaded");
 import cookieParser from "cookie-parser";
 import mainRouter from './Routes/mainRouter'
 import connectDB from './config/database';
