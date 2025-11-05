@@ -310,3 +310,53 @@ export interface IQuotes extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+
+export interface IVendor extends Document {
+  branchId?: Types.ObjectId | null;
+  name?: string;
+  phone?: number;
+  openingBalance?: number;
+  note?: string;
+  billingInfo?: {
+    country?: string | null;
+    billingAddress?: string | null;
+    city?: Types.ObjectId | null;
+    zipCode?: Date | null;
+  };
+  shippingInfo?: {
+    country?: string | null;
+    shippingAddress?: string | null;
+    city?: Types.ObjectId | null;
+    zipCode?: Date | null;
+  };
+  taxTreatment?: string | null;
+  trn?: string | null;
+  placeOfSupplay?: string | null;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface ITax extends Document {
+  branchId?: Types.ObjectId | null;
+  name: string; // e.g., "GST 5%" or "VAT 10%"
+  type: "GST" | "VAT";
+  cgstRate?: number | null; // for GST
+  sgstRate?: number | null; // for GST
+  vatRate?: number | null; // for VAT
+  description?: string | null;
+  isActive?: boolean;
+   isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}

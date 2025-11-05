@@ -9,6 +9,7 @@ import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
 import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
+import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 const router = express.Router();
 
 
@@ -97,6 +98,12 @@ router.post('/item',verifyUser,checkPermission('admin','Item','can_create'),crea
 router.get('/item',verifyUser,checkPermission('admin','Item','can_read'),getAllItems)
 router.put('/item',verifyUser,checkPermission('admin','Item','can_update'),updateItem)
 router.delete('/item/:itemId',verifyUser,checkPermission('admin','Item','can_delete'),deleteItems)
+
+//vendor
+router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),CreateVendor)
+router.get('/vendor',verifyUser,checkPermission('admin','Vendor','can_read'),getVendors)
+router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),updateVendor)
+router.delete('/vendor/:vendorId',verifyUser,checkPermission('admin','Vendor','can_delete'),deleteVendor)
 
 
 

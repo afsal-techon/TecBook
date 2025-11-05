@@ -1,12 +1,12 @@
-import CUSTOMER from '../../models/customer'
+import VENDOR from '../../models/vendor'
 import express , {Request,Response,NextFunction} from 'express'
-import { ICustomer } from '../../types/common.types';
+import { IVendor } from '../../types/common.types';
 import USER from '../../models/user'
 import { Types } from "mongoose";
 
 
 
-export const createCustomer = async (
+export const CreateVendor = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -24,7 +24,7 @@ export const createCustomer = async (
       trn,
       placeOfSupplay,
 
-    } = req.body as ICustomer
+    } = req.body as IVendor
 
     const userId = req.user?.id;
 
@@ -61,14 +61,14 @@ export const createCustomer = async (
     //   return res.status(400).json({ message: "Place of supplay required!" });
     // }
 
-    const existContact = await CUSTOMER.findOne({ phone , branchId ,isDeleted:false });
+    const existContact = await VENDOR.findOne({ phone , branchId ,isDeleted:false });
     if (existContact)
       return res
         .status(400)
         .json({ message: "Phone number is already exists!" });
 
 
-    await CUSTOMER.create({
+    await VENDOR.create({
         branchId,
         name,
         phone,
@@ -82,13 +82,13 @@ export const createCustomer = async (
         createdById:user._id
     });
 
-    return res.status(200).json({ message: "Customer created successfully" });
+    return res.status(200).json({ message: "Vendor created successfully" });
   } catch (err) {
     next(err);
   }
 };
 
-export const getCustomers = async (
+export const getVendors = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -155,13 +155,13 @@ export const getCustomers = async (
       { $limit: limit },
     ];
 
-    const customers = await CUSTOMER.aggregate(pipeline);
+    const vendors = await VENDOR.aggregate(pipeline);
 
     // Total count for pagination
-    const totalCount = await CUSTOMER.countDocuments(match);
+    const totalCount = await VENDOR.countDocuments(match);
 
     return res.status(200).json({
-      data: customers,
+      data: vendors,
       totalCount,
       page,
       limit,
@@ -172,15 +172,14 @@ export const getCustomers = async (
   }
 };
 
-
-export const updateCustomer = async (
+export const updateVendor = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
     const {
-     customerId,
+     vendorId,
       branchId,
       name,
       phone,
@@ -201,56 +200,57 @@ export const updateCustomer = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-    if (!customerId) {
-      return res.status(400).json({ message: "Customer ID is required!" });
+    if (!vendorId) {
+      return res.status(400).json({ message: "Vendor ID is required!" });
     }
 
     // Check if customer exists
-    const customer = await CUSTOMER.findOne({ _id: customerId, isDeleted: false });
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found!" });
+    const vendor = await VENDOR.findOne({ _id: vendorId, isDeleted: false });
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found!" });
     }
 
     // Duplicate phone check if updating phone
-    if (phone && phone !== customer.phone) {
-      const existContact = await CUSTOMER.findOne({
+    if (phone && phone !== vendor.phone) {
+      const existContact = await VENDOR.findOne({
         phone,
-        branchId: branchId || customer.branchId,
-        _id: { $ne: customerId },
+        branchId: branchId || vendor.branchId,
+        _id: { $ne: vendorId },
       });
 
       if (existContact) {
         return res.status(400).json({
-          message: "Phone number already exists for another customer!",
+          message: "Phone number already exists for another Vendor!",
         });
       }
     }
 
     // Build update object — take new values if given, else keep old
     const updateData = {
-      branchId: branchId ?? customer.branchId,
-      name: name ?? customer.name,
-      phone: phone ?? customer.phone,
-      openingBalance: openingBalance ?? customer.openingBalance,
-      billingInfo: billingInfo ?? customer.billingInfo,
-      shippingInfo: shippingInfo ?? customer.shippingInfo,
-      taxTreatment: taxTreatment ?? customer.taxTreatment,
-      trn: trn ?? customer.trn,
-      note:note ?? customer.note,
-      placeOfSupplay: placeOfSupplay ?? customer.placeOfSupplay,
+      branchId: branchId ?? vendor.branchId,
+      name: name ?? vendor.name,
+      phone: phone ?? vendor.phone,
+      openingBalance: openingBalance ?? vendor.openingBalance,
+      billingInfo: billingInfo ?? vendor.billingInfo,
+      shippingInfo: shippingInfo ?? vendor.shippingInfo,
+      taxTreatment: taxTreatment ?? vendor.taxTreatment,
+      trn: trn ?? vendor.trn,
+      note:note ?? vendor.note,
+      placeOfSupplay: placeOfSupplay ?? vendor.placeOfSupplay,
     };
 
-    await CUSTOMER.findByIdAndUpdate(customerId, updateData, { new: true });
+    await VENDOR.findByIdAndUpdate(vendorId, updateData, { new: true });
 
     return res.status(200).json({
-      message: "Customer updated successfully!",
+      message: "Vendor updated successfully!",
     });
   } catch (err) {
     next(err);
   }
 };
 
-export const deleteCustomer = async (
+
+export const deleteVendor = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -258,23 +258,23 @@ export const deleteCustomer = async (
   try {
     const userId = req.user?.id;
 
-    const { customerId }  =req.params;
+    const { vendorId }  =req.params;
 
     // Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-     if (!customerId) {
-      return res.status(400).json({ message: "Customer Id is required!" });
+     if (!vendorId) {
+      return res.status(400).json({ message: "Vendor Id is required!" });
     }
 
-    const customer = await CUSTOMER.findOne({ _id: customerId });
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found!" });
+    const vendor = await VENDOR.findOne({ _id: vendorId });
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found!" });
     }
   
 
-    await CUSTOMER.findByIdAndUpdate(customerId, {
+    await VENDOR.findByIdAndUpdate(vendorId, {
       isDeleted: true,
       deletedAt: new Date(),
       deletedById: user._id,
@@ -282,7 +282,7 @@ export const deleteCustomer = async (
     });
 
     return res.status(200).json({
-      message: "Customer deleted successfully!",
+      message: "Vendor deleted successfully!",
     });
     
 
