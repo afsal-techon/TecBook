@@ -2,7 +2,6 @@ import { NextFunction } from "express";
 import mongoose from "mongoose";
 
 
-
 const connectDB = async ()=>{
     try {
         const dbURI = process.env.MONGO_URL as string
