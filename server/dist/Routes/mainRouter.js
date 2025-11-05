@@ -1,0 +1,88 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const UserAuth_1 = require("../controller/UserCntrl/UserAuth");
+const auth_1 = require("../middleware/auth");
+const branch_1 = require("../controller/branchCntrl/branch");
+const Employee_1 = require("../controller/EmployeeCntrl/Employee");
+const imgUpload_1 = require("../middleware/imgUpload");
+const userGroup_1 = require("../controller/UserCntrl/userGroup");
+const checkPermission_1 = __importDefault(require("../middleware/checkPermission"));
+const accountCntrl_1 = require("../controller/AccountsControle/accountCntrl");
+const customerCntrl_1 = require("../controller/saleController/customerCntrl");
+const Inventory_1 = require("../controller/InventoryController/Inventory");
+const vendorCntrl_1 = require("../controller/purchaseController/vendorCntrl");
+const router = express_1.default.Router();
+router.post('/create-admin', UserAuth_1.createAdmin);
+router.post('/login', UserAuth_1.loginUser);
+router.get('/user', auth_1.verifyUser, UserAuth_1.getUser);
+//branch
+router.post("/branch", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_create'), imgUpload_1.upload.single('logo'), branch_1.createBranch);
+router.get("/branch", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_read'), branch_1.getAllBranches);
+router.get("/branch/common", auth_1.verifyUser, branch_1.getAllBranchesForDropdown);
+router.put("/branch", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_update'), imgUpload_1.upload.single('logo'), branch_1.updateBranch);
+router.delete('/branch/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_delete'), branch_1.deleteBranch);
+//departemnt
+router.post("/department", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_create'), Employee_1.createDepartment);
+router.get("/department/:branchId", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_read'), Employee_1.getAllDepartment);
+router.put('/department', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_update'), Employee_1.updateDepartment);
+router.delete('/department/:departmentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_delete'), Employee_1.deleteDepartment);
+//position
+router.post('/position', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_create'), Employee_1.createPosition);
+router.get('/position/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_read'), Employee_1.getALLPosition);
+router.put('/position', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_update'), Employee_1.updatePosition);
+router.delete('/position/:positionId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_delete'), Employee_1.deletePosition);
+//employee
+router.post('/employee', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Employee', 'can_create'), imgUpload_1.upload.array('documents', 10), Employee_1.createEmployee);
+router.put('/employee', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Employee', 'can_update'), imgUpload_1.upload.array('documents', 10), Employee_1.updateEmployee);
+router.get('/employees', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Employee', 'can_read'), Employee_1.getEmployees);
+router.delete('/employee/:employeeId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Employee', 'can_delete'), Employee_1.deleteEmployee);
+//user group 
+router.post('/permission', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'UserGroup', 'can_create'), userGroup_1.createUserGroup);
+router.get('/permission', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'UserGroup', 'can_read'), userGroup_1.getAlluserGroups);
+router.get('/permission/one/:permissionId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'UserGroup', 'can_read'), userGroup_1.getOneUserGroups);
+router.put('/permission', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'UserGroup', 'can_update'), userGroup_1.updateUserGroup);
+router.delete('/permission', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'UserGroup', 'can_delete'), userGroup_1.deletePermission);
+router.get('/permission/user', auth_1.verifyUser, userGroup_1.getSingleUserUserGroup);
+router.post("/document-type", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_create'), Employee_1.createDocumentType);
+router.get("/document-type", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_read'), Employee_1.getAllDocumentTypes);
+router.put('/document-type', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_update'), Employee_1.updateDocument);
+router.delete('/document-type/:documentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_delete'), Employee_1.deleteDocumentType);
+router.post('/user', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_create'), UserAuth_1.createUser);
+router.get('/users', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_read'), UserAuth_1.getAllUsers);
+router.put('/user', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_update'), UserAuth_1.updateUser);
+router.delete('/user/:userId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_delete'), UserAuth_1.deleteUser);
+router.post('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_create'), accountCntrl_1.createAccounts);
+router.get('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_read'), accountCntrl_1.getAccounts);
+router.put('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_update'), accountCntrl_1.updateAccount);
+router.delete('/account/:accountId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_delete'), accountCntrl_1.deleteAcccount);
+router.post('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_create'), customerCntrl_1.createCustomer);
+router.get('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_read'), customerCntrl_1.getCustomers);
+router.put('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_update'), customerCntrl_1.updateCustomer);
+router.delete('/customer/:customerId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_delete'), customerCntrl_1.deleteCustomer);
+//inventory
+//category
+router.post('/category', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Category', 'can_create'), Inventory_1.createCategory);
+router.get('/category', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Category', 'can_read'), Inventory_1.getAllCategories);
+router.put('/category', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Category', 'can_update'), Inventory_1.updateCategory);
+router.delete('/category/:categoryId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Category', 'can_delete'), Inventory_1.deleteCategory);
+//units
+router.post('/unit', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Unit', 'can_create'), Inventory_1.createUnit);
+router.get('/unit', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Unit', 'can_read'), Inventory_1.getAllUnits);
+router.put('/unit', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Unit', 'can_update'), Inventory_1.updateUnit);
+router.delete('/unit/:unitId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Unit', 'can_delete'), Inventory_1.deleteUnit);
+//Items
+router.post('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_create'), Inventory_1.createItem);
+router.get('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_read'), Inventory_1.getAllItems);
+router.get('/item/one/:itemId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_read'), Inventory_1.getOneItem);
+router.put('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_update'), Inventory_1.updateItem);
+router.delete('/item/:itemId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_delete'), Inventory_1.deleteItems);
+//vendor
+router.post('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_create'), vendorCntrl_1.CreateVendor);
+router.get('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_read'), vendorCntrl_1.getVendors);
+router.put('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_update'), vendorCntrl_1.updateVendor);
+router.delete('/vendor/:vendorId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_delete'), vendorCntrl_1.deleteVendor);
+exports.default = router;
