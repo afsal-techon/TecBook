@@ -23,6 +23,11 @@ const itemSchema = new Schema<IItem>(
       ref: "Unit",
       default: null,
     },
+        taxId: {
+      type: Schema.Types.ObjectId,
+      ref: "Tax",
+      default: null,
+    },
     type: {
       type: String,
       default: null,

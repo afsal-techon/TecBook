@@ -261,6 +261,7 @@ export interface IItem extends Document {
   branchId?: Types.ObjectId | null;
   categoryId?: Types.ObjectId | null;
   unitId?: Types.ObjectId | null;
+  taxId?:Types.ObjectId |  null;
   name:string;
   type: string;
   salesInfo?: {

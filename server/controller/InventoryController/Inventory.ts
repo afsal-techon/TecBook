@@ -5,8 +5,9 @@ import { ICategory, IUnit } from "../../types/common.types";
 import mongoose from "mongoose";
 import BRANCH from "../../models/branch";
 import UNIT from "../../models/unit";
-import ITEMS from '../../models/items'
+import ITEMS from "../../models/items";
 import { Types } from "mongoose";
+import TAX from "../../models/tax";
 
 export const createCategory = async (
   req: Request,
@@ -491,6 +492,7 @@ export const createItem = async (
       purchaseInfo,
       sellable,
       purchasable,
+      taxId,
     } = req.body;
 
     const userId = req.user?.id;
@@ -502,8 +504,7 @@ export const createItem = async (
     // 2️ Validate required fields
     if (!branchId)
       return res.status(400).json({ message: "Branch ID is required!" });
-    if (!type)
-      return res.status(400).json({ message: "Type is required!" });
+    if (!type) return res.status(400).json({ message: "Type is required!" });
     if (!name)
       return res.status(400).json({ message: "Item name is required!" });
     if (!unitId)
@@ -520,6 +521,13 @@ export const createItem = async (
       return res
         .status(400)
         .json({ message: `Item "${name}" already exists in this branch.` });
+
+    let validTax = null;
+    if (taxId) {
+      validTax = await TAX.findOne({ _id: taxId, isActive: true });
+      if (!validTax)
+        return res.status(400).json({ message: "Invalid tax selected!" });
+    }
 
     // 4️ Build item object
     const newItem = {
@@ -542,6 +550,7 @@ export const createItem = async (
           : null,
         description: purchaseInfo?.description ?? null,
       },
+      taxId: validTax?._id || null,
       sellable: !!sellable,
       purchasable: !!purchasable,
       createdById: new Types.ObjectId(userId),
@@ -559,14 +568,12 @@ export const createItem = async (
   }
 };
 
-
 export const updateItem = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    
     const {
       itemId,
       branchId,
@@ -588,8 +595,7 @@ export const updateItem = async (
 
     // 2️. Validate item
     const item = await ITEMS.findOne({ _id: itemId, isDeleted: false });
-    if (!item)
-      return res.status(404).json({ message: "Item not found!" });
+    if (!item) return res.status(404).json({ message: "Item not found!" });
 
     // 4️. Prevent duplicate name (if updating name)
     if (name && name.trim().toLowerCase() !== item.name.toLowerCase()) {
@@ -608,9 +614,7 @@ export const updateItem = async (
     // 5️. Build update object (keep old values if not passed)
     const updatedData = {
       type: type ?? item.type,
-      categoryId: categoryId
-        ? new Types.ObjectId(categoryId)
-        : item.categoryId,
+      categoryId: categoryId ? new Types.ObjectId(categoryId) : item.categoryId,
       unitId: unitId ? new Types.ObjectId(unitId) : item.unitId,
       name: name ? name.trim() : item.name,
       salesInfo: {
@@ -646,7 +650,6 @@ export const updateItem = async (
   }
 };
 
-
 export const getAllItems = async (
   req: Request,
   res: Response,
@@ -672,9 +675,11 @@ export const getAllItems = async (
 
     //  Search and filters
     const search = ((req.query.search as any) || "").trim();
-        const itemType = (req.query.itemType as string)?.trim()?.toLowerCase(); 
+    const itemType = (req.query.itemType as string)?.trim()?.toLowerCase();
     const salesAccountName = ((req.query.salesAccount as string) || "").trim();
-    const purchaseAccountName = ((req.query.purchaseAccount as string) || "").trim();
+    const purchaseAccountName = (
+      (req.query.purchaseAccount as string) || ""
+    ).trim();
 
     //  Base match
     const matchStage: any = {
@@ -682,7 +687,7 @@ export const getAllItems = async (
       isDeleted: false,
     };
 
-     if (itemType === "sellable") matchStage.sellable = true;
+    if (itemType === "sellable") matchStage.sellable = true;
     else if (itemType === "purchasable") matchStage.purchasable = true;
 
     //  Build aggregation pipeline
@@ -720,7 +725,9 @@ export const getAllItems = async (
           as: "purchaseAccount",
         },
       },
-      { $unwind: { path: "$purchaseAccount", preserveNullAndEmptyArrays: true } },
+      {
+        $unwind: { path: "$purchaseAccount", preserveNullAndEmptyArrays: true },
+      },
     ];
 
     //  Single “smart” search — match item name, category name, or selling price
@@ -741,14 +748,24 @@ export const getAllItems = async (
     //  Filter by Sales Account Name
     if (salesAccountName) {
       pipeline.push({
-        $match: { "salesAccount.accountName": { $regex: salesAccountName, $options: "i" } },
+        $match: {
+          "salesAccount.accountName": {
+            $regex: salesAccountName,
+            $options: "i",
+          },
+        },
       });
     }
 
     //  Filter by Purchase Account Name
     if (purchaseAccountName) {
       pipeline.push({
-        $match: { "purchaseAccount.accountName": { $regex: purchaseAccountName, $options: "i" } },
+        $match: {
+          "purchaseAccount.accountName": {
+            $regex: purchaseAccountName,
+            $options: "i",
+          },
+        },
       });
     }
 
@@ -760,16 +777,16 @@ export const getAllItems = async (
         name: 1,
         type: 1,
         category: "$category.name",
-        categoryId:"$category._id",
+        categoryId: "$category._id",
         unitId: 1,
         sellable: 1,
         purchasable: 1,
-        salesInfo:1,
-        purchaseInfo:1,
+        salesInfo: 1,
+        purchaseInfo: 1,
         salesAccountName: "$salesAccount.accountName",
         purchaseAccountName: "$purchaseAccount.accountName",
         createdAt: 1,
-        updatedAt:1,
+        updatedAt: 1,
       },
     });
 
@@ -796,6 +813,34 @@ export const getAllItems = async (
   } catch (err) {
     next(err);
   }
+};
+
+export const getOneItem = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { itemId } = req.params;
+    const userId = req.user?.id;
+
+    //  Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    //  Validate branchId
+    if (!itemId) {
+      return res.status(400).json({ message: "Item Id is required!" });
+    }
+
+
+    const item = await ITEMS.findOne({ _id: itemId })
+
+      return res.status(200).json({ data: item})
+  } catch (err) {
+    next(err);
+  }
+
 };
 
 export const deleteItems = async (

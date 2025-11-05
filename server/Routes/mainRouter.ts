@@ -8,7 +8,7 @@ import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, 
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
-import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
+import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 const router = express.Router();
 
@@ -96,6 +96,7 @@ router.delete('/unit/:unitId',verifyUser,checkPermission('admin','Unit','can_del
 //Items
 router.post('/item',verifyUser,checkPermission('admin','Item','can_create'),createItem)
 router.get('/item',verifyUser,checkPermission('admin','Item','can_read'),getAllItems)
+router.get('/item/one/:itemId',verifyUser,checkPermission('admin','Item','can_read'),getOneItem)
 router.put('/item',verifyUser,checkPermission('admin','Item','can_update'),updateItem)
 router.delete('/item/:itemId',verifyUser,checkPermission('admin','Item','can_delete'),deleteItems)
 
