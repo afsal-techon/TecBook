@@ -20,8 +20,13 @@ const port  = process.env.PORT;
 app.use(express.json());
 app.use(cookieParser());
 
+// app.use(cors({
+//   origin: ["http://localhost:3000", "http://192.168.10.117:3000"],
+//   credentials: true,
+// }));
+
 app.use(cors({
-  origin: ["http://localhost:3000", "http://192.168.10.117:3000"],
+  origin: "https://www.tecbooks.online",
   credentials: true,
 }));
 
