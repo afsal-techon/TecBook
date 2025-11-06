@@ -62,9 +62,10 @@ export const createBranch = async (
       });
       uploadedLogoUrl = uploadResponse.url;
     }
+    console.log(user._id,'userid')
 
     await BRANCH.create({
-      comapnyAdminId: user._id,
+      companyAdminId: user._id,
       branchName,
       country,
       state,
@@ -105,7 +106,7 @@ export const getAllBranches = async (
     const query: any = { isDeleted: false };
 
     if (user.role === "CompanyAdmin") {
-      query.comapnyAdminId = user._id;
+      query.companyAdminId = user._id;
     } else if (user.role === "User") {
       query._id = user.branchId;
     }
@@ -154,7 +155,9 @@ export const getAllBranchesForDropdown = async (
     const query: any = { isDeleted: false };
 
     if (user.role === "CompanyAdmin") {
-      query.comapnyAdminId = user._id;
+      query.companyAdminId = user._id;
+      
+
     } else if (user.role === "User") {
       query._id = user.branchId;
     }
@@ -173,6 +176,7 @@ export const getAllBranchesForDropdown = async (
       .sort({ createdAt: -1 }) // latest first
       .skip(skip)
       .limit(limit);
+   
 
     return res.status(200).json({
       data: branches,
@@ -298,3 +302,5 @@ export const deleteBranch = async (
     next(err);
   }
 };
+
+

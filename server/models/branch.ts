@@ -3,7 +3,7 @@ import { IBranch } from "../types/common.types";
 
 
 const branchSchema = new Schema<IBranch>({
-  comapnyAdminId: { type: Schema.Types.ObjectId, ref: "User", default: null },
+  companyAdminId: { type: Schema.Types.ObjectId, ref: "User", default: null },
   branchName: { type: String },
   trn: { type: String ,default:null},
   city: { type: String ,default:null},
@@ -25,7 +25,7 @@ const branchSchema = new Schema<IBranch>({
     timestamps:true
 });
 
-branchSchema.index({ comapnyAdminId: 1, branchName: 1 });
+branchSchema.index({ companyAdminId: 1, branchName: 1 });
 branchSchema.index({ branchName: 1 });
 branchSchema.index({ isDeleted:1})
 

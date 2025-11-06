@@ -3,11 +3,12 @@ import { IDepartment } from "../types/common.types";
 
 const DepartmentSchema = new Schema<IDepartment>(
   {
-    branchId: {
-      type: Schema.Types.ObjectId,
-      ref: "Branch",
-      default: null,
-    },
+     branchIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Branch",
+      },
+    ],
     dept_name: {
       type: String,
       trim: true,
@@ -41,6 +42,7 @@ const DepartmentSchema = new Schema<IDepartment>(
 DepartmentSchema.index({ branchId: 1, dept_name: 1 });
 DepartmentSchema.index({ branchId: 1, isDeleted: 1 });
 DepartmentSchema.index({ dept_name: 1 });
+DepartmentSchema.index({ "branchIds": 1 });
 
 const departmentModel: Model<IDepartment> = mongoose.model<IDepartment>(
   "Department",

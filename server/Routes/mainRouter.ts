@@ -28,13 +28,13 @@ router.delete('/branch/:branchId',verifyUser,checkPermission('admin','Branch','c
 
 //departemnt
 router.post("/department",verifyUser,checkPermission('admin','Department','can_create'),createDepartment);
-router.get("/department/:branchId",verifyUser,checkPermission('admin','Department','can_read'),getAllDepartment);
+router.get("/department",verifyUser,checkPermission('admin','Department','can_read'),getAllDepartment);
 router.put('/department',verifyUser,checkPermission('admin','Department','can_update'),updateDepartment);
 router.delete('/department/:departmentId',verifyUser,checkPermission('admin','Department','can_delete'),deleteDepartment);
 
 //position
 router.post('/position',verifyUser,checkPermission('admin','Position','can_create'),createPosition);
-router.get('/position/:branchId',verifyUser,checkPermission('admin','Position','can_read'),getALLPosition);
+router.get('/position',verifyUser,checkPermission('admin','Position','can_read'),getALLPosition);
 router.put('/position',verifyUser,checkPermission('admin','Position','can_update'),updatePosition)
 router.delete('/position/:positionId',verifyUser,checkPermission('admin','Position','can_delete'),deletePosition);
 

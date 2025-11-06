@@ -1,7 +1,7 @@
 import { Types, Document } from "mongoose";
 
 export interface IBranch extends Document {
-  comapnyAdminId?: Types.ObjectId | null;
+  companyAdminId?: Types.ObjectId | null;
   branchName?: string;
   country?: string;
   trn?: string;
@@ -39,7 +39,7 @@ export interface createBranchBody {
 }
 
 export interface IDepartment extends Document {
-  branchId?: Types.ObjectId | null;
+  branchIds?: Types.ObjectId[]; // ✅ store multiple branches
   dept_name?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
@@ -51,7 +51,7 @@ export interface IDepartment extends Document {
 }
 
 export interface IPosition extends Document {
-  branchId?: Types.ObjectId | null;
+   branchIds?: Types.ObjectId[];
   departmentId?: Types.ObjectId | null;
   pos_name?: string;
   createdById?: Types.ObjectId | null;
@@ -133,7 +133,7 @@ export interface IPermission extends Document {
 }
 
 export interface IDocumentType extends Document {
-  branchId?: Types.ObjectId | null;
+  branchIds?: Types.ObjectId[];
   doc_type?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
