@@ -90,12 +90,14 @@ export const loginUser = async (
       { expiresIn: "7d" }
     );
 
-    // res.cookie("token", token, {
-    //   httpOnly: true,
-    //   secure: false,
-    //   sameSite: "none",
-    //   path:'/'
-    // });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, // must be true on HTTPS
+      sameSite: "lax",
+      domain: ".tecbooks.online", // critical — share cookie across subdomains
+      path: "/",
+      // maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     return res.status(200).json({
       message: "Login successful",
@@ -177,25 +179,23 @@ export const createUser = async (
   }
 };
 
-
 export const getAllUsers = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
-    const branchId = req.query.branchId as string
+    const branchId = req.query.branchId as string;
 
     const userId = req.user?.id;
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-      if (!branchId) {
+    if (!branchId) {
       return res.status(400).json({ message: "Branch Id is required!" });
     }
-    
-       // pagination
+
+    // pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
@@ -203,7 +203,7 @@ export const getAllUsers = async (
     // search term
     const search = ((req.query.search as string) || "").trim();
 
-        const pipeline: any[] = [
+    const pipeline: any[] = [
       {
         $match: {
           branchId: new mongoose.Types.ObjectId(branchId),
@@ -224,10 +224,9 @@ export const getAllUsers = async (
           preserveNullAndEmptyArrays: true,
         },
       },
-      
     ];
 
-        // search by username or employee name
+    // search by username or employee name
     if (search.length > 0) {
       pipeline.push({
         $match: {
@@ -244,7 +243,7 @@ export const getAllUsers = async (
     const totalCountResult = await USER.aggregate(totalCountPipeline);
     const totalCount = totalCountResult[0]?.total || 0;
 
-        pipeline.push(
+    pipeline.push(
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
@@ -254,12 +253,12 @@ export const getAllUsers = async (
           username: 1,
           role: 1,
           branchId: 1,
-          permissions:1,
+          permissions: 1,
           "employee._id": 1,
           "employee.firstName": 1,
           "employee.lastName": 1,
           createdAt: 1,
-          updatedAt:1,
+          updatedAt: 1,
         },
       }
     );
@@ -272,12 +271,10 @@ export const getAllUsers = async (
       page,
       limit,
     });
-
   } catch (err) {
     next(err);
   }
 };
-
 
 export const updateUser = async (
   req: Request,
@@ -347,7 +344,6 @@ export const updateUser = async (
   }
 };
 
-
 export const deleteUser = async (
   req: Request,
   res: Response,
@@ -356,21 +352,25 @@ export const deleteUser = async (
   try {
     const userid = req.user?.id;
 
-    const { userId }  =req.params;
+    const { userId } = req.params;
 
     // Validate user
     const user = await USER.findOne({ _id: userid, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-     if (!userId) {
+    if (!userId) {
       return res.status(400).json({ message: "User Id is required!" });
     }
 
-      const companyAdmin = await USER.findOne({ _id: userId, role: "CompanyAdmin" });
+    const companyAdmin = await USER.findOne({
+      _id: userId,
+      role: "CompanyAdmin",
+    });
     if (companyAdmin) {
-      return res.status(400).json({ message: "Company Admin cannot be deleted!" });
+      return res
+        .status(400)
+        .json({ message: "Company Admin cannot be deleted!" });
     }
-
 
     await USER.findByIdAndUpdate(userId, {
       isDeleted: true,
@@ -382,7 +382,6 @@ export const deleteUser = async (
     return res.status(200).json({
       message: "User deleted successfully!",
     });
-
   } catch (err) {
     next(err);
   }

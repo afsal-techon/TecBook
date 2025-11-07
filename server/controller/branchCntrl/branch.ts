@@ -4,6 +4,7 @@ import { createBranchBody } from "../../types/common.types";
 import BRANCH from "../../models/branch";
 import { upload } from "../../middleware/imgUpload";
 import { imagekit } from "../../config/imageKit";
+import sharp from "sharp";
 
 export const createBranch = async (
   req: Request,
@@ -55,8 +56,13 @@ export const createBranch = async (
     let uploadedLogoUrl = null;
 
     if (req.file) {
+       const resizedBuffer = await sharp(req.file.buffer)
+    .resize({ width: 1024 })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
       const uploadResponse = await imagekit.upload({
-        file: req.file.buffer.toString("base64"),
+       file: `data:image/jpeg;base64,${resizedBuffer.toString("base64")}`,
         fileName: req.file.originalname,
         folder: "/images",
       });
@@ -235,8 +241,13 @@ export const updateBranch = async (
 
     // If new file is uploaded, upload to ImageKit
     if (req.file) {
+          const resizedBuffer = await sharp(req.file.buffer)
+    .resize({ width: 1024 })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
       const uploadResponse = await imagekit.upload({
-        file: req.file.buffer.toString("base64"),
+       file: `data:image/jpeg;base64,${resizedBuffer.toString("base64")}`,
         fileName: req.file.originalname,
         folder: "/images",
       });
