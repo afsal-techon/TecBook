@@ -99,15 +99,6 @@ export const loginUser = async (
       // maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.cookie("token", token, {
-  httpOnly: true,
-  secure: true, // must be true on HTTPS
-  sameSite: "none",
-  domain: ".tecbooks.online", // critical — share cookie across subdomains
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-});
-
     return res.status(200).json({
       message: "Login successful",
       user,
