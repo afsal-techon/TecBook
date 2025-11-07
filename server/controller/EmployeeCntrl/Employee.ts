@@ -986,36 +986,61 @@ export const getEmployees = async (
   try {
     const userId = req.user?.id;
 
-    // Validate user
+    // 🔹 Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-    // Validate branchId
+    const userRole = user.role; // "CompanyAdmin" or "User"
+    const filterBranchId = req.query.branchId as string; // optional
+    const search = ((req.query.search as string) || "").trim();
+    const filterDepartmentName = req.query.departmentId as string; 
+    const filterPositionName = req.query.positionId as string;
+    const filterGender = ((req.query.gender as string) || "").trim();
 
     // Pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
-    
 
-    // Search & filters
-    const search = ((req.query.search as string) || "").trim();
-    const branchId = req.query.branchId as string;
-    const filterDepartmentName = req.query.departmentId as string; // dept_name from frontend
-    const filterPositionName = req.query.positionId as string;
-    const filterGender = ((req.query.gender as string) || "").trim();
+    // 🔹 Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
 
-        let allowedBranchIds: mongoose.Types.ObjectId[] = [];
-    
-    
+    if (userRole === "CompanyAdmin") {
+      // Fetch all branches owned by the CompanyAdmin
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res
+          .status(400)
+          .json({ message: "User is not assigned to any branch!" });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
 
-    if (!branchId)
-      return res.status(400).json({ message: "Branch Id is required!" });
-    // Build aggregation pipeline
-     const pipeline: any[] = [
+    // 🔹 Apply branch filter if passed
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view employees for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
+
+    // 🔹 Build pipeline
+    const pipeline: any[] = [
       {
         $match: {
-          branchId: new mongoose.Types.ObjectId(branchId),
+          branchId: { $in: allowedBranchIds },
           isDeleted: false,
         },
       },
@@ -1041,10 +1066,10 @@ export const getEmployees = async (
       },
       { $unwind: { path: "$position", preserveNullAndEmptyArrays: true } },
 
-      // 👇 Join DocumentType for each document in documents array
+      // Join Document Types
       {
         $lookup: {
-          from: "documenttypes", // collection name (check your MongoDB)
+          from: "documenttypes",
           localField: "documents.doc_typeId",
           foreignField: "_id",
           as: "docTypeDetails",
@@ -1087,7 +1112,7 @@ export const getEmployees = async (
       { $unset: "docTypeDetails" },
     ];
 
-    // Search across employee fields + department + position
+    // 🔹 Filters
     if (search.length > 0) {
       pipeline.push({
         $match: {
@@ -1105,7 +1130,6 @@ export const getEmployees = async (
             { gender: { $regex: search, $options: "i" } },
             { maritalStatus: { $regex: search, $options: "i" } },
             { empId: { $regex: search, $options: "i" } },
-            { dateOfBirth: { $regex: search, $options: "i" } },
             { "department.dept_name": { $regex: search, $options: "i" } },
             { "position.pos_name": { $regex: search, $options: "i" } },
           ],
@@ -1113,23 +1137,18 @@ export const getEmployees = async (
       });
     }
 
-    // Department filter by name
     if (filterDepartmentName) {
       pipeline.push({
         $match: {
-          "department.dept_name": {
-            $regex: filterDepartmentName,
-            $options: "i",
-          },
+          "department._id": new mongoose.Types.ObjectId(filterDepartmentName),
         },
       });
     }
 
-    // Position filter by name
     if (filterPositionName) {
       pipeline.push({
         $match: {
-          "position.pos_name": { $regex: filterPositionName, $options: "i" },
+          "position._id": new mongoose.Types.ObjectId(filterPositionName),
         },
       });
     }
@@ -1139,22 +1158,16 @@ export const getEmployees = async (
         $match: { gender: { $regex: filterGender, $options: "i" } },
       });
     }
-    
-    
 
-    // Count total documents after filters
+    // 🔹 Count total after filters
     const countPipeline = [...pipeline, { $count: "total" }];
     const countResult = await EMPLOYEE.aggregate(countPipeline);
-
-    
     const totalCount = countResult[0]?.total || 0;
 
-    // Pagination & sort
+    // 🔹 Pagination & projection
     pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
-
-    // Project to include dept_name & pos_name
     pipeline.push({
       $project: {
         firstName: 1,
@@ -1172,21 +1185,19 @@ export const getEmployees = async (
         gender: 1,
         maritalStatus: 1,
         salary: 1,
-        dateOfBirth:1,
+        dateOfBirth: 1,
         dateOfJoining: 1,
         documents: 1,
-        branchId:1,
+        branchId: 1,
         dept_name: "$department.dept_name",
         pos_name: "$position.pos_name",
-        departmentId:"$department._id",
-        positionId:"$position._id",
+        departmentId: "$department._id",
+        positionId: "$position._id",
       },
     });
 
+    //  Execute
     const employees = await EMPLOYEE.aggregate(pipeline);
-
-  
-    
 
     return res.status(200).json({
       data: employees,
@@ -1198,6 +1209,7 @@ export const getEmployees = async (
     next(err);
   }
 };
+
 
 export const deleteEmployee = async (
   req: Request,
@@ -1221,6 +1233,8 @@ export const deleteEmployee = async (
     if (!employee) {
       return res.status(404).json({ message: "Employee not found!" });
     }
+
+
   
 
     await EMPLOYEE.findByIdAndUpdate(employeeId, {
