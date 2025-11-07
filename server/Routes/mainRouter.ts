@@ -1,5 +1,5 @@
 import express from 'express';
-import { createAdmin, createUser, deleteUser, getAllUsers, getUser, loginUser, updateUser } from '../controller/UserCntrl/UserAuth';
+import { createAdmin, createUser, deleteUser, getAllUsers, getUser, loginUser, logoutHandle, updateUser } from '../controller/UserCntrl/UserAuth';
 import { verifyUser } from '../middleware/auth';
 import { createBranch, deleteBranch, getAllBranches, getAllBranchesForDropdown, updateBranch } from '../controller/branchCntrl/branch';
 import { createDepartment, createDocumentType, createEmployee, createPosition, deleteDepartment, deleteDocumentType, deleteEmployee, deletePosition, getAllDepartment, getAllDocumentTypes, getALLPosition, getEmployees, updateDepartment, updateDocument, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
