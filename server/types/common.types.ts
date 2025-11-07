@@ -195,7 +195,10 @@ export interface ICustomer extends Document {
   branchId?: Types.ObjectId | null;
   name?: string;
   phone?: number;
+  email?:string;
   openingBalance?: number;
+  paymentTerms?:string;
+  currency?:string;
   note?: string;
   billingInfo?: {
     country?: string | null;
@@ -212,6 +215,13 @@ export interface ICustomer extends Document {
   taxTreatment?: string | null;
   trn?: string | null;
   placeOfSupplay?: string | null;
+    documents?: {
+    doc_name: string | null;
+    doc_file: string | null;
+    doc_typeId: Types.ObjectId | null;
+    startDate: Date | null;
+    endDate: Date | null;
+  }[];
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
@@ -275,6 +285,9 @@ export interface IItem extends Document {
     description?: Types.ObjectId | null;
   };
   sellable:boolean,
+  saleUnit:string | null;
+  conversionRate:string | null;
+  purhcaseUnit:string | null;
   purchasable:boolean,
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
