@@ -52,7 +52,6 @@ const createBranch = async (req, res, next) => {
             });
             uploadedLogoUrl = uploadResponse.url;
         }
-        console.log(user._id, 'userid');
         await branch_1.default.create({
             companyAdminId: user._id,
             branchName,

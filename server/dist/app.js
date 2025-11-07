@@ -15,7 +15,8 @@ const cors_1 = __importDefault(require("cors"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT;
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: "50mb" }));
+app.use(express_1.default.urlencoded({ extended: true, limit: "50mb" }));
 app.use((0, cookie_parser_1.default)());
 // app.use(cors({
 //   origin: ["http://localhost:3000", "http://192.168.10.117:3000"],

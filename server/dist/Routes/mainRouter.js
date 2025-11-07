@@ -19,6 +19,7 @@ const router = express_1.default.Router();
 router.post('/create-admin', UserAuth_1.createAdmin);
 router.post('/login', UserAuth_1.loginUser);
 router.get('/user', auth_1.verifyUser, UserAuth_1.getUser);
+router.post('/logout', auth_1.verifyUser, UserAuth_1.logoutHandle);
 //branch
 router.post("/branch", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_create'), imgUpload_1.upload.single('logo'), branch_1.createBranch);
 router.get("/branch", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_read'), branch_1.getAllBranches);
@@ -59,9 +60,9 @@ router.post('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin
 router.get('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_read'), accountCntrl_1.getAccounts);
 router.put('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_update'), accountCntrl_1.updateAccount);
 router.delete('/account/:accountId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_delete'), accountCntrl_1.deleteAcccount);
-router.post('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_create'), customerCntrl_1.createCustomer);
+router.post('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_create'), imgUpload_1.upload.array('documents', 10), customerCntrl_1.createCustomer);
 router.get('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_read'), customerCntrl_1.getCustomers);
-router.put('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_update'), customerCntrl_1.updateCustomer);
+router.put('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_update'), imgUpload_1.upload.array('documents', 10), customerCntrl_1.updateCustomer);
 router.delete('/customer/:customerId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_delete'), customerCntrl_1.deleteCustomer);
 //inventory
 //category

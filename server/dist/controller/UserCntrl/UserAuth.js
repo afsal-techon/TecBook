@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.updateUser = exports.getAllUsers = exports.createUser = exports.getUser = exports.loginUser = exports.createAdmin = void 0;
+exports.deleteUser = exports.updateUser = exports.getAllUsers = exports.createUser = exports.logoutHandle = exports.getUser = exports.loginUser = exports.createAdmin = void 0;
 const user_1 = __importDefault(require("../../models/user"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -96,6 +96,22 @@ const getUser = async (req, res, next) => {
     }
 };
 exports.getUser = getUser;
+const logoutHandle = async (req, res, next) => {
+    try {
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true, // must match your login cookie
+            sameSite: "lax",
+            domain: ".tecbooks.online", // same domain as login cookie
+            path: "/",
+        });
+        return res.status(200).json({ message: "Logged out successfully" });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.logoutHandle = logoutHandle;
 const createUser = async (req, res, next) => {
     try {
         const { branchId, employeeId, username, password, permissionIds } = req.body;
