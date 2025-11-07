@@ -122,6 +122,27 @@ export const getUser = async (
   }
 };
 
+
+export const logoutHandle = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+       res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,            // must match your login cookie
+      sameSite: "lax",
+      domain: ".tecbooks.online", // same domain as login cookie
+      path: "/",
+    });
+        return res.status(200).json({ message: "Logged out successfully" });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const createUser = async (
   req: Request,
   res: Response,

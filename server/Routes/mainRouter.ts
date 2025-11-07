@@ -16,6 +16,7 @@ const router = express.Router();
 router.post('/create-admin',createAdmin)
 router.post('/login',loginUser);
 router.get('/user',verifyUser,getUser);
+router.post('/logout',verifyUser,logoutHandle)
 
 
 //branch
