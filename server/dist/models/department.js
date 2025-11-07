@@ -35,11 +35,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const DepartmentSchema = new mongoose_1.Schema({
-    branchId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Branch",
-        default: null,
-    },
+    branchIds: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Branch",
+        },
+    ],
     dept_name: {
         type: String,
         trim: true,
@@ -71,5 +72,6 @@ const DepartmentSchema = new mongoose_1.Schema({
 DepartmentSchema.index({ branchId: 1, dept_name: 1 });
 DepartmentSchema.index({ branchId: 1, isDeleted: 1 });
 DepartmentSchema.index({ dept_name: 1 });
+DepartmentSchema.index({ "branchIds": 1 });
 const departmentModel = mongoose_1.default.model("Department", DepartmentSchema);
 exports.default = departmentModel;

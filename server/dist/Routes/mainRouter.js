@@ -27,12 +27,12 @@ router.put("/branch", auth_1.verifyUser, (0, checkPermission_1.default)('admin',
 router.delete('/branch/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Branch', 'can_delete'), branch_1.deleteBranch);
 //departemnt
 router.post("/department", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_create'), Employee_1.createDepartment);
-router.get("/department/:branchId", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_read'), Employee_1.getAllDepartment);
+router.get("/department", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_read'), Employee_1.getAllDepartment);
 router.put('/department', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_update'), Employee_1.updateDepartment);
 router.delete('/department/:departmentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Department', 'can_delete'), Employee_1.deleteDepartment);
 //position
 router.post('/position', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_create'), Employee_1.createPosition);
-router.get('/position/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_read'), Employee_1.getALLPosition);
+router.get('/position', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_read'), Employee_1.getALLPosition);
 router.put('/position', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_update'), Employee_1.updatePosition);
 router.delete('/position/:positionId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Position', 'can_delete'), Employee_1.deletePosition);
 //employee

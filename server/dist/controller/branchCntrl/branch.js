@@ -7,6 +7,7 @@ exports.deleteBranch = exports.updateBranch = exports.getAllBranchesForDropdown 
 const user_1 = __importDefault(require("../../models/user"));
 const branch_1 = __importDefault(require("../../models/branch"));
 const imageKit_1 = require("../../config/imageKit");
+const sharp_1 = __importDefault(require("sharp"));
 const createBranch = async (req, res, next) => {
     try {
         const userId = req.user?.id;
@@ -40,15 +41,20 @@ const createBranch = async (req, res, next) => {
             return res.status(400).json({ message: "Currency symbol is required!" });
         let uploadedLogoUrl = null;
         if (req.file) {
+            const resizedBuffer = await (0, sharp_1.default)(req.file.buffer)
+                .resize({ width: 1024 })
+                .jpeg({ quality: 80 })
+                .toBuffer();
             const uploadResponse = await imageKit_1.imagekit.upload({
-                file: req.file.buffer.toString("base64"),
+                file: `data:image/jpeg;base64,${resizedBuffer.toString("base64")}`,
                 fileName: req.file.originalname,
                 folder: "/images",
             });
             uploadedLogoUrl = uploadResponse.url;
         }
+        console.log(user._id, 'userid');
         await branch_1.default.create({
-            comapnyAdminId: user._id,
+            companyAdminId: user._id,
             branchName,
             country,
             state,
@@ -80,7 +86,7 @@ const getAllBranches = async (req, res, next) => {
         const search = req.query.search || "";
         const query = { isDeleted: false };
         if (user.role === "CompanyAdmin") {
-            query.comapnyAdminId = user._id;
+            query.companyAdminId = user._id;
         }
         else if (user.role === "User") {
             query._id = user.branchId;
@@ -120,7 +126,7 @@ const getAllBranchesForDropdown = async (req, res, next) => {
         const search = req.query.search || "";
         const query = { isDeleted: false };
         if (user.role === "CompanyAdmin") {
-            query.comapnyAdminId = user._id;
+            query.companyAdminId = user._id;
         }
         else if (user.role === "User") {
             query._id = user.branchId;
@@ -171,8 +177,12 @@ const updateBranch = async (req, res, next) => {
         let uploadedLogoUrl = branch.logo; // keep existing logo by default
         // If new file is uploaded, upload to ImageKit
         if (req.file) {
+            const resizedBuffer = await (0, sharp_1.default)(req.file.buffer)
+                .resize({ width: 1024 })
+                .jpeg({ quality: 80 })
+                .toBuffer();
             const uploadResponse = await imageKit_1.imagekit.upload({
-                file: req.file.buffer.toString("base64"),
+                file: `data:image/jpeg;base64,${resizedBuffer.toString("base64")}`,
                 fileName: req.file.originalname,
                 folder: "/images",
             });

@@ -67,19 +67,13 @@ const loginUser = async (req, res, next) => {
             return res.status(401).json({ message: "Invalid password!" });
         }
         const token = jsonwebtoken_1.default.sign({ id: user._id, username: user.username, role: user.role }, process.env.SECRET_KEY, { expiresIn: "7d" });
-        // res.cookie("token", token, {
-        //   httpOnly: true,
-        //   secure: false,
-        //   sameSite: "none",
-        //   path:'/'
-        // });
         res.cookie("token", token, {
             httpOnly: true,
             secure: true, // must be true on HTTPS
-            sameSite: "none",
+            sameSite: "lax",
             domain: ".tecbooks.online", // critical — share cookie across subdomains
             path: "/",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            // maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
         return res.status(200).json({
             message: "Login successful",
@@ -293,9 +287,14 @@ const deleteUser = async (req, res, next) => {
         if (!userId) {
             return res.status(400).json({ message: "User Id is required!" });
         }
-        const companyAdmin = await user_1.default.findOne({ _id: userId, role: "CompanyAdmin" });
+        const companyAdmin = await user_1.default.findOne({
+            _id: userId,
+            role: "CompanyAdmin",
+        });
         if (companyAdmin) {
-            return res.status(400).json({ message: "Company Admin cannot be deleted!" });
+            return res
+                .status(400)
+                .json({ message: "Company Admin cannot be deleted!" });
         }
         await user_1.default.findByIdAndUpdate(userId, {
             isDeleted: true,

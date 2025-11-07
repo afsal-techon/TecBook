@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const branchSchema = new mongoose_1.Schema({
-    comapnyAdminId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", default: null },
+    companyAdminId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", default: null },
     branchName: { type: String },
     trn: { type: String, default: null },
     city: { type: String, default: null },
@@ -56,7 +56,7 @@ const branchSchema = new mongoose_1.Schema({
 }, {
     timestamps: true
 });
-branchSchema.index({ comapnyAdminId: 1, branchName: 1 });
+branchSchema.index({ companyAdminId: 1, branchName: 1 });
 branchSchema.index({ branchName: 1 });
 branchSchema.index({ isDeleted: 1 });
 const branchModel = mongoose_1.default.model("Branch", branchSchema);

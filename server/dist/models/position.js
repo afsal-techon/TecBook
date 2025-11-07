@@ -35,11 +35,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const PositionSchema = new mongoose_1.Schema({
-    branchId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Branch",
-        default: null,
-    },
+    branchIds: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Branch",
+        },
+    ],
     departmentId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Department",
@@ -74,8 +75,10 @@ const PositionSchema = new mongoose_1.Schema({
 }, { timestamps: true } //  automatically adds createdAt & updatedAt
 );
 //  Indexes for faster lookups
-PositionSchema.index({ branchId: 1, departmentId: 1, pos_name: 1 });
-PositionSchema.index({ branchId: 1, isDeleted: 1 });
+PositionSchema.index({ branchIds: 1, departmentId: 1, pos_name: 1 });
+PositionSchema.index({ branchIds: 1, isDeleted: 1 });
 PositionSchema.index({ pos_name: 1 });
+PositionSchema.index({ "branchIds": 1 });
+PositionSchema.index({ departmentId: 1, isDeleted: 1 });
 const positionModel = mongoose_1.default.model("Position", PositionSchema);
 exports.default = positionModel;
