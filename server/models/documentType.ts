@@ -3,11 +3,12 @@ import { IDocumentType } from "../types/common.types";
 
 const documentSchema = new Schema<IDocumentType>(
   {
-    branchId: {
-      type: Schema.Types.ObjectId,
-      ref: "Branch",
-      default: null,
-    },
+      branchIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Branch",
+      },
+    ],
     doc_type: {
       type: String,
       trim: true,

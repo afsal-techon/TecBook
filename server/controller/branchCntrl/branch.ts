@@ -4,6 +4,7 @@ import { createBranchBody } from "../../types/common.types";
 import BRANCH from "../../models/branch";
 import { upload } from "../../middleware/imgUpload";
 import { imagekit } from "../../config/imageKit";
+import sharp from "sharp";
 
 export const createBranch = async (
   req: Request,
@@ -55,16 +56,22 @@ export const createBranch = async (
     let uploadedLogoUrl = null;
 
     if (req.file) {
+       const resizedBuffer = await sharp(req.file.buffer)
+    .resize({ width: 1024 })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
       const uploadResponse = await imagekit.upload({
-        file: req.file.buffer.toString("base64"),
+       file: `data:image/jpeg;base64,${resizedBuffer.toString("base64")}`,
         fileName: req.file.originalname,
         folder: "/images",
       });
       uploadedLogoUrl = uploadResponse.url;
     }
+    console.log(user._id,'userid')
 
     await BRANCH.create({
-      comapnyAdminId: user._id,
+      companyAdminId: user._id,
       branchName,
       country,
       state,
@@ -105,7 +112,7 @@ export const getAllBranches = async (
     const query: any = { isDeleted: false };
 
     if (user.role === "CompanyAdmin") {
-      query.comapnyAdminId = user._id;
+      query.companyAdminId = user._id;
     } else if (user.role === "User") {
       query._id = user.branchId;
     }
@@ -154,7 +161,9 @@ export const getAllBranchesForDropdown = async (
     const query: any = { isDeleted: false };
 
     if (user.role === "CompanyAdmin") {
-      query.comapnyAdminId = user._id;
+      query.companyAdminId = user._id;
+      
+
     } else if (user.role === "User") {
       query._id = user.branchId;
     }
@@ -173,6 +182,7 @@ export const getAllBranchesForDropdown = async (
       .sort({ createdAt: -1 }) // latest first
       .skip(skip)
       .limit(limit);
+   
 
     return res.status(200).json({
       data: branches,
@@ -231,8 +241,13 @@ export const updateBranch = async (
 
     // If new file is uploaded, upload to ImageKit
     if (req.file) {
+          const resizedBuffer = await sharp(req.file.buffer)
+    .resize({ width: 1024 })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
       const uploadResponse = await imagekit.upload({
-        file: req.file.buffer.toString("base64"),
+       file: `data:image/jpeg;base64,${resizedBuffer.toString("base64")}`,
         fileName: req.file.originalname,
         folder: "/images",
       });
@@ -298,3 +313,5 @@ export const deleteBranch = async (
     next(err);
   }
 };
+
+

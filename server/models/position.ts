@@ -3,11 +3,12 @@ import { IPosition } from "../types/common.types";
 
 const PositionSchema = new Schema<IPosition>(
   {
-    branchId: {
-      type: Schema.Types.ObjectId,
-      ref: "Branch",
-      default: null,
-    },
+    branchIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Branch",
+      },
+    ],
     departmentId: {
       type: Schema.Types.ObjectId,
       ref: "Department",
@@ -44,9 +45,12 @@ const PositionSchema = new Schema<IPosition>(
 );
 
 //  Indexes for faster lookups
-PositionSchema.index({ branchId: 1, departmentId: 1, pos_name: 1 });
-PositionSchema.index({ branchId: 1, isDeleted: 1 });
+PositionSchema.index({ branchIds: 1, departmentId: 1, pos_name: 1 });
+PositionSchema.index({ branchIds: 1, isDeleted: 1 });
 PositionSchema.index({ pos_name: 1 });
+PositionSchema.index({ "branchIds": 1 });
+PositionSchema.index({ departmentId: 1, isDeleted: 1 });
+
 
 const positionModel: Model<IPosition> = mongoose.model<IPosition>(
   "Position",
