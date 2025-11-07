@@ -74,9 +74,9 @@ router.put('/account',verifyUser,checkPermission('admin','Accounts','can_update'
 router.delete('/account/:accountId',verifyUser,checkPermission('admin','Accounts','can_delete'),deleteAcccount)
 
 
-router.post('/customer',verifyUser,checkPermission('admin','Customer','can_create'),createCustomer)
+router.post('/customer',verifyUser,checkPermission('admin','Customer','can_create'),upload.array('documents',10),createCustomer)
 router.get('/customer',verifyUser,checkPermission('admin','Customer','can_read'),getCustomers)
-router.put('/customer',verifyUser,checkPermission('admin','Customer','can_update'),updateCustomer)
+router.put('/customer',verifyUser,checkPermission('admin','Customer','can_update'),upload.array('documents',10),updateCustomer)
 router.delete('/customer/:customerId',verifyUser,checkPermission('admin','Customer','can_delete'),deleteCustomer)
 
 
@@ -99,6 +99,7 @@ router.get('/item',verifyUser,checkPermission('admin','Item','can_read'),getAllI
 router.get('/item/one/:itemId',verifyUser,checkPermission('admin','Item','can_read'),getOneItem)
 router.put('/item',verifyUser,checkPermission('admin','Item','can_update'),updateItem)
 router.delete('/item/:itemId',verifyUser,checkPermission('admin','Item','can_delete'),deleteItems)
+
 
 //vendor
 router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),CreateVendor)

@@ -68,7 +68,7 @@ export const createBranch = async (
       });
       uploadedLogoUrl = uploadResponse.url;
     }
-    console.log(user._id,'userid')
+
 
     await BRANCH.create({
       companyAdminId: user._id,

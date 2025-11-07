@@ -11,6 +11,9 @@ import DOC_TYPE from '../../models/documentType'
 import { Types } from "mongoose";
 
 
+
+
+
 export const createDepartment = async (
   req: Request,
   res: Response,
