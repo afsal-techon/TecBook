@@ -18,11 +18,6 @@ const itemSchema = new Schema<IItem>(
         default:null,
         trim: true,
     },
-    unitId: {
-      type: Schema.Types.ObjectId,
-      ref: "Unit",
-      default: null,
-    },
         taxId: {
       type: Schema.Types.ObjectId,
       ref: "Tax",
@@ -36,12 +31,19 @@ const itemSchema = new Schema<IItem>(
       sellingPrice: { type: Number, default: null },
       accountId: { type: Schema.Types.ObjectId, ref: "Account", default: null },
       description: { type: String, default: null },
+       saleUnitId: { type: Schema.Types.ObjectId, ref: "Unit", default: null },
     },
     purchaseInfo: {
       costPrice: { type: Number, default: null },
       accountId: { type: Schema.Types.ObjectId, ref: "Account", default: null },
       description: { type: String, default: null },
+     purchaseUnitId: { type: Schema.Types.ObjectId, ref: "Unit", default: null }
     },
+    conversionRate:{
+      type:Number,
+      default:1
+    },
+    taxTreatment:{ type:String, default:null},
     sellable:{
         type:Boolean,
         default:false
@@ -50,6 +52,13 @@ const itemSchema = new Schema<IItem>(
         type:Boolean,
         default:false
     },
+    inventoryTracking: {
+  isTrackable: { type: Boolean, default: false },
+  inventoryAccountId: { type: Schema.Types.ObjectId, ref: "Account", default: null },
+  openingStock: { type: Number, default: 0 },
+  openingStockRatePerUnit: { type: Number, default: 0 },
+  reorderPoint: { type: Number, default: 0 },
+},
     isDeleted: {
       type: Boolean,
       default: false,

@@ -267,28 +267,39 @@ export interface IUnit extends Document {
   updatedAt?: Date;
 }
 
+export interface InventoryTracking {
+  isTrackable: boolean;
+  inventoryAccountId?: Types.ObjectId | null;
+  openingStock?: number | null;
+  openingStockRatePerUnit?: number | null;
+  reOrderPoint?: number | null;
+}
+
 export interface IItem extends Document {
   branchId?: Types.ObjectId | null;
   categoryId?: Types.ObjectId | null;
-  unitId?: Types.ObjectId | null;
   taxId?:Types.ObjectId |  null;
   name:string;
   type: string;
   salesInfo?: {
     sellingPrice?: string | null;
     accountId?: Types.ObjectId | null;
-    description?: Types.ObjectId | null;
+    description?: Types.ObjectId | null; 
+     saleUnit: Types.ObjectId | null; 
   };
   purchaseInfo?: {
     costPrice?: string | null;
     accountId?: Types.ObjectId | null;
     description?: Types.ObjectId | null;
+      purhcaseUnit:Types.ObjectId | null; 
   };
+   inventoryTracking?: InventoryTracking
+  taxTreatment:string | null;
   sellable:boolean,
-  saleUnit:string | null;
-  conversionRate:string | null;
-  purhcaseUnit:string | null;
+  conversionRate: number | null;
   purchasable:boolean,
+  totalOpeningValue?: number | null;
+  totalStockInBaseUnit?: number | null;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
@@ -299,23 +310,30 @@ export interface IItem extends Document {
 }
 
 
+
 export interface IQuotes extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
+  projectId?: Types.ObjectId | null;
   quoteId:string;
-  quoteDate: string;
-  ExpDate: string;
-  salesPersonId:string;
-  termsAndCondition:string;
-  projectName:string;
+  quoteDate: Date | null;
+  expDate: Date | null;
+  salesPersonId:Types.ObjectId | null;
+  terms:string;
   note:string;
-  documents:[];
-  itemDetails?: {
+documents?: string[]; 
+  item?: {
     itemId: Types.ObjectId | null;
-    qty: string | null;
+    qty: number | null;
+    tax :number  | null;
     rate: Types.ObjectId | null;
-    amount: Date | null;
+    amount: number | null;
   }[];
+  status:string | null;
+  subTotal:number | null;
+  total: number | null;
+  taxTotal: number | null;
+  discount:number | null;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
