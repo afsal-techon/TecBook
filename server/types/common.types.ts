@@ -285,13 +285,13 @@ export interface IItem extends Document {
     sellingPrice?: string | null;
     accountId?: Types.ObjectId | null;
     description?: Types.ObjectId | null; 
-     saleUnit: Types.ObjectId | null; 
+     saleUnitId: Types.ObjectId | null; 
   };
   purchaseInfo?: {
     costPrice?: string | null;
     accountId?: Types.ObjectId | null;
     description?: Types.ObjectId | null;
-      purhcaseUnit:Types.ObjectId | null; 
+      purchaseUnitId:Types.ObjectId | null; 
   };
    inventoryTracking?: InventoryTracking
   taxTreatment:string | null;

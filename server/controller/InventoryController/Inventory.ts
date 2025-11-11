@@ -556,13 +556,13 @@ export const createItem = async (
         sellingPrice: salesInfo?.sellingPrice || null,
         accountId: salesInfo?.accountId || null,
         description: salesInfo?.description || null,
-        saleUnit: salesInfo?.saleUnit || null,
+        saleUnitId: salesInfo?.saleUnitId || null,
       },
       purchaseInfo: {
         costPrice: purchaseInfo?.costPrice || null,
         accountId: purchaseInfo?.accountId || null,
         description: purchaseInfo?.description || null,
-        purhcaseUnit: purchaseInfo?.purhcaseUnit || null,
+        purchaseUnitId: purchaseInfo?.purchaseUnitId || null,
       },
       conversionRate: conversionRate || 1,
       taxTreatment: taxTreatment || null,
@@ -719,7 +719,7 @@ export const updateItem = async (
         sellingPrice: salesInfo.sellingPrice ?? item.salesInfo?.sellingPrice,
         accountId: salesInfo.accountId ?? item.salesInfo?.accountId,
         description: salesInfo.description ?? item.salesInfo?.description,
-        saleUnit: salesInfo.saleUnit ?? item.salesInfo?.saleUnit,
+        saleUnitId: salesInfo.saleUnitId ?? item.salesInfo?.saleUnitId,
       };
     }
 
@@ -730,8 +730,8 @@ export const updateItem = async (
         costPrice: purchaseInfo.costPrice ?? item.purchaseInfo?.costPrice,
         accountId: purchaseInfo.accountId ?? item.purchaseInfo?.accountId,
         description: purchaseInfo.description ?? item.purchaseInfo?.description,
-        purhcaseUnit:
-          purchaseInfo.purhcaseUnit ?? item.purchaseInfo?.purhcaseUnit,
+        purchaseUnitId:
+          purchaseInfo.purchaseUnitId ?? item.purchaseInfo?.purchaseUnitId,
       };
     }
 
