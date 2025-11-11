@@ -5,6 +5,7 @@ import CUSTOMER from "../../models/customer";
 import { imagekit } from "../../config/imageKit";
 import { Types } from "mongoose";
 import BRANCH from '../../models/branch'
+import mongoose from "mongoose";
 
 export const createQuotes = async (
   req: Request,
@@ -254,6 +255,174 @@ export const updateQuotes = async (
 
     return res.status(200).json({
       message: "Quotation updated successfully.",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getAllQuotes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    // 🔹 Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    const userRole = user.role; // "CompanyAdmin" or "User"
+    const filterBranchId = req.query.branchId as string;
+    const search = ((req.query.search as string) || "").trim();
+
+    // Date filters
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+
+    // Pagination
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    // 🔹 Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res
+          .status(400)
+          .json({ message: "User is not assigned to any branch!" });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
+
+    // 🔹 Apply branch filter if passed
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view quotations for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
+
+    // 🔹 Base match condition
+    const matchStage: any = {
+      branchId: { $in: allowedBranchIds },
+      isDeleted: false,
+    };
+
+    // 🔹 Date filter (quoteDate)
+    if (startDate && endDate) {
+      matchStage.quoteDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (startDate) {
+      matchStage.quoteDate = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      matchStage.quoteDate = { $lte: new Date(endDate) };
+    }
+
+    // 🔹 Pipeline
+    const pipeline: any[] = [
+      { $match: matchStage },
+
+      // Join Customer
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+
+      // Join Sales Person (user)
+      {
+        $lookup: {
+          from: "users",
+          localField: "salesPersonId",
+          foreignField: "_id",
+          as: "salesPerson",
+        },
+      },
+      { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
+    ];
+
+    // 🔹 Search
+    if (search.length > 0) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { quoteId: { $regex: search, $options: "i" } },
+            { status: { $regex: search, $options: "i" } },
+            { "customer.name": { $regex: search, $options: "i" } },
+            { "customer.email": { $regex: search, $options: "i" } },
+            { "salesPerson.firstName": { $regex: search, $options: "i" } },
+            { "salesPerson.lastName": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // 🔹 Count total after filters
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await QUOTATION.aggregate(countPipeline);
+    const totalCount = countResult[0]?.total || 0;
+
+    // 🔹 Pagination + sorting
+    pipeline.push({ $sort: { createdAt: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // 🔹 Project fields
+    pipeline.push({
+      $project: {
+        quoteId: 1,
+        branchId: 1,
+        customerId: 1,
+        projectId: 1,
+        salesPersonId: 1,
+        quoteDate: 1,
+        expDate: 1,
+        status: 1,
+        subTotal: 1,
+        taxTotal: 1,
+        total: 1,
+        discount: 1,
+        documents: 1,
+        createdAt: 1,
+        "customer.name": 1,
+        "customer.email": 1,
+        "salesPerson.firstName": 1,
+        "salesPerson.lastName": 1,
+      },
+    });
+
+    // 🔹 Execute
+    const quotes = await QUOTATION.aggregate(pipeline);
+
+    return res.status(200).json({
+      data: quotes,
+      totalCount,
+      page,
+      limit,
     });
   } catch (err) {
     next(err);
