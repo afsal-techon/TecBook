@@ -7,8 +7,8 @@ import { jwtPayload } from "../types/user.types";
 
 export const verifyUser = (req:Request,res:Response,next:NextFunction)=>{
     try {
-        const token = req.header("Authorization");
-          //  const token = req.cookies.token;
+        // const token = req.header("Authorization");
+           const token = req.cookies.token;
         
           if (!token) {
       return res.status(401).json({ message: "Unauthorized: No token provided" });

@@ -87,7 +87,7 @@ export const loginUser = async (
     const token = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       process.env.SECRET_KEY as string,
-      { expiresIn: "7d" }
+      { expiresIn: "1y" }
     );
 
     res.cookie("token", token, {
@@ -96,7 +96,7 @@ export const loginUser = async (
       sameSite: "lax",
       domain: ".tecbooks.online", // critical — share cookie across subdomains
       path: "/",
-      // maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year days
     });
 
     return res.status(200).json({
