@@ -235,11 +235,11 @@ export const updateDepartment = async (
         .json({ message: "New department name is required!" });
     }
 
-    const branches = await BRANCH.find({ _id: { $in: branchIds } });
-      //  if (branches.length !== branchIds.length)
-      // return res
-      //   .status(400)
-      //   .json({ message: "One or more branches not found!" });
+    // const branches = await BRANCH.find({ _id: { $in: branchIds } });
+    //    if (branches.length !== branchIds.length)
+    //   return res
+    //     .status(400)
+    //     .json({ message: "One or more branches not found!" });
 
     const department = await DEPARTMENT.findOne({
       _id: departmentId,

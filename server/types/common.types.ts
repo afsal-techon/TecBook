@@ -244,7 +244,7 @@ export interface ICategory extends Document {
 }
 
 export interface ICategory extends Document {
-  branchId?: Types.ObjectId | null;
+  branchIds?: Types.ObjectId[]; 
   name?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
@@ -256,7 +256,7 @@ export interface ICategory extends Document {
 }
 
 export interface IUnit extends Document {
-  branchId?: Types.ObjectId | null;
+  branchIds?: Types.ObjectId[]; 
   unit?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;

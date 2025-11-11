@@ -3,11 +3,12 @@ import { IUnit } from "../types/common.types";
 
 const UnitSchema = new Schema<IUnit>(
   {
-    branchId: {
-      type: Schema.Types.ObjectId,
-      ref: "Branch",
-      default: null,
-    },
+    branchIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Branch",
+      },
+    ],
     unit: {
       type: String,
       trim: true,
