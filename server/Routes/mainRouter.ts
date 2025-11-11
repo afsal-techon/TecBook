@@ -112,4 +112,6 @@ router.delete('/vendor/:vendorId',verifyUser,checkPermission('admin','Vendor','c
 
 
 
+
+
 export default router;

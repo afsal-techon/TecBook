@@ -1,7 +1,7 @@
 import CATEGORY from "../../models/category";
 import express, { Response, Request, NextFunction } from "express";
 import USER from "../../models/user";
-import { ICategory, IUnit } from "../../types/common.types";
+import { ICategory, IItem, IUnit } from "../../types/common.types";
 import mongoose from "mongoose";
 import BRANCH from "../../models/branch";
 import UNIT from "../../models/unit";
@@ -242,7 +242,6 @@ export const deleteCategory = async (
   }
 };
 
-
 //unit
 export const createUnit = async (
   req: Request,
@@ -368,9 +367,6 @@ export const getAllUnits = async (
   }
 };
 
-
-
-
 export const updateUnit = async (
   req: Request,
   res: Response,
@@ -491,9 +487,11 @@ export const createItem = async (
       type,
       categoryId,
       name,
-      unitId,
       salesInfo,
       purchaseInfo,
+      conversionRate,
+      taxTreatment,
+      inventoryTracking,
       sellable,
       purchasable,
       taxId,
@@ -511,13 +509,11 @@ export const createItem = async (
     if (!type) return res.status(400).json({ message: "Type is required!" });
     if (!name)
       return res.status(400).json({ message: "Item name is required!" });
-    if (!unitId)
-      return res.status(400).json({ message: "Unit ID is required!" });
-
     // 3️ Prevent duplicate item name (case-insensitive per branch)
+    const trimmedName = name.trim();
     const existingItem = await ITEMS.findOne({
       branchId,
-      name: { $regex: `^${name}$`, $options: "i" },
+      name: { $regex: `^${trimmedName}$`, $options: "i" },
       isDeleted: false,
     });
 
@@ -526,42 +522,67 @@ export const createItem = async (
         .status(400)
         .json({ message: `Item "${name}" already exists in this branch.` });
 
-    let validTax = null;
-    if (taxId) {
-      validTax = await TAX.findOne({ _id: taxId, isActive: true });
-      if (!validTax)
-        return res.status(400).json({ message: "Invalid tax selected!" });
+    if (type === "Service") {
+      if (inventoryTracking?.isTrackable) {
+        inventoryTracking.isTrackable = false;
+      }
     }
 
-    // 4️ Build item object
-    const newItem = {
-      branchId: new Types.ObjectId(branchId),
-      categoryId: categoryId ? new Types.ObjectId(categoryId) : null,
-      unitId: new Types.ObjectId(unitId),
-      type: type.trim(),
+    let taxData = null;
+    if (taxId) {
+      taxData = await TAX.findOne({ _id: taxId, isDeleted: false });
+      if (!taxData) {
+        return res.status(400).json({ message: "Invalid tax selected!" });
+      }
+    }
+
+    // Calculate totalOpeningValue if inventory tracking is enabled
+
+    // let totalOpeningValue = 0;
+    // if (inventoryTracking?.isTrackable) {
+    //   const openingStock = Number(inventoryTracking.openingStock) || 0;
+    //   const rate = Number(inventoryTracking.openingStockRatePerUnit) || 0;
+    //   totalOpeningValue = openingStock * rate;
+    // }
+
+    // 🔹 Create Item document
+    const newItem = new ITEMS({
+      branchId,
+      categoryId,
       name: name.trim(),
+      taxId: taxData?._id || null,
+      type,
       salesInfo: {
-        sellingPrice: salesInfo?.sellingPrice ?? null,
-        accountId: salesInfo?.accountId
-          ? new Types.ObjectId(salesInfo.accountId)
-          : null,
-        description: salesInfo?.description ?? null,
+        sellingPrice: salesInfo?.sellingPrice || null,
+        accountId: salesInfo?.accountId || null,
+        description: salesInfo?.description || null,
+        saleUnit: salesInfo?.saleUnit || null,
       },
       purchaseInfo: {
-        costPrice: purchaseInfo?.costPrice ?? null,
-        accountId: purchaseInfo?.accountId
-          ? new Types.ObjectId(purchaseInfo.accountId)
-          : null,
-        description: purchaseInfo?.description ?? null,
+        costPrice: purchaseInfo?.costPrice || null,
+        accountId: purchaseInfo?.accountId || null,
+        description: purchaseInfo?.description || null,
+        purhcaseUnit: purchaseInfo?.purhcaseUnit || null,
       },
-      taxId: validTax?._id || null,
-      sellable: !!sellable,
-      purchasable: !!purchasable,
-      createdById: new Types.ObjectId(userId),
-    };
+      conversionRate: conversionRate || 1,
+      taxTreatment: taxTreatment || null,
+      sellable: sellable ?? false,
+      purchasable: purchasable ?? false,
+      inventoryTracking: inventoryTracking
+        ? {
+            isTrackable: inventoryTracking.isTrackable || false,
+            inventoryAccountId: inventoryTracking.inventoryAccountId || null,
+            openingStock: inventoryTracking.openingStock || 0,
+            openingStockRatePerUnit:
+              inventoryTracking.openingStockRatePerUnit || 0,
+            reorderPoint: inventoryTracking.reorderPoint || 0,
+          }
+        : null,
+        
+      createdById: user._id,
+    });
 
-    // 5️ Save to DB
-    await ITEMS.create(newItem);
+    await newItem.save();
 
     // 6️ Send success response
     return res.status(201).json({
@@ -572,6 +593,8 @@ export const createItem = async (
   }
 };
 
+
+
 export const updateItem = async (
   req: Request,
   res: Response,
@@ -579,72 +602,145 @@ export const updateItem = async (
 ): Promise<Response | void> => {
   try {
     const {
-      itemId,
       branchId,
+      itemId,
       type,
       categoryId,
       name,
-      unitId,
       salesInfo,
       purchaseInfo,
+      conversionRate,
+      taxTreatment,
+      inventoryTracking,
       sellable,
       purchasable,
+      taxId,
     } = req.body;
 
     const userId = req.user?.id;
 
-    // 1️. Validate user
+    // 1 Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-    // 2️. Validate item
+    // 2 Validate item
     const item = await ITEMS.findOne({ _id: itemId, isDeleted: false });
     if (!item) return res.status(404).json({ message: "Item not found!" });
 
-    // 4️. Prevent duplicate name (if updating name)
+    // 3 Prevent duplicate item names (case-insensitive)
     if (name && name.trim().toLowerCase() !== item.name.toLowerCase()) {
-      const existingItem = await ITEMS.findOne({
-        branchId: item.branchId,
-        name: { $regex: `^${name}$`, $options: "i" },
+      const duplicate = await ITEMS.findOne({
+        branchId: branchId || item.branchId,
+        name: { $regex: `^${name.trim()}$`, $options: "i" },
         _id: { $ne: itemId },
         isDeleted: false,
       });
-      if (existingItem)
+      if (duplicate) {
         return res
           .status(400)
-          .json({ message: `Item ${name} already exists in this branch!` });
+          .json({ message: `Item "${name}" already exists in this branch.` });
+      }
     }
 
-    // 5️. Build update object (keep old values if not passed)
-    const updatedData = {
-      type: type ?? item.type,
-      categoryId: categoryId ? new Types.ObjectId(categoryId) : item.categoryId,
-      unitId: unitId ? new Types.ObjectId(unitId) : item.unitId,
-      name: name ? name.trim() : item.name,
-      salesInfo: {
-        sellingPrice:
-          salesInfo?.sellingPrice ?? item.salesInfo?.sellingPrice ?? null,
-        accountId: salesInfo?.accountId
-          ? new Types.ObjectId(salesInfo.accountId)
-          : item.salesInfo?.accountId ?? null,
-        description:
-          salesInfo?.description ?? item.salesInfo?.description ?? null,
-      },
-      purchaseInfo: {
-        costPrice:
-          purchaseInfo?.costPrice ?? item.purchaseInfo?.costPrice ?? null,
-        accountId: purchaseInfo?.accountId
-          ? new Types.ObjectId(purchaseInfo.accountId)
-          : item.purchaseInfo?.accountId ?? null,
-        description:
-          purchaseInfo?.description ?? item.purchaseInfo?.description ?? null,
-      },
-      sellable: sellable ?? item.sellable,
-      purchasable: purchasable ?? item.purchasable,
+    // 4 Define inventory tracking type
+    type InventoryTracking = {
+      isTrackable: boolean;
+      inventoryAccountId?: string | null;
+      openingStock?: number;
+      openingStockRatePerUnit?: number;
+      reOrderPoint?: number;
     };
 
-    // 6️. Update item
-    await ITEMS.findByIdAndUpdate(itemId, updatedData, { new: true });
+    // Initialize safely
+    let updatedInventoryTracking: InventoryTracking =
+      (item.inventoryTracking as InventoryTracking) || {
+        isTrackable: false,
+        inventoryAccountId: null,
+        openingStock: 0,
+        openingStockRatePerUnit: 0,
+        reOrderPoint: 0,
+      };
+
+    // 5 Handle type-based inventory logic
+    const updatedType = type || item.type;
+
+    if (updatedType === "Service") {
+      updatedInventoryTracking.isTrackable = false;
+    } else if (inventoryTracking) {
+      updatedInventoryTracking = {
+        ...updatedInventoryTracking,
+        isTrackable:
+          inventoryTracking.isTrackable ??
+          updatedInventoryTracking.isTrackable ??
+          false,
+        inventoryAccountId:
+          inventoryTracking.inventoryAccountId ??
+          updatedInventoryTracking.inventoryAccountId ??
+          null,
+        openingStock:
+          inventoryTracking.openingStock ??
+          updatedInventoryTracking.openingStock ??
+          0,
+        openingStockRatePerUnit:
+          inventoryTracking.openingStockRatePerUnit ??
+          updatedInventoryTracking.openingStockRatePerUnit ??
+          0,
+        reOrderPoint:
+          inventoryTracking.reOrderPoint ??
+          updatedInventoryTracking.reOrderPoint ??
+          0,
+      };
+    }
+
+    // 6️Validate tax (if provided)
+    let taxData = null;
+    if (taxId) {
+      taxData = await TAX.findOne({ _id: taxId, isDeleted: false });
+      if (!taxData) {
+        return res.status(400).json({ message: "Invalid tax selected!" });
+      }
+    }
+
+    // 7 Update base item fields
+    item.branchId = branchId || item.branchId;
+    item.categoryId = categoryId || item.categoryId;
+    item.name = name ? name.trim() : item.name;
+    item.type = updatedType;
+    item.taxId = taxId || null;
+    item.taxTreatment = taxTreatment ?? item.taxTreatment;
+    item.sellable = sellable ?? item.sellable;
+    item.purchasable = purchasable ?? item.purchasable;
+    item.conversionRate = conversionRate ?? item.conversionRate;
+
+    // 8 Update sales info (if provided)
+    if (salesInfo) {
+      item.salesInfo = {
+        ...item.salesInfo,
+        sellingPrice: salesInfo.sellingPrice ?? item.salesInfo?.sellingPrice,
+        accountId: salesInfo.accountId ?? item.salesInfo?.accountId,
+        description: salesInfo.description ?? item.salesInfo?.description,
+        saleUnit: salesInfo.saleUnit ?? item.salesInfo?.saleUnit,
+      };
+    }
+
+    // 9 Update purchase info (if provided)
+    if (purchaseInfo) {
+      item.purchaseInfo = {
+        ...item.purchaseInfo,
+        costPrice: purchaseInfo.costPrice ?? item.purchaseInfo?.costPrice,
+        accountId: purchaseInfo.accountId ?? item.purchaseInfo?.accountId,
+        description: purchaseInfo.description ?? item.purchaseInfo?.description,
+        purhcaseUnit:
+          purchaseInfo.purhcaseUnit ?? item.purchaseInfo?.purhcaseUnit,
+      };
+    }
+
+    // Apply inventory tracking
+    item.inventoryTracking =
+      updatedInventoryTracking as IItem["inventoryTracking"];
+
+    item.updatedAt = new Date();
+    await item.save();
 
     return res.status(200).json({
       message: "Item updated successfully!",
@@ -653,6 +749,7 @@ export const updateItem = async (
     next(err);
   }
 };
+
 
 export const getAllItems = async (
   req: Request,
@@ -684,6 +781,8 @@ export const getAllItems = async (
     const purchaseAccountName = (
       (req.query.purchaseAccount as string) || ""
     ).trim();
+     const inventoryOnly =
+      req.query.inventoryOnly === "true" || req.query.inventoryOnly === "1";
 
     //  Base match
     const matchStage: any = {
@@ -773,6 +872,42 @@ export const getAllItems = async (
       });
     }
 
+        if (inventoryOnly) {
+      pipeline.push({
+        $match: { "inventoryTracking.isTrackable": true },
+      });
+    }
+    
+    pipeline.push({
+      $addFields: {
+        totalOpeningValue: {
+          $cond: [
+            "$inventoryTracking.isTrackable",
+            {
+              $multiply: [
+                { $ifNull: ["$inventoryTracking.openingStock", 0] },
+                { $ifNull: ["$inventoryTracking.openingStockRatePerUnit", 0] },
+              ],
+            },
+            0,
+          ],
+        },
+        totalStockInBaseUnit: {
+          $cond: [
+            "$inventoryTracking.isTrackable",
+            {
+              $multiply: [
+                { $ifNull: ["$inventoryTracking.openingStock", 0] },
+                { $ifNull: ["$conversionRate", 1] },
+              ],
+            },
+            0,
+          ],
+        },
+      },
+    });
+
+
     //  Project only required fields
     pipeline.push({
       $project: {
@@ -786,7 +921,13 @@ export const getAllItems = async (
         sellable: 1,
         purchasable: 1,
         salesInfo: 1,
+        taxId:1,
+        conversionRate: 1,
         purchaseInfo: 1,
+         taxTreatment: 1,
+        inventoryTracking: 1,
+        totalOpeningValue: 1,
+        totalStockInBaseUnit: 1,
         salesAccountName: "$salesAccount.accountName",
         purchaseAccountName: "$purchaseAccount.accountName",
         createdAt: 1,
@@ -837,14 +978,12 @@ export const getOneItem = async (
       return res.status(400).json({ message: "Item Id is required!" });
     }
 
+    const item = await ITEMS.findOne({ _id: itemId });
 
-    const item = await ITEMS.findOne({ _id: itemId })
-
-      return res.status(200).json({ data: item})
+    return res.status(200).json({ data: item });
   } catch (err) {
     next(err);
   }
-
 };
 
 export const deleteItems = async (
@@ -885,3 +1024,5 @@ export const deleteItems = async (
     next(err);
   }
 };
+
+

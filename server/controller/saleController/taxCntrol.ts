@@ -102,6 +102,7 @@ export const getAllTaxes = async (
 };
 
 
+
 export const updateTax = async (
   req: Request,
   res: Response,
@@ -196,6 +197,8 @@ export const updateTax = async (
     next(err);
   }
 };
+
+
 
 export const deleteTax = async (
   req: Request,
