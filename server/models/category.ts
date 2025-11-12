@@ -3,7 +3,12 @@ import { ICategory } from "../types/common.types";
 
 const categorySchema = new Schema<ICategory>(
   {
-    branchId: { type: Schema.Types.ObjectId, ref: "Branch", default: null },
+      branchIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Branch",
+      },
+    ],
     name: { type: String, default: null },
     createdById:{ type:String , default: null},
     isDeleted: { type: Boolean, default: false },
@@ -16,7 +21,7 @@ const categorySchema = new Schema<ICategory>(
   }
 );
 
-categorySchema.index({ name: 1, branchId: 1, isDeleted: 1 });
+categorySchema.index({ name: 1, branchIds: 1, isDeleted: 1 });
 
 const categoryModel: Model<ICategory> = mongoose.model<ICategory>(
   "Category",

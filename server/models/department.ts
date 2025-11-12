@@ -39,8 +39,8 @@ const DepartmentSchema = new Schema<IDepartment>(
   { timestamps: true } //  automatically manages createdAt & updatedAt
 );
 
-DepartmentSchema.index({ branchId: 1, dept_name: 1 });
-DepartmentSchema.index({ branchId: 1, isDeleted: 1 });
+DepartmentSchema.index({ branchIds: 1, dept_name: 1 });
+DepartmentSchema.index({ branchIds: 1, isDeleted: 1 });
 DepartmentSchema.index({ dept_name: 1 });
 DepartmentSchema.index({ "branchIds": 1 });
 
