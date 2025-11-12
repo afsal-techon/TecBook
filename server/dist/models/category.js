@@ -35,7 +35,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const categorySchema = new mongoose_1.Schema({
-    branchId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Branch", default: null },
+    branchIds: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Branch",
+        },
+    ],
     name: { type: String, default: null },
     createdById: { type: String, default: null },
     isDeleted: { type: Boolean, default: false },
@@ -45,6 +50,6 @@ const categorySchema = new mongoose_1.Schema({
 }, {
     timestamps: true, // Automatically adds createdAt & updatedAt
 });
-categorySchema.index({ name: 1, branchId: 1, isDeleted: 1 });
+categorySchema.index({ name: 1, branchIds: 1, isDeleted: 1 });
 const categoryModel = mongoose_1.default.model("Category", categorySchema);
 exports.default = categoryModel;

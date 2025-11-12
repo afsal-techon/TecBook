@@ -185,11 +185,11 @@ const updateDepartment = async (req, res, next) => {
                 .status(400)
                 .json({ message: "New department name is required!" });
         }
-        const branches = await branch_1.default.find({ _id: { $in: branchIds } });
-        //  if (branches.length !== branchIds.length)
-        // return res
-        //   .status(400)
-        //   .json({ message: "One or more branches not found!" });
+        // const branches = await BRANCH.find({ _id: { $in: branchIds } });
+        //    if (branches.length !== branchIds.length)
+        //   return res
+        //     .status(400)
+        //     .json({ message: "One or more branches not found!" });
         const department = await department_1.default.findOne({
             _id: departmentId,
             isDeleted: false,

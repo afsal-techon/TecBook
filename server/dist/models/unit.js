@@ -35,11 +35,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const UnitSchema = new mongoose_1.Schema({
-    branchId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Branch",
-        default: null,
-    },
+    branchIds: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Branch",
+        },
+    ],
     unit: {
         type: String,
         trim: true,

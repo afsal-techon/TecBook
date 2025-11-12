@@ -34,16 +34,71 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const DepartmentSchema = new mongoose_1.Schema({
-    branchIds: [
+const quotationSchema = new mongoose_1.Schema({
+    branchId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Branch",
+        default: null,
+    },
+    quoteId: {
+        type: String,
+        required: true,
+    },
+    customerId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Customer",
+        default: null,
+    },
+    projectId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Project",
+        default: null,
+    },
+    salesPersonId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Salesperson",
+        default: null,
+    },
+    quoteDate: {
+        type: Date,
+        default: null,
+    },
+    expDate: {
+        type: Date,
+        default: null,
+    },
+    status: {
+        type: String,
+        enum: ["Draft", "Sent"],
+    },
+    item: [
         {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Branch",
+            itemId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Item", default: null },
+            qty: { type: Number, default: 1 },
+            tax: { type: Number, default: 0 },
+            rate: { type: Number, default: 0 },
+            amount: { type: Number, default: 0 },
         },
     ],
-    dept_name: {
-        type: String,
-        trim: true,
+    subTotal: {
+        type: Number,
+        default: 1,
+    },
+    taxTotal: {
+        type: Number,
+        default: 0,
+    },
+    total: {
+        type: Number,
+        default: 0,
+    },
+    discount: {
+        type: Number,
+        default: 0,
+    },
+    documents: {
+        type: [String],
+        default: [],
     },
     isDeleted: {
         type: Boolean,
@@ -69,9 +124,8 @@ const DepartmentSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true } //  automatically manages createdAt & updatedAt
 );
-DepartmentSchema.index({ branchIds: 1, dept_name: 1 });
-DepartmentSchema.index({ branchIds: 1, isDeleted: 1 });
-DepartmentSchema.index({ dept_name: 1 });
-DepartmentSchema.index({ "branchIds": 1 });
-const departmentModel = mongoose_1.default.model("Department", DepartmentSchema);
-exports.default = departmentModel;
+quotationSchema.index({ branchId: 1, isDeleted: 1 });
+quotationSchema.index({ customerId: 1, quoteDate: -1 });
+quotationSchema.index({ salesPersonId: 1, quoteDate: -1 });
+const quottionModel = mongoose_1.default.model("Quotation", quotationSchema);
+exports.default = quottionModel;

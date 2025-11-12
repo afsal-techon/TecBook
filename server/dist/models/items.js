@@ -50,11 +50,6 @@ const itemSchema = new mongoose_1.Schema({
         default: null,
         trim: true,
     },
-    unitId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Unit",
-        default: null,
-    },
     taxId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Tax",
@@ -68,12 +63,19 @@ const itemSchema = new mongoose_1.Schema({
         sellingPrice: { type: Number, default: null },
         accountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
         description: { type: String, default: null },
+        saleUnitId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Unit", default: null },
     },
     purchaseInfo: {
         costPrice: { type: Number, default: null },
         accountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
         description: { type: String, default: null },
+        purchaseUnitId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Unit", default: null }
     },
+    conversionRate: {
+        type: Number,
+        default: 1
+    },
+    taxTreatment: { type: String, default: null },
     sellable: {
         type: Boolean,
         default: false
@@ -81,6 +83,13 @@ const itemSchema = new mongoose_1.Schema({
     purchasable: {
         type: Boolean,
         default: false
+    },
+    inventoryTracking: {
+        isTrackable: { type: Boolean, default: false },
+        inventoryAccountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
+        openingStock: { type: Number, default: 0 },
+        openingStockRatePerUnit: { type: Number, default: 0 },
+        reorderPoint: { type: Number, default: 0 },
     },
     isDeleted: {
         type: Boolean,
