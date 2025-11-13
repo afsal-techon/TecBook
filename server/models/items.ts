@@ -43,7 +43,7 @@ const itemSchema = new Schema<IItem>(
       type:Number,
       default:1
     },
-    taxTreatment:{ type:String, default:null},
+    taxTreatment:{ type:String, default:null,enum: ["VAT", "Non-VAT"],},
     sellable:{
         type:Boolean,
         default:false
