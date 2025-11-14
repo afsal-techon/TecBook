@@ -9,9 +9,6 @@ import ITEMS from "../../models/items";
 import { Types } from "mongoose";
 import TAX from "../../models/tax";
 
-
-
-
 export const createCategory = async (
   req: Request,
   res: Response,
@@ -54,17 +51,19 @@ export const createCategory = async (
 
     if (existCategories.length > 0) {
       existCategories.map((d) => d.name);
-     return res.status(400).json({
-        message: `The following categories already exist: ${existCategories.join(", ")}`,
+      return res.status(400).json({
+        message: `The following categories already exist: ${existCategories.join(
+          ", "
+        )}`,
       });
     }
 
-    const categoryData= categoryNames.map((category)=>({
+    const categoryData = categoryNames.map((category) => ({
       name: category,
       branchIds,
       createdById: userId,
       isDeleted: false,
-    }))
+    }));
 
     // 6️ Insert all at once
     await CATEGORY.insertMany(categoryData);
@@ -83,7 +82,7 @@ export const getAllCategories = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const filterBranchId = req.query.branchId as string; 
+    const filterBranchId = req.query.branchId as string;
     const userId = req.user?.id;
 
     // validate user
@@ -92,8 +91,7 @@ export const getAllCategories = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-      const userRole = user.role;
- 
+    const userRole = user.role;
 
     // pagination
     const limit = parseInt(req.query.limit as string) || 20;
@@ -102,46 +100,44 @@ export const getAllCategories = async (
     // search term
     const search = ((req.query.search as string) || "").trim();
 
-       //  Determine allowed branches
-       let allowedBranchIds: mongoose.Types.ObjectId[] = [];
-   
-       if (userRole === "CompanyAdmin") {
-         // Fetch all branches owned by this CompanyAdmin
-         const branches = await BRANCH.find({
-           companyAdminId: userId,
-           isDeleted: false,
-         }).select("_id");
-         
-   
-          allowedBranchIds = branches.map(
-           (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
-         );
-       } else if (userRole === "User") {
-         // Fetch the user's assigned branchId
-         if (!user.branchId) {
-           return res
-             .status(400)
-             .json({ message: "User is not assigned to any branch!" });
-         }
-         allowedBranchIds = [user.branchId];
-        
-       } else {
-         return res
-           .status(403)
-           .json({ message: "Unauthorized role for this operation." });
-       }
-   
-       // 🔹 If branchId is provided in query, filter within allowed branches
-       if (filterBranchId) {
-         const filterId = new mongoose.Types.ObjectId(filterBranchId);
-         if (!allowedBranchIds.some((id) => id.equals(filterId))) {
-           return res.status(403).json({
-             message:
-               "You are not authorized to view departments for this branch!",
-           });
-         }
-         allowedBranchIds = [filterId];
-       }
+    //  Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      // Fetch all branches owned by this CompanyAdmin
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      // Fetch the user's assigned branchId
+      if (!user.branchId) {
+        return res
+          .status(400)
+          .json({ message: "User is not assigned to any branch!" });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized role for this operation." });
+    }
+
+    // 🔹 If branchId is provided in query, filter within allowed branches
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message:
+            "You are not authorized to view departments for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
 
     //  Base match
     const matchStage: any = {
@@ -184,21 +180,19 @@ export const getAllCategories = async (
       { $limit: limit },
     ];
 
-      // 🔹 Count total (before pagination)
+    // 🔹 Count total (before pagination)
     const countPipeline = [{ $match: matchStage }, { $count: "totalCount" }];
     const countResult = await CATEGORY.aggregate(countPipeline);
     const totalCount = countResult[0]?.totalCount || 0;
 
     const categoriesItems = await CATEGORY.aggregate(pipeline);
 
-       return res.status(200).json({
+    return res.status(200).json({
       data: categoriesItems,
       totalCount,
       page,
       limit,
     });
-
-    
   } catch (err) {
     next(err);
   }
@@ -219,7 +213,7 @@ export const updateCategory = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-  if (!branchIds || !Array.isArray(branchIds) || branchIds.length === 0)
+    if (!branchIds || !Array.isArray(branchIds) || branchIds.length === 0)
       return res.status(400).json({ message: "Branch Ids are required!" });
 
     if (!categoryId) {
@@ -231,19 +225,18 @@ export const updateCategory = async (
         .json({ message: "New category name is required!" });
     }
 
-     const branches = await BRANCH.find({ _id: { $in: branchIds } });
-  
+    const branches = await BRANCH.find({ _id: { $in: branchIds } });
 
     const category = await CATEGORY.findOne({
       _id: categoryId,
-       isDeleted:false
+      isDeleted: false,
     });
     if (!category) {
       return res.status(404).json({ message: "Category not found!" });
     }
 
     const existCategory = await CATEGORY.findOne({
-        branchIds: { $in: branchIds },
+      branchIds: { $in: branchIds },
       name: name.trim(),
       isDeleted: false,
       _id: { $ne: categoryId }, // Exclude the current department
@@ -256,7 +249,7 @@ export const updateCategory = async (
     }
 
     category.name = name.trim();
-     category.branchIds = branchIds;
+    category.branchIds = branchIds;
     await category.save();
 
     return res.status(200).json({
@@ -293,18 +286,16 @@ export const deleteCategory = async (
     }
 
     const itemExist = await ITEMS.findOne({
-      categoryId:categoryId,
-      isDeleted:false
+      categoryId: categoryId,
+      isDeleted: false,
     });
 
-     if (itemExist) {
+    if (itemExist) {
       return res.status(400).json({
-        message: "This category currently linked to Items. Please remove Items before deleting.",
+        message:
+          "This category currently linked to Items. Please remove Items before deleting.",
       });
     }
-
-
-
 
     await CATEGORY.findByIdAndUpdate(categoryId, {
       isDeleted: true,
@@ -365,12 +356,11 @@ export const createUnit = async (
     if (existunits.length > 0) {
       existunits.map((d) => d.unit);
       return res.status(400).json({
-         message: `The following units already exist: ${existunits.join(", ")}`
+        message: `The following units already exist: ${existunits.join(", ")}`,
       });
     }
 
-    
-  const unitData = unitNames.map((uni) => ({
+    const unitData = unitNames.map((uni) => ({
       unit: uni,
       branchIds,
       createdById: userId,
@@ -394,7 +384,6 @@ export const getAllUnits = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-   
     const userId = req.user?.id;
 
     // validate user
@@ -414,7 +403,7 @@ export const getAllUnits = async (
     // search term
     const search = ((req.query.search as string) || "").trim();
 
-  //  Determine allowed branches
+    //  Determine allowed branches
     let allowedBranchIds: mongoose.Types.ObjectId[] = [];
 
     if (userRole === "CompanyAdmin") {
@@ -423,9 +412,8 @@ export const getAllUnits = async (
         companyAdminId: userId,
         isDeleted: false,
       }).select("_id");
-      
 
-       allowedBranchIds = branches.map(
+      allowedBranchIds = branches.map(
         (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
       );
     } else if (userRole === "User") {
@@ -436,7 +424,6 @@ export const getAllUnits = async (
           .json({ message: "User is not assigned to any branch!" });
       }
       allowedBranchIds = [user.branchId];
-     
     } else {
       return res
         .status(403)
@@ -461,11 +448,11 @@ export const getAllUnits = async (
       branchIds: { $in: allowedBranchIds },
     };
 
-        if (search) {
+    if (search) {
       matchStage.unit = { $regex: search, $options: "i" };
     }
 
-        // 🔹 Aggregation pipeline
+    // 🔹 Aggregation pipeline
     const pipeline: any[] = [
       { $match: matchStage },
       {
@@ -495,14 +482,14 @@ export const getAllUnits = async (
       { $limit: limit },
     ];
 
-     const countPipeline = [{ $match: matchStage }, { $count: "totalCount" }];
+    const countPipeline = [{ $match: matchStage }, { $count: "totalCount" }];
     const countResult = await UNIT.aggregate(countPipeline);
     const totalCount = countResult[0]?.totalCount || 0;
 
     // 🔹 Execute query
     const unitsDatas = await UNIT.aggregate(pipeline);
 
-        return res.status(200).json({
+    return res.status(200).json({
       data: unitsDatas,
       totalCount,
       page,
@@ -528,9 +515,8 @@ export const updateUnit = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-   if (!branchIds || !Array.isArray(branchIds) || branchIds.length === 0)
+    if (!branchIds || !Array.isArray(branchIds) || branchIds.length === 0)
       return res.status(400).json({ message: "Branch Ids are required!" });
-
 
     if (!unitId) {
       return res.status(400).json({ message: "Unit Id is required!" });
@@ -539,9 +525,8 @@ export const updateUnit = async (
       return res.status(400).json({ message: "New  unit is required!" });
     }
 
-      // const branches = await BRANCH.find({ _id: { $in: branchIds } });
+    // const branches = await BRANCH.find({ _id: { $in: branchIds } });
 
-   
     const unitData = await UNIT.findOne({
       _id: unitId,
       isDeleted: false,
@@ -600,21 +585,20 @@ export const deleteUnit = async (
       return res.status(404).json({ message: "Unit not found!" });
     }
 
-   const unitUsed = await ITEMS.findOne({
-  isDeleted: false,
-  $or: [
-    { 'salesInfo.saleUnitId': unitId },
-    { 'purchaseInfo.purchaseUnitId': unitId }
-  ]
-});
+    const unitUsed = await ITEMS.findOne({
+      isDeleted: false,
+      $or: [
+        { "salesInfo.saleUnitId": unitId },
+        { "purchaseInfo.purchaseUnitId": unitId },
+      ],
+    });
 
     if (unitUsed) {
       return res.status(400).json({
-        message: "This unit currently linked to items. Please remove items before deleting.",
+        message:
+          "This unit currently linked to items. Please remove items before deleting.",
       });
     }
-
-
 
     await UNIT.findByIdAndUpdate(unitId, {
       isDeleted: true,
@@ -651,7 +635,7 @@ export const createItem = async (
       inventoryTracking,
       sellable,
       purchasable,
-      taxId,
+      // taxId,
     } = req.body;
 
     const userId = req.user?.id;
@@ -685,11 +669,32 @@ export const createItem = async (
       }
     }
 
-    let taxData = null;
-    if (taxId) {
-      taxData = await TAX.findOne({ _id: taxId, isDeleted: false });
-      if (!taxData) {
-        return res.status(400).json({ message: "Invalid tax selected!" });
+    let purchaseTaxData = null;
+    let salesTaxData = null;
+
+    // Purchase Tax
+    if (purchaseInfo?.taxId) {
+      purchaseTaxData = await TAX.findOne({
+        _id: purchaseInfo.taxId,
+        isDeleted: false,
+      });
+
+      if (!purchaseTaxData) {
+        return res
+          .status(400)
+          .json({ message: "Invalid purchase tax selected!" });
+      }
+    }
+
+    // Sales Tax
+    if (salesInfo?.taxId) {
+      salesTaxData = await TAX.findOne({
+        _id: salesInfo.taxId,
+        isDeleted: false,
+      });
+
+      if (!salesTaxData) {
+        return res.status(400).json({ message: "Invalid sales tax selected!" });
       }
     }
 
@@ -707,19 +712,20 @@ export const createItem = async (
       branchId,
       categoryId,
       name: name.trim(),
-      taxId: taxData?._id || null,
       type,
       salesInfo: {
         sellingPrice: salesInfo?.sellingPrice || null,
         accountId: salesInfo?.accountId || null,
         description: salesInfo?.description || null,
         saleUnitId: salesInfo?.saleUnitId || null,
+        taxId: salesTaxData?._id || null,
       },
       purchaseInfo: {
         costPrice: purchaseInfo?.costPrice || null,
         accountId: purchaseInfo?.accountId || null,
         description: purchaseInfo?.description || null,
         purchaseUnitId: purchaseInfo?.purchaseUnitId || null,
+        taxId: purchaseTaxData?._id || null,
       },
       conversionRate: conversionRate || 1,
       taxTreatment: taxTreatment || null,
@@ -735,7 +741,7 @@ export const createItem = async (
             reorderPoint: inventoryTracking.reorderPoint || 0,
           }
         : null,
-        
+
       createdById: user._id,
     });
 
@@ -749,8 +755,6 @@ export const createItem = async (
     next(err);
   }
 };
-
-
 
 export const updateItem = async (
   req: Request,
@@ -771,7 +775,7 @@ export const updateItem = async (
       inventoryTracking,
       sellable,
       purchasable,
-      taxId,
+
     } = req.body;
 
     const userId = req.user?.id;
@@ -850,11 +854,32 @@ export const updateItem = async (
     }
 
     // 6️Validate tax (if provided)
-    let taxData = null;
-    if (taxId) {
-      taxData = await TAX.findOne({ _id: taxId, isDeleted: false });
-      if (!taxData) {
-        return res.status(400).json({ message: "Invalid tax selected!" });
+      let purchaseTaxData = null;
+    let salesTaxData = null;
+
+    // Purchase Tax
+    if (purchaseInfo?.taxId) {
+      purchaseTaxData = await TAX.findOne({
+        _id: purchaseInfo.taxId,
+        isDeleted: false,
+      });
+
+      if (!purchaseTaxData) {
+        return res
+          .status(400)
+          .json({ message: "Invalid purchase tax selected!" });
+      }
+    }
+
+    // Sales Tax
+    if (salesInfo?.taxId) {
+      salesTaxData = await TAX.findOne({
+        _id: salesInfo.taxId,
+        isDeleted: false,
+      });
+
+      if (!salesTaxData) {
+        return res.status(400).json({ message: "Invalid sales tax selected!" });
       }
     }
 
@@ -863,7 +888,6 @@ export const updateItem = async (
     item.categoryId = categoryId || item.categoryId;
     item.name = name ? name.trim() : item.name;
     item.type = updatedType;
-    item.taxId = taxId || null;
     item.taxTreatment = taxTreatment ?? item.taxTreatment;
     item.sellable = sellable ?? item.sellable;
     item.purchasable = purchasable ?? item.purchasable;
@@ -877,6 +901,7 @@ export const updateItem = async (
         accountId: salesInfo.accountId ?? item.salesInfo?.accountId,
         description: salesInfo.description ?? item.salesInfo?.description,
         saleUnitId: salesInfo.saleUnitId ?? item.salesInfo?.saleUnitId,
+        taxId : salesInfo.taxId ?? item.salesInfo?.taxId,
       };
     }
 
@@ -889,6 +914,7 @@ export const updateItem = async (
         description: purchaseInfo.description ?? item.purchaseInfo?.description,
         purchaseUnitId:
           purchaseInfo.purchaseUnitId ?? item.purchaseInfo?.purchaseUnitId,
+             taxId: purchaseInfo.taxId ?? item.purchaseInfo?.taxId,
       };
     }
 
@@ -906,7 +932,6 @@ export const updateItem = async (
     next(err);
   }
 };
-
 
 export const getAllItems = async (
   req: Request,
@@ -938,7 +963,7 @@ export const getAllItems = async (
     const purchaseAccountName = (
       (req.query.purchaseAccount as string) || ""
     ).trim();
-     const inventoryOnly =
+    const inventoryOnly =
       req.query.inventoryOnly === "true" || req.query.inventoryOnly === "1";
 
     //  Base match
@@ -1029,12 +1054,12 @@ export const getAllItems = async (
       });
     }
 
-        if (inventoryOnly) {
+    if (inventoryOnly) {
       pipeline.push({
         $match: { "inventoryTracking.isTrackable": true },
       });
     }
-    
+
     pipeline.push({
       $addFields: {
         totalOpeningValue: {
@@ -1064,7 +1089,6 @@ export const getAllItems = async (
       },
     });
 
-
     //  Project only required fields
     pipeline.push({
       $project: {
@@ -1078,10 +1102,9 @@ export const getAllItems = async (
         sellable: 1,
         purchasable: 1,
         salesInfo: 1,
-        taxId:1,
         conversionRate: 1,
         purchaseInfo: 1,
-         taxTreatment: 1,
+        taxTreatment: 1,
         inventoryTracking: 1,
         totalOpeningValue: 1,
         totalStockInBaseUnit: 1,
@@ -1181,5 +1204,3 @@ export const deleteItems = async (
     next(err);
   }
 };
-
-

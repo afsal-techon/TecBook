@@ -278,7 +278,6 @@ export interface InventoryTracking {
 export interface IItem extends Document {
   branchId?: Types.ObjectId | null;
   categoryId?: Types.ObjectId | null;
-  taxId?:Types.ObjectId |  null;
   name:string;
   type: string;
   salesInfo?: {
@@ -286,12 +285,14 @@ export interface IItem extends Document {
     accountId?: Types.ObjectId | null;
     description?: Types.ObjectId | null; 
      saleUnitId: Types.ObjectId | null; 
+     taxId?:Types.ObjectId |  null;
   };
   purchaseInfo?: {
     costPrice?: string | null;
     accountId?: Types.ObjectId | null;
     description?: Types.ObjectId | null;
       purchaseUnitId:Types.ObjectId | null; 
+        taxId?:Types.ObjectId |  null;
   };
    inventoryTracking?: InventoryTracking
   taxTreatment:string | null;
