@@ -315,11 +315,11 @@ export interface IItem extends Document {
 export interface IQuotes extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
-  projectId?: Types.ObjectId | null;
+  projectId?:    string;
   quoteId:string;
   quoteDate: Date | null;
   expDate: Date | null;
-  salesPersonId:Types.ObjectId | null;
+  salesPersonId: Types.ObjectId | null;
   terms:string;
   note:string;
 documents?: string[]; 
@@ -329,6 +329,7 @@ documents?: string[];
     tax :number  | null;
     rate: Types.ObjectId | null;
     amount: number | null;
+   discount:number | null;
   }[];
   status:string | null;
   subTotal:number | null;

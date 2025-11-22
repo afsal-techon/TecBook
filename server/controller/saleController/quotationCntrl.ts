@@ -136,7 +136,8 @@ export const createQuotes = async (
       branchId: new Types.ObjectId(branchId),
       quoteId: finalQuoteId, //  always use this
       customerId: new Types.ObjectId(customerId),
-      projectId: projectId ? new Types.ObjectId(projectId) : null,
+      // projectId: projectId ? new Types.ObjectId(projectId) : null,
+      projectId: projectId ? projectId : null,
       salesPersonId: salesPersonId ? new Types.ObjectId(salesPersonId) : null,
       quoteDate,
       expDate,
@@ -255,7 +256,8 @@ export const updateQuotes = async (
     existingQuote.branchId = new Types.ObjectId(branchId);
     existingQuote.quoteId = quoteId;
     existingQuote.customerId = new Types.ObjectId(customerId);
-    existingQuote.projectId = projectId ? new Types.ObjectId(projectId) : null;
+    // existingQuote.projectId = projectId ? new Types.ObjectId(projectId) : null;
+    existingQuote.projectId = projectId ? projectId : null;
     existingQuote.salesPersonId = salesPersonId
       ? new Types.ObjectId(salesPersonId)
       : null;
