@@ -1,6 +1,7 @@
 import TAX from '../../models/tax';
 import USER from '../../models/user'
 import { Request, Response, NextFunction } from "express";
+import { Types } from 'mongoose';
 
 
 
@@ -34,6 +35,10 @@ export const createTax = async (
        if(!type){
         return res.status(400).json({ message:"Tax type is required!"})
      }
+
+     if(!branchId){
+      return res.status(400).json({ message:"Branch Id is required!"})
+     }
     // 3️ Validate tax type logic
     if (type === "GST" && (cgstRate == null || sgstRate == null)) {
       return res
@@ -48,7 +53,7 @@ export const createTax = async (
     const existingTax = await TAX.findOne({
       branchId,
       name: { $regex: `^${name}$`, $options: "i" },
-      isActive: true,
+      isDeleted:false
     });
     if (existingTax)
       return res.status(400).json({ message: `Tax '${name}' already exists!` });
@@ -78,7 +83,7 @@ export const createTax = async (
 
 
 
-export const getAllTaxes = async (
+export const getTaxes = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -90,10 +95,92 @@ export const getAllTaxes = async (
         const taxes = await TAX.find({
       branchId,
       isActive: true,
+      isDeleted:false
     }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       data: taxes,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getALLTaxes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    // Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    // Branch Id required
+    const branchId = req.query.branchId as string;
+    if (!branchId) {
+      return res.status(400).json({ message: "Branch ID is required!" });
+    }
+
+    // Pagination
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    // Search filter
+    const search = ((req.query.search as string) || "").trim();
+
+    const match: any = {
+      isDeleted: false,
+      branchId: new Types.ObjectId(branchId),
+    };
+
+    // Add search conditions
+    if (search) {
+      match.name = { $regex: search, $options: "i" };
+    }
+
+    // Pipeline
+    const pipeline: any[] = [
+      { $match: match },
+
+      {
+        $project: {
+          _id: 1,
+          branchId: 1,
+          name: 1,
+          type: 1,
+          cgstRate: 1,
+          sgstRate: 1,
+          vatRate: 1,
+          description: 1,
+          isActive:1,
+          createdAt: 1,
+          updatedAt:1,
+        },
+      },
+
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const taxes = await TAX.aggregate(pipeline);
+
+    // Total count for pagination
+    const totalCount = await TAX.countDocuments(match);
+
+    return res.status(200).json({
+      data: taxes,
+      totalCount,
+      page,
+      limit,
     });
 
   } catch (err) {
@@ -109,7 +196,7 @@ export const updateTax = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const taxId = req.params.id; // tax ID from URL
+    const { taxId } = req.params; // tax ID from URL
     const {
       branchId,
       name,
@@ -122,6 +209,8 @@ export const updateTax = async (
     } = req.body;
 
     const userId = req.user?.id;
+
+    
 
     // 1️ Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
@@ -138,6 +227,7 @@ export const updateTax = async (
         _id: { $ne: taxId },
         branchId,
         name: { $regex: `^${name}$`, $options: "i" },
+        isDeleted:false,
         // isActive: true,
       });
       if (duplicateTax) {

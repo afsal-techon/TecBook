@@ -393,3 +393,11 @@ export interface ITax extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface IQuoteNumberSetting extends Document {
+  branchId:  Types.ObjectId | null;
+  prefix: string;       // e.g. "QT-"
+  nextNumber: number;   // e.g. 8  (for 000008)
+  nextNumberRaw:string;  // e.g. 6  (number of digits)
+  mode: "Auto" | "Manual"
+}

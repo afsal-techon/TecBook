@@ -6,6 +6,7 @@ import { imagekit } from "../../config/imageKit";
 import { Types } from "mongoose";
 import BRANCH from '../../models/branch'
 import mongoose from "mongoose";
+import QuoteNumberSetting from '../../models/quoteNumberSetting'
 
 export const createQuotes = async (
   req: Request,
@@ -15,7 +16,7 @@ export const createQuotes = async (
   try {
     const {
       branchId,
-      quoteId,
+      quoteId, // may be null/ignored in auto mode
       customerId,
       projectId,
       salesPersonId,
@@ -38,8 +39,6 @@ export const createQuotes = async (
 
     if (!branchId)
       return res.status(400).json({ message: "Branch ID is required!" });
-    if (!quoteId)
-      return res.status(400).json({ message: "Quote ID is required!" });
     if (!customerId)
       return res.status(400).json({ message: "Customer ID is required!" });
     if (!quoteDate)
@@ -61,15 +60,67 @@ export const createQuotes = async (
         .json({ message: "At least one item is required in the quotation" });
     }
 
-
-     if (isNaN(subTotal)) return res.status(400).json({ message: "Invalid subTotal" });
+    if (isNaN(subTotal)) return res.status(400).json({ message: "Invalid subTotal" });
     if (isNaN(total)) return res.status(400).json({ message: "Invalid total" });
     if (isNaN(taxTotal)) return res.status(400).json({ message: "Invalid taxTotal" });
 
+    //  Get quote number setting for this branch
+    let setting = await QuoteNumberSetting.findOne({
+      branchId: new Types.ObjectId(branchId),
+    });
 
-        //  Upload attached documents if any
+    let finalQuoteId: string;
+
+    if (setting && setting.mode === 'Auto') {
+      // ---------- AUTO MODE ----------
+       const raw = setting.nextNumberRaw ?? String(setting.nextNumber ?? 1);
+        const numeric = setting.nextNumber ?? Number(raw) ?? 1;
+        const length = raw.length;
+
+           const padded = String(numeric).padStart(length, "0");
+        finalQuoteId = `${setting.prefix}${padded}`;
+
+
+      // optionally: ensure uniqueness
+      const exists = await QUOTATION.findOne({
+        branchId: new Types.ObjectId(branchId),
+        quoteId: finalQuoteId,
+        isDeleted: false,
+      });
+      if (exists) {
+        return res.status(400).json({ message: "Generated quote ID already exists. Please try again." });
+      }
+
+      // increment for next time
+      setting.nextNumber = numeric + 1;
+  setting.nextNumberRaw = String(numeric + 1).padStart(length, "0");
+  await setting.save();
+
+    } else {
+      // ---------- MANUAL MODE ----------
+      if (!quoteId || typeof quoteId !== "string" || !quoteId.trim()) {
+        return res
+          .status(400)
+          .json({ message: "Quote ID is required in manual mode!" });
+      }
+
+      finalQuoteId = quoteId.trim();
+
+      // ensure unique
+      const exists = await QUOTATION.findOne({
+        branchId: new Types.ObjectId(branchId),
+        quoteId: finalQuoteId,
+        isDeleted: false,
+      });
+      if (exists) {
+        return res.status(400).json({
+          message: "This quote ID already exists. Please enter a different one.",
+        });
+      }
+    }
+
+    //  Upload attached documents if any
     const uploadedFiles: string[] = [];
-
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
         const uploadResponse = await imagekit.upload({
@@ -81,10 +132,9 @@ export const createQuotes = async (
       }
     }
 
-
-      const newQuote = new QUOTATION({
+    const newQuote = new QUOTATION({
       branchId: new Types.ObjectId(branchId),
-      quoteId,
+      quoteId: finalQuoteId, //  always use this
       customerId: new Types.ObjectId(customerId),
       projectId: projectId ? new Types.ObjectId(projectId) : null,
       salesPersonId: salesPersonId ? new Types.ObjectId(salesPersonId) : null,
@@ -96,36 +146,21 @@ export const createQuotes = async (
       taxTotal,
       total,
       discount,
-      documents: uploadedFiles, 
-       createdById: userId,
+      documents: uploadedFiles,
+      createdById: userId,
     });
 
-      await newQuote.save();
+    await newQuote.save();
 
-         // ✅ Send email only if status = "Sent"
-    // if (status === "Sent" && customer.email) {
-    //   await sendEmail({
-    //     to: customer.email,
-    //     subject: `Quotation #${quoteId}`,
-    //     html: `
-    //       <h3>Dear ${customer.name || "Customer"},</h3>
-    //       <p>Your quotation <b>#${quoteId}</b> has been sent successfully.</p>
-    //       <p>Total Amount: <b>${total}</b></p>
-    //       <p>Thank you for your business!</p>
-    //     `,
-    //   });
-    // }
-
-     return res.status(201).json({
+    return res.status(201).json({
       message: `Quotation created successfully.`,
+      quoteId: finalQuoteId,
     });
-
-
-
   } catch (err) {
     next(err);
   }
 };
+
 
 
 

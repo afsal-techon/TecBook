@@ -10,6 +10,9 @@ import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../c
 import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
 import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
+import { getNextQuotePreview, upsertQuoteNumberSetting } from '../settings/quoteStting';
+import { createQuotes } from '../controller/saleController/quotationCntrl';
+import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/saleController/taxCntrol';
 const router = express.Router();
 
 
@@ -106,6 +109,23 @@ router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),
 router.get('/vendor',verifyUser,checkPermission('admin','Vendor','can_read'),getVendors)
 router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),updateVendor)
 router.delete('/vendor/:vendorId',verifyUser,checkPermission('admin','Vendor','can_delete'),deleteVendor)
+
+
+//create quotesetting number
+router.post('/quote-setting',verifyUser,upsertQuoteNumberSetting);
+router.get('/quotes/next/:branchId',verifyUser,getNextQuotePreview)
+
+
+//tax
+router.post('/tax',verifyUser,checkPermission('admin','Tax','can_create'),createTax)
+router.get('/tax/list',verifyUser,checkPermission('admin','Tax','can_read'),getTaxes);
+router.put('/tax/:taxId',verifyUser,checkPermission('admin','Tax','can_update'),updateTax);
+router.get('/tax',verifyUser,checkPermission('admin','Tax','can_update'),getALLTaxes);
+router.delete('/tax/:taxId',verifyUser,checkPermission('admin','Tax','can_delete'),deleteTax);
+
+
+//create quotation 
+router.post('/quotation',verifyUser,checkPermission('admin','Quotation','can_create'),createQuotes)
 
 
 
