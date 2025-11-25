@@ -1,16 +1,21 @@
 import mongoose, { Schema, Model } from "mongoose";
-import { IQuoteNumberSetting } from "../types/common.types";
+import { INumberSetting } from "../types/common.types";
 
-const quotationSchema = new Schema<IQuoteNumberSetting>(
+const numberSchema = new Schema<INumberSetting>(
   {
     branchId: {
       type: Schema.Types.ObjectId,
       ref: "Branch",
       required: true,
     },
+       docType: {
+      type: String,
+      enum: ["QUOTE", "SALE_ORDER", "INVOICE"], // add more if needed
+      required: true,
+    },
         prefix: {
       type: String,
-      default: "QT-",
+      default: "DOC-",
       trim: true,
     },
     nextNumber: {
@@ -25,8 +30,8 @@ const quotationSchema = new Schema<IQuoteNumberSetting>(
 );
 
 
-const quoteNumberModel: Model<IQuoteNumberSetting> = mongoose.model<IQuoteNumberSetting>(
-  "QuoteNumberSetting",
-  quotationSchema
+const numberSettingModel: Model<INumberSetting> = mongoose.model<INumberSetting>(
+  "NumberSetting",
+  numberSchema
 );
-export default quoteNumberModel;
+export default numberSettingModel;

@@ -9,6 +9,8 @@ import ITEMS from "../../models/items";
 import { Types } from "mongoose";
 import TAX from "../../models/tax";
 
+
+
 export const createCategory = async (
   req: Request,
   res: Response,
@@ -311,6 +313,8 @@ export const deleteCategory = async (
     next(err);
   }
 };
+
+
 
 //unit
 export const createUnit = async (
@@ -615,8 +619,9 @@ export const deleteUnit = async (
   }
 };
 
-//items
 
+
+//items
 export const createItem = async (
   req: Request,
   res: Response,
@@ -1148,7 +1153,7 @@ export const getItemsList = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const branchId = req.query.branchId as string;
+    const { branchId } = req.params;
     const userId = req.user?.id;
 
     //  Validate user
@@ -1318,14 +1323,15 @@ export const getItemsList = async (
           categoryName: "$category.name", // adjust field name if different
 
           // Sales info + joined fields
-          "salesInfo.sellingPrice": 1,
+          // "salesInfo.sellingPrice": 1,
           // "salesInfo.accountId": 1,
           // "salesInfo.saleUnitId": 1,
           // "salesInfo.taxId": 1,
           salesAccountName: "$salesAccount.name", // adjust field name
-          saleUnitName: "$saleUnit.name", // adjust field name
+          saleUnit: "$saleUnit.unit", // adjust field name
           salesTaxName: "$salesTax.name", // adjust field name
           salesVATRate: "$salesTax.vatRate",
+          sellingPrice : "$salesInfo.sellingPrice",
             salesSGST: "$salesTax.cgstRate", // or gst fields, depending on your model
               salesCGST: "$salesTax.sgstRate",
 

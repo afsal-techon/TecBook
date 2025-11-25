@@ -38,15 +38,16 @@ const quotationSchema = new Schema<IQuotes>(
     },
     status: {
       type: String,
-      enum: ["Draft", "Sent"],
+      enum: ["Draft", "Sent","Accepted","Approved","Invoiced","Pending"],
     },
-    item: [
+    items: [
       {
         itemId: { type: Schema.Types.ObjectId, ref: "Item", default: null },
         qty: { type: Number, default: 1 },
         tax: { type: Number, default: 0 },
         rate: { type: Number, default: 0 },
         amount: { type: Number, default: 0 },
+         unit: { type: String, default: 0 },
          discount: { type: Number, default: 0 },
       },
     ],

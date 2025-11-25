@@ -323,11 +323,12 @@ export interface IQuotes extends Document {
   terms:string;
   note:string;
 documents?: string[]; 
-  item?: {
+  items?: {
     itemId: Types.ObjectId | null;
     qty: number | null;
     tax :number  | null;
     rate: Types.ObjectId | null;
+    unit:string;
     amount: number | null;
    discount:number | null;
   }[];
@@ -395,8 +396,9 @@ export interface ITax extends Document {
   updatedAt?: Date;
 }
 
-export interface IQuoteNumberSetting extends Document {
+export interface INumberSetting extends Document {
   branchId:  Types.ObjectId | null;
+ docType: "QUOTE" | "SALE_ORDER" | "INVOICE"; 
   prefix: string;       // e.g. "QT-"
   nextNumber: number;   // e.g. 8  (for 000008)
   nextNumberRaw:string;  // e.g. 6  (number of digits)

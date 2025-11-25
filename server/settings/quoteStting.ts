@@ -1,11 +1,11 @@
 import BRANCH from "../models/branch";
 import USER from "../models/user";
 import express, { NextFunction, Request, Response } from "express";
-import quoteNumberModel from "../models/quoteNumberSetting";
+import numberSettingModel from "../models/numberSetting";
 import { Types } from "mongoose";
 
 // POST or PUT /api/quotes/settings
-export const upsertQuoteNumberSetting = async (
+export const upsertDocumentNumberSetting  = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -15,11 +15,13 @@ export const upsertQuoteNumberSetting = async (
     const {
       branchId,
       prefix,
+      docType,
       nextNumber,
       mode,
     }: {
       branchId: string;
       prefix?: string;
+      docType: "QUOTE" | "SALE_ORDER" | "INVOICE";
       nextNumber?: string;
       mode: string;
     } = req.body;
@@ -41,11 +43,11 @@ export const upsertQuoteNumberSetting = async (
     //  Common update object
     const updateData: any = {
       branchId: new Types.ObjectId(branchId),
+      docType,
       mode,
     };
 
-    if (mode ==='Auto') {
-      // AUTO MODE – must have prefix + nextNumber
+   if (mode === "Auto") {
       if (!nextNumber || typeof nextNumber !== "string" || !nextNumber.trim()) {
         return res
           .status(400)
@@ -60,30 +62,49 @@ export const upsertQuoteNumberSetting = async (
           .json({ message: "Next number must be a number >= 1" });
       }
 
-      updateData.prefix = (prefix || "QT-").trim();
+      updateData.prefix = (prefix || getDefaultPrefix(docType)).trim();
       updateData.nextNumber = numeric;
       updateData.nextNumberRaw = clean;
-    } else {
-      //  MANUAL MODE – ignore nextNumber/padding for generation
-      //  still store a default prefix
-      updateData.prefix = prefix && prefix.trim() ? prefix.trim() : "QT-";
-      updateData.nextNumber = null; // not used
+    } else  {
+      // Manual
+      updateData.prefix = prefix && prefix.trim()
+        ? prefix.trim()
+        : getDefaultPrefix(docType);
+      updateData.nextNumber = null;
+      updateData.nextNumberRaw = "1";
     }
 
-    const setting = await quoteNumberModel.findOneAndUpdate(
-      { branchId: new Types.ObjectId(branchId) },
+       const setting = await numberSettingModel.findOneAndUpdate(
+      {
+        branchId: new Types.ObjectId(branchId),
+        docType,
+      },
       updateData,
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+
     return res.status(200).json({
-      message: "Quote number setting saved successfully",
+      message: "Number setting saved successfully",
       data: setting,
     });
   } catch (err) {
     next(err);
   }
 };
+
+function getDefaultPrefix(docType: string) {
+  switch (docType) {
+    case "QUOTE":
+      return "QT-";
+    case "SALE_ORDER":
+      return "SO-";
+    case "INVOICE":
+      return "INV-";
+    default:
+      return "DOC-";
+  }
+}
 
 export const getNextQuotePreview = async (
   req: Request,
@@ -95,16 +116,23 @@ export const getNextQuotePreview = async (
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-    const { branchId } = req.params;
+     const branchId = (req.query.branchId as string) 
+    
     if (!branchId)
       return res.status(400).json({ message: "Branch ID is required!" });
 
-    const setting = await quoteNumberModel.findOne({
+    const docType = (req.query.docType as string) 
+
+    const setting = await numberSettingModel.findOne({
       branchId: new Types.ObjectId(branchId),
+      docType,
     });
+    
 
     // If no setting yet – fallback default
-    const prefix = setting?.prefix ?? "QT-";
+     const defaultPrefix = getDefaultPrefix(docType);
+
+     const prefix = setting?.prefix ?? defaultPrefix;
     // if setting.nextNumberRaw is "0001" → length = 4
     // if "1" → length = 1
     const raw = setting?.nextNumberRaw ?? "00001";
@@ -115,6 +143,7 @@ export const getNextQuotePreview = async (
     const quoteId = `${prefix}${paddedNumber}`;
 
     return res.status(200).json({
+      docType,
       quoteId, // e.g. "QT-0001" or "QT-1"
       prefix,
       nextNumber: numeric,
