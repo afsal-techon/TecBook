@@ -26,6 +26,8 @@ export const createQuotes = async (
       expDate,
       status,
       items,
+      terms,
+      note,
       subTotal,
       taxTotal,
       total,
@@ -161,6 +163,8 @@ export const createQuotes = async (
       total,
       discount : discountValue,
       documents: uploadedFiles,
+      terms,
+      note,
       createdById: userId,
     });
 
@@ -198,6 +202,8 @@ export const updateQuotes = async (
       status,
       items,
       subTotal,
+      terms,
+      note,
       taxTotal,
       total,
       discountValue,
@@ -318,6 +324,8 @@ export const updateQuotes = async (
     quote.total = total;
     quote.discount = discountValue;
     quote.documents = finalDocuments;
+    quote.terms = terms;
+    quote.note = note;
     // quote.updatedById = userId; // if you track updatedBy
 
     await quote.save();
@@ -633,6 +641,8 @@ export const getOneQuotation = async (
           total: 1,
           discount: 1,
           documents: 1,
+          note:1,
+          terms:1,
           items: 1, // full items array as saved
           createdAt: 1,
           updatedAt: 1,

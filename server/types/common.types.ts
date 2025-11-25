@@ -404,3 +404,41 @@ export interface INumberSetting extends Document {
   nextNumberRaw:string;  // e.g. 6  (number of digits)
   mode: "Auto" | "Manual"
 }
+
+
+
+export interface ISaleOrder extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  saleOrderId:string;
+  saleOrderDate: Date | null;
+  deliveryDate: Date | null;
+  salesPersonId: Types.ObjectId | null;
+  paymentTerms?:{
+    term:string | null;
+    days: string | null;
+  };
+  note:string | null;
+  documents?: string[]; 
+  items?: {
+    itemId: Types.ObjectId | null;
+    qty: number | null;
+    tax :number  | null;
+    rate: Types.ObjectId | null;
+    unit:string;
+    amount: number | null;
+   discount:number | null;
+  }[];
+  status:string | null;
+  subTotal:number | null;
+  total: number | null;
+  taxTotal: number | null;
+  discount:number | null;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}

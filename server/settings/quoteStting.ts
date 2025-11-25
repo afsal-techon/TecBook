@@ -71,7 +71,7 @@ export const upsertDocumentNumberSetting  = async (
         ? prefix.trim()
         : getDefaultPrefix(docType);
       updateData.nextNumber = null;
-      updateData.nextNumberRaw = "1";
+      // updateData.nextNumberRaw = "1";
     }
 
        const setting = await numberSettingModel.findOneAndUpdate(
@@ -123,6 +123,7 @@ export const getNextQuotePreview = async (
 
     const docType = (req.query.docType as string) 
 
+
     const setting = await numberSettingModel.findOne({
       branchId: new Types.ObjectId(branchId),
       docType,
@@ -140,11 +141,11 @@ export const getNextQuotePreview = async (
     const length = raw.length;
 
     const paddedNumber = String(numeric).padStart(length, "0");
-    const quoteId = `${prefix}${paddedNumber}`;
+    const generatedId = `${prefix}${paddedNumber}`;
 
     return res.status(200).json({
       docType,
-      quoteId, // e.g. "QT-0001" or "QT-1"
+      generatedId, // e.g. "QT-0001" or "QT-1"
       prefix,
       nextNumber: numeric,
       nextNumberRaw: raw,
@@ -154,3 +155,5 @@ export const getNextQuotePreview = async (
     next(err);
   }
 };
+
+
