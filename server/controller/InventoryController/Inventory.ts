@@ -360,7 +360,7 @@ export const createUnit = async (
     if (existunits.length > 0) {
       existunits.map((d) => d.unit);
       return res.status(400).json({
-        message: `The following units already exist: ${existunits.join(", ")}`,
+        message: `The following units already exist!`,
       });
     }
 

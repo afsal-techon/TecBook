@@ -32,7 +32,7 @@ const saleOrderSchema = new Schema<ISaleOrder>(
     },
     status: {
       type: String,
-      enum: ["Draft", "Closed","Accepted","Approved","Invoiced","Pending"],
+      enum: ["Draft", "Closed","Confirmed", "Accepted", "Approved", "Invoiced", "Pending"],
     },
     items: [
       {
@@ -41,8 +41,8 @@ const saleOrderSchema = new Schema<ISaleOrder>(
         tax: { type: Number, default: 0 },
         rate: { type: Number, default: 0 },
         amount: { type: Number, default: 0 },
-         unit: { type: String, default: 0 },
-         discount: { type: Number, default: 0 },
+        unit: { type: String, default: 0 },
+        discount: { type: Number, default: 0 },
       },
     ],
     subTotal: {
@@ -64,6 +64,19 @@ const saleOrderSchema = new Schema<ISaleOrder>(
     documents: {
       type: [String],
       default: [],
+    },
+        paymentTerms: {
+         _id:{type:String , default:null},
+        termName: { type: String, default: null },
+        days :{ type:Number, default:0},
+    },
+    terms:{
+      type:String,
+      default:false
+    },
+    note: {
+      type: String,
+      default: "null",
     },
     isDeleted: {
       type: Boolean,
@@ -91,12 +104,19 @@ const saleOrderSchema = new Schema<ISaleOrder>(
   { timestamps: true } //  automatically manages createdAt & updatedAt
 );
 
-saleOrderSchema.index({ branchId: 1, isDeleted: 1 });
+saleOrderSchema.index({
+  branchId: 1,
+  isDeleted: 1,
+  status: 1,
+  quoteDate: -1,
+  createdAt: -1,
+});
 saleOrderSchema.index({ customerId: 1, saleOrderDate: -1 });
 saleOrderSchema.index({ salesPersonId: 1, deliveryDate: -1 });
+saleOrderSchema.index({ branchId: 1, isDeleted: 1 });
 
-const quottionModel: Model<ISaleOrder> = mongoose.model<ISaleOrder>(
-  "Quotation",
+const saleOrderModel: Model<ISaleOrder> = mongoose.model<ISaleOrder>(
+  "SaleOrder",
   saleOrderSchema
 );
-export default quottionModel;
+export default saleOrderModel;

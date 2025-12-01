@@ -67,6 +67,14 @@ const quotationSchema = new Schema<IQuotes>(
       type: Number,
       default: 0,
     },
+        terms: {
+      type: String,
+      default:'null'
+    },
+            note: {
+      type: String,
+      default:'null'
+    },
     documents: {
       type: [String],
       default: [],
@@ -97,9 +105,13 @@ const quotationSchema = new Schema<IQuotes>(
   { timestamps: true } //  automatically manages createdAt & updatedAt
 );
 
-quotationSchema.index({ branchId: 1, isDeleted: 1 });
+quotationSchema.index(
+  { branchId: 1, isDeleted: 1, status: 1, quoteDate: -1, createdAt: -1 }
+);
 quotationSchema.index({ customerId: 1, quoteDate: -1 });
 quotationSchema.index({ salesPersonId: 1, quoteDate: -1 });
+quotationSchema.index({ branchId: 1, isDeleted: 1 });
+
 
 const quottionModel: Model<IQuotes> = mongoose.model<IQuotes>(
   "Quotation",

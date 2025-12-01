@@ -406,18 +406,18 @@ export interface INumberSetting extends Document {
 }
 
 
-
 export interface ISaleOrder extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
-  saleOrderId:string;
-  saleOrderDate: Date | null;
-  deliveryDate: Date | null;
-  salesPersonId: Types.ObjectId | null;
-  paymentTerms?:{
-    term:string | null;
-    days: string | null;
+  saleOrderId?:string;
+  saleOrderDate?: Date | null;
+  deliveryDate?: Date | null;
+  salesPersonId?: Types.ObjectId | null;
+   paymentTerms?: {
+    termName?: string | null;
+    days?: number | 0;
   };
+  terms?:string | null;
   note:string | null;
   documents?: string[]; 
   items?: {
@@ -434,6 +434,23 @@ export interface ISaleOrder extends Document {
   total: number | null;
   taxTotal: number | null;
   discount:number | null;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface IPaymentTerms extends Document {
+  branchId?: Types.ObjectId; 
+  terms?: {
+    termName?:string,
+    days?:number,
+    status?:boolean 
+  }[];
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;

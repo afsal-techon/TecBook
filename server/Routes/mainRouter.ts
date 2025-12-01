@@ -12,7 +12,9 @@ import { createCategory, createItem, createUnit, deleteCategory, deleteItems, de
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
 import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, updateQuotes } from '../controller/saleController/quotationCntrl';
-import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/saleController/taxCntrol';
+import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
+import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
+import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
 const router = express.Router();
 
 
@@ -133,8 +135,17 @@ router.get('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation',
 router.delete('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation','can_delete'),deleteQuotation)
 
 
+//payment terms
+router.post('/payment-terms',verifyUser,checkPermission('admin','PaymentTerms','can_create'),upsertPaymentTerms)
+router.get('/payment-terms/:branchId',verifyUser,checkPermission('admin','PaymentTerms','can_read'),getAllPaymentTerms)
 
 
+//create saleorder 
+router.post('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_create'),upload.array('documents',10),createSaleOrder);
+router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_update'),upload.array('documents',10),updateSaleOrder);
+router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
+router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
+router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder)
 
 
 export default router;

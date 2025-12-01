@@ -371,7 +371,6 @@ export const getAllQuotes = async (
       "Approved",
       "Sent",
       "Invoiced",
-      "Approved",
       "Pending"
     ];
 
