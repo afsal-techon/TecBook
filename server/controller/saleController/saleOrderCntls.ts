@@ -23,6 +23,7 @@ export const createSaleOrder = async (
       saleOrderDate,
       deliveryDate,
       status,
+      reference,
       items,
       paymentTerms,
       terms,
@@ -182,6 +183,7 @@ export const createSaleOrder = async (
       items: parsedItems,
       paymentTerms:parsedTerms,
       terms,
+      reference,
       subTotal,
       taxTotal,
       total,
@@ -221,6 +223,7 @@ export const updateSaleOrder = async (
       subTotal,
       terms,
       paymentTerms,
+      reference,
       note,
       taxTotal,
       total,
@@ -352,6 +355,7 @@ export const updateSaleOrder = async (
     saleOrder.terms = terms;
     saleOrder.subTotal = subTotal;
     saleOrder.taxTotal = taxTotal;
+    saleOrder.reference = reference;
     saleOrder.total = total;
     saleOrder.discount = discountValue;
     saleOrder.documents = finalDocuments;
@@ -526,6 +530,7 @@ export const getAllSaleOrder = async (
         paymentTerms:1,
         status: 1,
         subTotal: 1,
+        reference:1,
         taxTotal: 1,
         total: 1,
         discount: 1,
@@ -654,6 +659,7 @@ export const getOneSaleOrder = async (
           deliveryDate: 1,
           status: 1,
           subTotal: 1,
+          reference:1,
           taxTotal: 1,
           total: 1,
           discount: 1,

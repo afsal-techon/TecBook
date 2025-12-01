@@ -322,6 +322,7 @@ export interface IQuotes extends Document {
   salesPersonId: Types.ObjectId | null;
   terms:string;
   note:string;
+  reference:string;
 documents?: string[]; 
   items?: {
     itemId: Types.ObjectId | null;
@@ -429,6 +430,7 @@ export interface ISaleOrder extends Document {
     amount: number | null;
    discount:number | null;
   }[];
+  reference:string;
   status:string | null;
   subTotal:number | null;
   total: number | null;

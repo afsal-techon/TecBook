@@ -36,9 +36,13 @@ const quotationSchema = new Schema<IQuotes>(
       type: Date,
       default: null,
     },
+      reference: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
-      enum: ["Draft", "Sent","Accepted","Approved","Invoiced","Pending"],
+      enum: ["Draft", "Sent","Accepted","Approved","Invoiced","Pending","Declined"],
     },
     items: [
       {

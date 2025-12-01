@@ -61,6 +61,10 @@ const saleOrderSchema = new Schema<ISaleOrder>(
       type: Number,
       default: 0,
     },
+     reference: {
+      type: String,
+      default: null,
+    },
     documents: {
       type: [String],
       default: [],

@@ -30,6 +30,7 @@ export const createQuotes = async (
       note,
       subTotal,
       taxTotal,
+      reference,
       total,
       discountValue,
     } = req.body;
@@ -164,6 +165,7 @@ export const createQuotes = async (
       discount : discountValue,
       documents: uploadedFiles,
       terms,
+      reference,
       note,
       createdById: userId,
     });
@@ -178,7 +180,6 @@ export const createQuotes = async (
     next(err);
   }
 };
-
 
 
 
@@ -203,6 +204,7 @@ export const updateQuotes = async (
       items,
       subTotal,
       terms,
+      reference,
       note,
       taxTotal,
       total,
@@ -322,6 +324,7 @@ export const updateQuotes = async (
     quote.subTotal = subTotal;
     quote.taxTotal = taxTotal;
     quote.total = total;
+    quote.reference = reference;
     quote.discount = discountValue;
     quote.documents = finalDocuments;
     quote.terms = terms;
@@ -371,7 +374,8 @@ export const getAllQuotes = async (
       "Approved",
       "Sent",
       "Invoiced",
-      "Pending"
+      "Pending",
+      "Declined"
     ];
 
         // Pagination
@@ -499,6 +503,7 @@ export const getAllQuotes = async (
         status: 1,
         subTotal: 1,
         taxTotal: 1,
+        reference:1,
         total: 1,
         discount: 1,
         documents: 1,
@@ -637,6 +642,7 @@ export const getOneQuotation = async (
           status: 1,
           subTotal: 1,
           taxTotal: 1,
+          reference:1,
           total: 1,
           discount: 1,
           documents: 1,
@@ -751,3 +757,59 @@ export const deleteQuotation = async (
   }
 };
 
+
+
+export const markAcceptOrReject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { quoteId } = req.params;
+    let { status } = req.body;
+
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!quoteId) {
+      return res.status(400).json({ message: "Quotation Id is required!" });
+    }
+
+    const quotation = await QUOTATION.findOne({ _id: quoteId });
+    if (!quotation) {
+      return res.status(404).json({ message: "Quotation not found!" });
+    }
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required!" });
+    }
+
+    // normalize / validate status
+    status = String(status);
+    if (status !== "Accepted" && status !== "Declined") {
+      return res
+        .status(400)
+        .json({ message: "Status must be either 'Accepted' or 'Declined'" });
+    }
+
+    quotation.status = status;
+    await quotation.save(); // <-- important
+
+    return res.status(200).json({
+      message:
+        status === "Accepted"
+          ? "Quotation changed to Accepted"
+          : "Quotation changed to Declined",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
