@@ -18,6 +18,7 @@ import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, upd
 const router = express.Router();
 
 
+
 router.post('/create-admin',createAdmin)
 router.post('/login',loginUser);
 router.get('/user',verifyUser,getUser);
@@ -146,6 +147,8 @@ router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOr
 router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
 router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+
+
 
 
 

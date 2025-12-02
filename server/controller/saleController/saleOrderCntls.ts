@@ -120,11 +120,9 @@ export const createSaleOrder = async (
         isDeleted: false,
       });
       if (exists) {
-        return res
-          .status(400)
-          .json({
-            message: "Generated sale Id already exists. Please try again.",
-          });
+        return res.status(400).json({
+          message: "Generated sale Id already exists. Please try again.",
+        });
       }
 
       // increment for next time
@@ -181,7 +179,7 @@ export const createSaleOrder = async (
       deliveryDate,
       status,
       items: parsedItems,
-      paymentTerms:parsedTerms,
+      paymentTerms: parsedTerms,
       terms,
       reference,
       subTotal,
@@ -250,17 +248,24 @@ export const updateSaleOrder = async (
       return res.status(400).json({ message: "Sale order not found!" });
 
     // Required fields
-    if (!branchId) return res.status(400).json({ message: "Branch ID is required!" });
-    if (!customerId) return res.status(400).json({ message: "Customer ID is required!" });
+    if (!branchId)
+      return res.status(400).json({ message: "Branch ID is required!" });
+    if (!customerId)
+      return res.status(400).json({ message: "Customer ID is required!" });
     if (!saleOrderDate)
       return res.status(400).json({ message: "Sale order date is required!" });
     if (!deliveryDate)
       return res.status(400).json({ message: "Delivery date is required!" });
-    if (!status) return res.status(400).json({ message: "Status is required!" });
+    if (!status)
+      return res.status(400).json({ message: "Status is required!" });
 
     // Validate customer
-    const customer = await CUSTOMER.findOne({ _id: customerId, isDeleted: false });
-    if (!customer) return res.status(400).json({ message: "Customer not found!" });
+    const customer = await CUSTOMER.findOne({
+      _id: customerId,
+      isDeleted: false,
+    });
+    if (!customer)
+      return res.status(400).json({ message: "Customer not found!" });
 
     // -----------------------------
     // Parse ITEMS
@@ -281,7 +286,7 @@ export const updateSaleOrder = async (
     // Parse TERMS (payment term object - REQUIRED)
     // -----------------------------
     interface ITerm {
-      _id:string | null;
+      _id: string | null;
       termName: string | null;
       days: number;
     }
@@ -290,13 +295,16 @@ export const updateSaleOrder = async (
       return res.status(400).json({ message: "Payment term  is required!" });
     }
 
-    const rawTerms = typeof paymentTerms === "string" ? JSON.parse(paymentTerms) : paymentTerms;
+    const rawTerms =
+      typeof paymentTerms === "string"
+        ? JSON.parse(paymentTerms)
+        : paymentTerms;
 
     if (!rawTerms || typeof rawTerms !== "object") {
       return res.status(400).json({ message: "Invalid payment term format!" });
     }
-  
-     if (!rawTerms._id) {
+
+    if (!rawTerms._id) {
       return res.status(400).json({ message: "payment term Id is required!" });
     }
 
@@ -309,7 +317,7 @@ export const updateSaleOrder = async (
     }
 
     const parsedTerms: ITerm = {
-      _id:String(rawTerms._id),
+      _id: String(rawTerms._id),
       termName: String(rawTerms.termName).trim(),
       days: Number(rawTerms.days),
     };
@@ -370,7 +378,6 @@ export const updateSaleOrder = async (
     next(err);
   }
 };
-
 
 export const getAllSaleOrder = async (
   req: Request,
@@ -526,11 +533,11 @@ export const getAllSaleOrder = async (
         salesPersonId: 1,
         saleOrderDate: 1,
         deliveryDate: 1,
-        terms:1,
-        paymentTerms:1,
+        terms: 1,
+        paymentTerms: 1,
         status: 1,
         subTotal: 1,
-        reference:1,
+        reference: 1,
         taxTotal: 1,
         total: 1,
         discount: 1,
@@ -634,7 +641,14 @@ export const getOneSaleOrder = async (
         },
       },
       { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
-
+      {
+        $lookup: {
+          from: "items",
+          localField: "items.itemId",
+          foreignField: "_id",
+          as: "itemDetails",
+        },
+      },
 
       // You can also lookup branch if you need branch info
       // {
@@ -659,17 +673,48 @@ export const getOneSaleOrder = async (
           deliveryDate: 1,
           status: 1,
           subTotal: 1,
-          reference:1,
+          reference: 1,
           taxTotal: 1,
           total: 1,
           discount: 1,
           documents: 1,
           note: 1,
           terms: 1,
-          paymentTerms:1,
-          items: 1, // full items array as saved
+          paymentTerms: 1, // full items array as saved
           createdAt: 1,
           updatedAt: 1,
+
+          items: {
+            $map: {
+              input: "$items",
+              as: "it",
+              in: {
+                itemId: "$$it.itemId",
+                qty: "$$it.qty",
+                tax: "$$it.tax",
+                rate: "$$it.rate",
+                amount: "$$it.amount",
+                unit: "$$it.unit",
+                discount: "$$it.discount",
+                itemName: {
+                  $let: {
+                    vars: {
+                      matchedItem: {
+                        $first: {
+                          $filter: {
+                            input: "$itemDetails",
+                            as: "id",
+                            cond: { $eq: ["$$id._id", "$$it.itemId"] },
+                          },
+                        },
+                      },
+                    },
+                    in: "$$matchedItem.name",
+                  },
+                },
+              },
+            },
+          },
 
           // customer fields
           customer: {

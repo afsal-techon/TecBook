@@ -4,9 +4,9 @@ import express, { Request, Response, NextFunction } from "express";
 import CUSTOMER from "../../models/customer";
 import { imagekit } from "../../config/imageKit";
 import { Types } from "mongoose";
-import BRANCH from '../../models/branch'
+import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
-import QuoteNumberSetting from '../../models/numberSetting'
+import QuoteNumberSetting from "../../models/numberSetting";
 
 export const createQuotes = async (
   req: Request,
@@ -14,8 +14,6 @@ export const createQuotes = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-   
-    
     const {
       branchId,
       quoteId, // may be null/ignored in auto mode
@@ -59,7 +57,7 @@ export const createQuotes = async (
       return res.status(400).json({ message: "Customer not found!" });
     }
 
-        let parsedItems: any[] = [];
+    let parsedItems: any[] = [];
 
     if (items) {
       if (typeof items === "string") {
@@ -69,33 +67,38 @@ export const createQuotes = async (
       }
     }
 
-    if (!parsedItems || !Array.isArray(parsedItems) || parsedItems.length === 0) {
+    if (
+      !parsedItems ||
+      !Array.isArray(parsedItems) ||
+      parsedItems.length === 0
+    ) {
       return res
         .status(400)
         .json({ message: "At least one item is required in the quotation" });
     }
 
-    if (isNaN(subTotal)) return res.status(400).json({ message: "Invalid subTotal" });
+    if (isNaN(subTotal))
+      return res.status(400).json({ message: "Invalid subTotal" });
     if (isNaN(total)) return res.status(400).json({ message: "Invalid total" });
-    if (isNaN(taxTotal)) return res.status(400).json({ message: "Invalid taxTotal" });
+    if (isNaN(taxTotal))
+      return res.status(400).json({ message: "Invalid taxTotal" });
 
     //  Get quote number setting for this branch
     let setting = await QuoteNumberSetting.findOne({
       branchId: new Types.ObjectId(branchId),
-     docType: "QUOTE",
+      docType: "QUOTE",
     });
 
     let finalQuoteId: string;
 
-    if (setting && setting.mode === 'Auto') {
+    if (setting && setting.mode === "Auto") {
       // ---------- AUTO MODE ----------
-       const raw = setting.nextNumberRaw ?? String(setting.nextNumber ?? 1);
-        const numeric = setting.nextNumber ?? Number(raw) ?? 1;
-        const length = raw.length;
+      const raw = setting.nextNumberRaw ?? String(setting.nextNumber ?? 1);
+      const numeric = setting.nextNumber ?? Number(raw) ?? 1;
+      const length = raw.length;
 
-           const padded = String(numeric).padStart(length, "0");
-        finalQuoteId = `${setting.prefix}${padded}`;
-
+      const padded = String(numeric).padStart(length, "0");
+      finalQuoteId = `${setting.prefix}${padded}`;
 
       // optionally: ensure uniqueness
       const exists = await QUOTATION.findOne({
@@ -104,14 +107,15 @@ export const createQuotes = async (
         isDeleted: false,
       });
       if (exists) {
-        return res.status(400).json({ message: "Generated quote ID already exists. Please try again." });
+        return res.status(400).json({
+          message: "Generated quote ID already exists. Please try again.",
+        });
       }
 
       // increment for next time
       setting.nextNumber = numeric + 1;
-  setting.nextNumberRaw = String(numeric + 1).padStart(length, "0");
-  await setting.save();
-
+      setting.nextNumberRaw = String(numeric + 1).padStart(length, "0");
+      await setting.save();
     } else {
       // ---------- MANUAL MODE ----------
       if (!quoteId || typeof quoteId !== "string" || !quoteId.trim()) {
@@ -130,7 +134,8 @@ export const createQuotes = async (
       });
       if (exists) {
         return res.status(400).json({
-          message: "This quote ID already exists. Please enter a different one.",
+          message:
+            "This quote ID already exists. Please enter a different one.",
         });
       }
     }
@@ -158,11 +163,11 @@ export const createQuotes = async (
       quoteDate,
       expDate,
       status,
-      items : parsedItems,
+      items: parsedItems,
       subTotal,
       taxTotal,
       total,
-      discount : discountValue,
+      discount: discountValue,
       documents: uploadedFiles,
       terms,
       reference,
@@ -181,19 +186,16 @@ export const createQuotes = async (
   }
 };
 
-
-
 export const updateQuotes = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
     const { quoteId } = req.params;
 
     const {
-       // ID of the quote document in DB (or _id) – adjust naming if needed
+      // ID of the quote document in DB (or _id) – adjust naming if needed
       branchId,
       customerId,
       projectId,
@@ -265,7 +267,11 @@ export const updateQuotes = async (
       }
     }
 
-    if (!parsedItems || !Array.isArray(parsedItems) || parsedItems.length === 0) {
+    if (
+      !parsedItems ||
+      !Array.isArray(parsedItems) ||
+      parsedItems.length === 0
+    ) {
       return res.status(400).json({
         message: "At least one item is required in the quotation",
       });
@@ -291,13 +297,15 @@ export const updateQuotes = async (
         : JSON.parse(existingDocuments);
 
       // Support both string array and array of objects with doc_file
-      finalDocuments = parsedExistingDocs.map((doc: any) => {
-        if (typeof doc === "string") {
-          return doc;
-        }
-        // if object: { doc_file: 'url', ... }
-        return doc.doc_file || "";
-      }).filter((url: string) => !!url);
+      finalDocuments = parsedExistingDocs
+        .map((doc: any) => {
+          if (typeof doc === "string") {
+            return doc;
+          }
+          // if object: { doc_file: 'url', ... }
+          return doc.doc_file || "";
+        })
+        .filter((url: string) => !!url);
     }
 
     //  Handle new file uploads (same as createQuotes)
@@ -316,7 +324,9 @@ export const updateQuotes = async (
     quote.branchId = new Types.ObjectId(branchId);
     quote.customerId = new Types.ObjectId(customerId);
     quote.projectId = projectId ? projectId : null;
-    quote.salesPersonId = salesPersonId ? new Types.ObjectId(salesPersonId) : null;
+    quote.salesPersonId = salesPersonId
+      ? new Types.ObjectId(salesPersonId)
+      : null;
     quote.quoteDate = quoteDate;
     quote.expDate = expDate;
     quote.status = status;
@@ -341,11 +351,6 @@ export const updateQuotes = async (
   }
 };
 
-
-
-
-
-
 export const getAllQuotes = async (
   req: Request,
   res: Response,
@@ -366,7 +371,7 @@ export const getAllQuotes = async (
     const startDate = req.query.startDate as string;
     const endDate = req.query.endDate as string;
 
-       const statusFilter = (req.query.status as string) || "";
+    const statusFilter = (req.query.status as string) || "";
 
     const allowedStatuses = [
       "Draft",
@@ -375,10 +380,10 @@ export const getAllQuotes = async (
       "Sent",
       "Invoiced",
       "Pending",
-      "Declined"
+      "Declined",
     ];
 
-        // Pagination
+    // Pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
@@ -434,7 +439,7 @@ export const getAllQuotes = async (
       matchStage.quoteDate = { $lte: new Date(endDate) };
     }
 
-      if (statusFilter && allowedStatuses.includes(statusFilter)) {
+    if (statusFilter && allowedStatuses.includes(statusFilter)) {
       matchStage.status = statusFilter;
     }
 
@@ -503,7 +508,7 @@ export const getAllQuotes = async (
         status: 1,
         subTotal: 1,
         taxTotal: 1,
-        reference:1,
+        reference: 1,
         total: 1,
         discount: 1,
         documents: 1,
@@ -536,7 +541,7 @@ export const getOneQuotation = async (
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    const  { quoteId }= req.params // assuming /quotes/:id
+    const { quoteId } = req.params; // assuming /quotes/:id
 
     // 1) Validate ID
     if (!quoteId || !Types.ObjectId.isValid(quoteId)) {
@@ -605,6 +610,14 @@ export const getOneQuotation = async (
           as: "salesPerson",
         },
       },
+      {
+        $lookup: {
+          from: "items",
+          localField: "items.itemId",
+          foreignField: "_id",
+          as: "itemDetails",
+        },
+      },
       { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
 
       // (Optional) Join Project
@@ -642,15 +655,45 @@ export const getOneQuotation = async (
           status: 1,
           subTotal: 1,
           taxTotal: 1,
-          reference:1,
+          reference: 1,
           total: 1,
           discount: 1,
           documents: 1,
-          note:1,
-          terms:1,
-          items: 1, // full items array as saved
+          note: 1,
+          terms: 1, // full items array as saved
           createdAt: 1,
           updatedAt: 1,
+          items: {
+            $map: {
+              input: "$items",
+              as: "it",
+              in: {
+                itemId: "$$it.itemId",
+                qty: "$$it.qty",
+                tax: "$$it.tax",
+                rate: "$$it.rate",
+                amount: "$$it.amount",
+                unit: "$$it.unit",
+                discount: "$$it.discount",
+                itemName: {
+                  $let: {
+                    vars: {
+                      matchedItem: {
+                        $first: {
+                          $filter: {
+                            input: "$itemDetails",
+                            as: "id",
+                            cond: { $eq: ["$$id._id", "$$it.itemId"] },
+                          },
+                        },
+                      },
+                    },
+                    in: "$$matchedItem.name",
+                  },
+                },
+              },
+            },
+          },
 
           // customer fields
           customer: {
@@ -703,15 +746,13 @@ export const getOneQuotation = async (
   }
 };
 
-
 export const deleteQuotation = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
-     const { quoteId } = req.params;
+    const { quoteId } = req.params;
 
     const userId = req.user?.id;
 
@@ -751,13 +792,10 @@ export const deleteQuotation = async (
     return res.status(200).json({
       message: "Quotation deleted successfully!",
     });
-   
   } catch (err) {
     next(err);
   }
 };
-
-
 
 export const markAcceptOrReject = async (
   req: Request,
