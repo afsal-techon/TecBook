@@ -51,7 +51,7 @@ export interface IDepartment extends Document {
 }
 
 export interface IPosition extends Document {
-   branchIds?: Types.ObjectId[];
+  branchIds?: Types.ObjectId[];
   departmentId?: Types.ObjectId | null;
   pos_name?: string;
   createdById?: Types.ObjectId | null;
@@ -195,10 +195,10 @@ export interface ICustomer extends Document {
   branchId?: Types.ObjectId | null;
   name?: string;
   phone?: number;
-  email?:string;
+  email?: string;
   openingBalance?: number;
-  paymentTerms?:string;
-  currency?:string;
+  paymentTerms?: string;
+  currency?: string;
   note?: string;
   billingInfo?: {
     country?: string | null;
@@ -215,7 +215,7 @@ export interface ICustomer extends Document {
   taxTreatment?: string | null;
   trn?: string | null;
   placeOfSupplay?: string | null;
-    documents?: {
+  documents?: {
     doc_name: string | null;
     doc_file: string | null;
     doc_typeId: Types.ObjectId | null;
@@ -244,7 +244,7 @@ export interface ICategory extends Document {
 }
 
 export interface ICategory extends Document {
-  branchIds?: Types.ObjectId[]; 
+  branchIds?: Types.ObjectId[];
   name?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
@@ -256,7 +256,7 @@ export interface ICategory extends Document {
 }
 
 export interface IUnit extends Document {
-  branchIds?: Types.ObjectId[]; 
+  branchIds?: Types.ObjectId[];
   unit?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
@@ -278,27 +278,27 @@ export interface InventoryTracking {
 export interface IItem extends Document {
   branchId?: Types.ObjectId | null;
   categoryId?: Types.ObjectId | null;
-  name:string;
+  name: string;
   type: string;
   salesInfo?: {
     sellingPrice?: string | null;
     accountId?: Types.ObjectId | null;
-    description?: Types.ObjectId | null; 
-     saleUnitId: Types.ObjectId | null; 
-     taxId?:Types.ObjectId |  null;
+    description?: Types.ObjectId | null;
+    saleUnitId: Types.ObjectId | null;
+    taxId?: Types.ObjectId | null;
   };
   purchaseInfo?: {
     costPrice?: string | null;
     accountId?: Types.ObjectId | null;
     description?: Types.ObjectId | null;
-      purchaseUnitId:Types.ObjectId | null; 
-        taxId?:Types.ObjectId |  null;
+    purchaseUnitId: Types.ObjectId | null;
+    taxId?: Types.ObjectId | null;
   };
-   inventoryTracking?: InventoryTracking
-  taxTreatment:string | null;
-  sellable:boolean,
+  inventoryTracking?: InventoryTracking;
+  taxTreatment: string | null;
+  sellable: boolean;
   conversionRate: number | null;
-  purchasable:boolean,
+  purchasable: boolean;
   totalOpeningValue?: number | null;
   totalStockInBaseUnit?: number | null;
   isDeleted?: boolean;
@@ -310,34 +310,32 @@ export interface IItem extends Document {
   updatedAt?: Date;
 }
 
-
-
 export interface IQuotes extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
-  projectId?:    string;
-  quoteId:string;
+  projectId?: string;
+  quoteId: string;
   quoteDate: Date | null;
   expDate: Date | null;
   salesPersonId: Types.ObjectId | null;
-  terms:string;
-  note:string;
-  reference:string;
-documents?: string[]; 
+  terms: string;
+  note: string;
+  reference: string;
+  documents?: string[];
   items?: {
     itemId: Types.ObjectId | null;
     qty: number | null;
-    tax :number  | null;
+    tax: number | null;
     rate: Types.ObjectId | null;
-    unit:string;
+    unit: string;
     amount: number | null;
-   discount:number | null;
+    discount: number | null;
   }[];
-  status:string | null;
-  subTotal:number | null;
+  status: string | null;
+  subTotal: number | null;
   total: number | null;
   taxTotal: number | null;
-  discount:number | null;
+  discount: number | null;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
@@ -346,7 +344,6 @@ documents?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
-
 
 export interface IVendor extends Document {
   branchId?: Types.ObjectId | null;
@@ -378,7 +375,6 @@ export interface IVendor extends Document {
   updatedAt?: Date;
 }
 
-
 export interface ITax extends Document {
   branchId?: Types.ObjectId | null;
   name: string; // e.g., "GST 5%" or "VAT 10%"
@@ -388,54 +384,6 @@ export interface ITax extends Document {
   vatRate?: number | null; // for VAT
   description?: string | null;
   isActive?: boolean;
-   isDeleted?: boolean;
-  createdById?: Types.ObjectId | null;
-  deletedAt?: Date | null;
-  deletedById?: Types.ObjectId | null;
-  deletedBy?: string | null;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface INumberSetting extends Document {
-  branchId:  Types.ObjectId | null;
- docType: "QUOTE" | "SALE_ORDER" | "INVOICE"; 
-  prefix: string;       // e.g. "QT-"
-  nextNumber: number;   // e.g. 8  (for 000008)
-  nextNumberRaw:string;  // e.g. 6  (number of digits)
-  mode: "Auto" | "Manual"
-}
-
-
-export interface ISaleOrder extends Document {
-  branchId?: Types.ObjectId | null;
-  customerId?: Types.ObjectId | null;
-  saleOrderId?:string;
-  saleOrderDate?: Date | null;
-  deliveryDate?: Date | null;
-  salesPersonId?: Types.ObjectId | null;
-   paymentTerms?: {
-    termName?: string | null;
-    days?: number | 0;
-  };
-  terms?:string | null;
-  note:string | null;
-  documents?: string[]; 
-  items?: {
-    itemId: Types.ObjectId | null;
-    qty: number | null;
-    tax :number  | null;
-    rate: Types.ObjectId | null;
-    unit:string;
-    amount: number | null;
-   discount:number | null;
-  }[];
-  reference:string;
-  status:string | null;
-  subTotal:number | null;
-  total: number | null;
-  taxTotal: number | null;
-  discount:number | null;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
@@ -445,13 +393,88 @@ export interface ISaleOrder extends Document {
   updatedAt?: Date;
 }
 
+export interface INumberSetting extends Document {
+  branchId: Types.ObjectId | null;
+  docType: "QUOTE" | "SALE_ORDER" | "INVOICE";
+  prefix: string; // e.g. "QT-"
+  nextNumber: number; // e.g. 8  (for 000008)
+  nextNumberRaw: string; // e.g. 6  (number of digits)
+  mode: "Auto" | "Manual";
+}
+
+export interface ISaleOrder extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  saleOrderId?: string;
+  saleOrderDate?: Date | null;
+  deliveryDate?: Date | null;
+  salesPersonId?: Types.ObjectId | null;
+  paymentTerms?: {
+    termName?: string | null;
+    days?: number | 0;
+  };
+  terms?: string | null;
+  note: string | null;
+  documents?: string[];
+  items?: {
+    itemId: Types.ObjectId | null;
+    qty: number | null;
+    tax: number | null;
+    rate: Types.ObjectId | null;
+    unit: string;
+    amount: number | null;
+    discount: number | null;
+  }[];
+  reference: string;
+  status: string | null;
+  subTotal: number | null;
+  total: number | null;
+  taxTotal: number | null;
+  discount: number | null;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 export interface IPaymentTerms extends Document {
-  branchId?: Types.ObjectId; 
+  branchId?: Types.ObjectId;
   terms?: {
-    termName?:string,
-    days?:number,
-    status?:boolean 
+    termName?: string;
+    days?: number;
+    status?: boolean;
+  }[];
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IProject extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  projectName?: string;
+  projectCode?: string;
+  billingMethod?: string;
+  descriptoin?: string;
+  users?: {
+    userId: Types.ObjectId | null;
+    email: string;
+  }[];
+  ratePerHour:number;
+  projectCost:number;
+
+  tasks?: {
+    taskName: string;
+    description: string;
+    ratePerHour: number;
+    billable: boolean;
   }[];
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;

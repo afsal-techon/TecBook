@@ -11,7 +11,7 @@ import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '..
 import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
-import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, updateQuotes } from '../controller/saleController/quotationCntrl';
+import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAcceptOrReject, updateQuotes } from '../controller/saleController/quotationCntrl';
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
@@ -136,6 +136,8 @@ router.get('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation',
 router.delete('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation','can_delete'),deleteQuotation)
 
 
+router.post('/quotation/staus',verifyUser,checkPermission('admin','Quotation','can_update'),markAcceptOrReject)
+
 //payment terms
 router.post('/payment-terms',verifyUser,checkPermission('admin','PaymentTerms','can_create'),upsertPaymentTerms)
 router.get('/payment-terms/:branchId',verifyUser,checkPermission('admin','PaymentTerms','can_read'),getAllPaymentTerms)
@@ -147,6 +149,8 @@ router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOr
 router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
 router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+
+
 
 
 

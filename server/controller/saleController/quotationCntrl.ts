@@ -34,6 +34,9 @@ export const createQuotes = async (
     } = req.body;
 
     const userId = req.user?.id;
+    
+    console.log('dat',status)
+   
 
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
@@ -216,6 +219,8 @@ export const updateQuotes = async (
 
     const userId = req.user?.id;
 
+      console.log('dat',status)
+
     //  Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
@@ -319,6 +324,8 @@ export const updateQuotes = async (
         finalDocuments.push(uploadResponse.url);
       }
     }
+
+     
 
     //  Update quote fields (do NOT change auto-generated quoteId)
     quote.branchId = new Types.ObjectId(branchId);
@@ -803,8 +810,8 @@ export const markAcceptOrReject = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { quoteId } = req.params;
-    let { status } = req.body;
+
+    let { status,quoteId } = req.body;
 
     const userId = req.user?.id;
 
@@ -851,3 +858,5 @@ export const markAcceptOrReject = async (
     next(err);
   }
 };
+
+
