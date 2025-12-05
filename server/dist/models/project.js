@@ -34,75 +34,70 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const itemSchema = new mongoose_1.Schema({
+const projectSchema = new mongoose_1.Schema({
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Branch",
-        default: null,
+        required: true,
     },
-    categoryId: {
+    customerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Category",
-        default: null,
+        ref: "Customer",
+        required: true,
     },
-    name: {
+    projectName: {
         type: String,
-        default: null,
+        required: true,
         trim: true,
     },
-    type: {
+    projectId: {
+        type: String,
+        trim: true,
+        default: null,
+    },
+    billingMethod: {
+        type: String,
+        enum: [
+            "Fixed Cost for Project",
+            "Based on Project Hours",
+            "Based on Task Hours",
+            "Based on Staff Hours",
+        ],
+        required: true,
+    },
+    description: {
         type: String,
         default: null,
     },
-    salesInfo: {
-        sellingPrice: { type: Number, default: null },
-        accountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
-        description: { type: String, default: null },
-        saleUnitId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Unit", default: null },
-        taxId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Tax",
-            default: null,
+    users: [
+        {
+            userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", default: null },
+            email: { type: String, trim: true },
         },
-    },
-    purchaseInfo: {
-        costPrice: { type: Number, default: null },
-        accountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
-        description: { type: String, default: null },
-        purchaseUnitId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Unit",
-            default: null,
-        },
-        taxId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Tax",
-            default: null,
-        },
-    },
-    conversionRate: {
+    ],
+    projectCost: {
         type: Number,
-        default: 1,
+        default: 0,
     },
-    taxTreatment: { type: String, default: null, enum: ["VAT", "Non-VAT"] },
-    sellable: {
-        type: Boolean,
-        default: false,
+    ratePerHour: {
+        type: Number,
+        default: 0,
     },
-    purchasable: {
-        type: Boolean,
-        default: false,
-    },
-    inventoryTracking: {
-        isTrackable: { type: Boolean, default: false },
-        inventoryAccountId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Account",
-            default: null,
+    tasks: [
+        {
+            taskName: { type: String, trim: true },
+            description: { type: String, trim: true },
+            ratePerHour: { type: Number, default: 0 }, // Only used in Task Hour method
+            billable: { type: Boolean, default: true },
         },
-        openingStock: { type: Number, default: 0 },
-        openingStockRatePerUnit: { type: Number, default: 0 },
-        reorderPoint: { type: Number, default: 0 },
+    ],
+    costBudget: {
+        type: Number,
+        default: 0,
+    },
+    revenueBudget: {
+        type: Number,
+        default: 0,
     },
     isDeleted: {
         type: Boolean,
@@ -128,11 +123,8 @@ const itemSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true } //  automatically manages createdAt & updatedAt
 );
-itemSchema.index({ branchId: 1, isDeleted: 1 });
-itemSchema.index({ categoryId: 1, isDeleted: 1 });
-itemSchema.index({ branchId: 1, sellable: 1, isDeleted: 1 });
-itemSchema.index({ branchId: 1, purchasable: 1, isDeleted: 1 });
-itemSchema.index({ type: 1, branchId: 1, isDeleted: 1 });
-itemSchema.index({ branchId: 1, name: 1, isDeleted: 1 });
-const itemModel = mongoose_1.default.model("Item", itemSchema);
-exports.default = itemModel;
+projectSchema.index({ branchId: 1, isDeleted: 1, createdAt: -1 });
+projectSchema.index({ customerId: 1, isDeleted: 1 });
+projectSchema.index({ projectName: 1, branchId: 1 });
+const projectModel = mongoose_1.default.model("Project", projectSchema);
+exports.default = projectModel;

@@ -50,13 +50,14 @@ const quotationSchema = new mongoose_1.Schema({
         default: null,
     },
     projectId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Project",
+        // type: Schema.Types.ObjectId,
+        type: String,
+        // ref: "Project",
         default: null,
     },
     salesPersonId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Salesperson",
+        ref: "Employee",
         default: null,
     },
     quoteDate: {
@@ -67,17 +68,23 @@ const quotationSchema = new mongoose_1.Schema({
         type: Date,
         default: null,
     },
+    reference: {
+        type: String,
+        default: null,
+    },
     status: {
         type: String,
-        enum: ["Draft", "Sent"],
+        enum: ["Draft", "Sent", "Accepted", "Approved", "Invoiced", "Pending", "Declined"],
     },
-    item: [
+    items: [
         {
             itemId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Item", default: null },
             qty: { type: Number, default: 1 },
             tax: { type: Number, default: 0 },
             rate: { type: Number, default: 0 },
             amount: { type: Number, default: 0 },
+            unit: { type: String, default: 0 },
+            discount: { type: Number, default: 0 },
         },
     ],
     subTotal: {
@@ -95,6 +102,14 @@ const quotationSchema = new mongoose_1.Schema({
     discount: {
         type: Number,
         default: 0,
+    },
+    terms: {
+        type: String,
+        default: 'null'
+    },
+    note: {
+        type: String,
+        default: 'null'
     },
     documents: {
         type: [String],
@@ -124,8 +139,9 @@ const quotationSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true } //  automatically manages createdAt & updatedAt
 );
-quotationSchema.index({ branchId: 1, isDeleted: 1 });
+quotationSchema.index({ branchId: 1, isDeleted: 1, status: 1, quoteDate: -1, createdAt: -1 });
 quotationSchema.index({ customerId: 1, quoteDate: -1 });
 quotationSchema.index({ salesPersonId: 1, quoteDate: -1 });
+quotationSchema.index({ branchId: 1, isDeleted: 1 });
 const quottionModel = mongoose_1.default.model("Quotation", quotationSchema);
 exports.default = quottionModel;

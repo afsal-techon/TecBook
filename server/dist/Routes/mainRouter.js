@@ -15,6 +15,12 @@ const accountCntrl_1 = require("../controller/AccountsControle/accountCntrl");
 const customerCntrl_1 = require("../controller/saleController/customerCntrl");
 const Inventory_1 = require("../controller/InventoryController/Inventory");
 const vendorCntrl_1 = require("../controller/purchaseController/vendorCntrl");
+const quoteStting_1 = require("../settings/quoteStting");
+const quotationCntrl_1 = require("../controller/saleController/quotationCntrl");
+const taxCntrol_1 = require("../controller/commonCntroller/taxCntrol");
+const paymentTerms_1 = require("../controller/commonCntroller/paymentTerms");
+const saleOrderCntls_1 = require("../controller/saleController/saleOrderCntls");
+const projectCntrl_1 = require("../controller/projectController/projectCntrl");
 const router = express_1.default.Router();
 router.post('/create-admin', UserAuth_1.createAdmin);
 router.post('/login', UserAuth_1.loginUser);
@@ -78,6 +84,7 @@ router.delete('/unit/:unitId', auth_1.verifyUser, (0, checkPermission_1.default)
 //Items
 router.post('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_create'), Inventory_1.createItem);
 router.get('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_read'), Inventory_1.getAllItems);
+router.get('/items/sale/:branchId', auth_1.verifyUser, Inventory_1.getItemsList);
 router.get('/item/one/:itemId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_read'), Inventory_1.getOneItem);
 router.put('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_update'), Inventory_1.updateItem);
 router.delete('/item/:itemId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_delete'), Inventory_1.deleteItems);
@@ -86,4 +93,33 @@ router.post('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin'
 router.get('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_read'), vendorCntrl_1.getVendors);
 router.put('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_update'), vendorCntrl_1.updateVendor);
 router.delete('/vendor/:vendorId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_delete'), vendorCntrl_1.deleteVendor);
+//create quotesetting number
+router.post('/number-setting', auth_1.verifyUser, quoteStting_1.upsertDocumentNumberSetting);
+router.get('/number/next', auth_1.verifyUser, quoteStting_1.getNextQuotePreview);
+//tax
+router.post('/tax', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Tax', 'can_create'), taxCntrol_1.createTax);
+router.get('/tax/list', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Tax', 'can_read'), taxCntrol_1.getTaxes);
+router.put('/tax/:taxId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Tax', 'can_update'), taxCntrol_1.updateTax);
+router.get('/tax', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Tax', 'can_update'), taxCntrol_1.getALLTaxes);
+router.delete('/tax/:taxId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Tax', 'can_delete'), taxCntrol_1.deleteTax);
+//create quotation 
+router.post('/quotation', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Quotation', 'can_create'), imgUpload_1.upload.array('documents', 10), quotationCntrl_1.createQuotes);
+router.put('/quotation/:quoteId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Quotation', 'can_update'), imgUpload_1.upload.array('documents', 10), quotationCntrl_1.updateQuotes);
+router.get('/quotation', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Quotation', 'can_read'), quotationCntrl_1.getAllQuotes);
+router.get('/quotation/:quoteId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Quotation', 'can_read'), quotationCntrl_1.getOneQuotation);
+router.delete('/quotation/:quoteId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Quotation', 'can_delete'), quotationCntrl_1.deleteQuotation);
+router.post('/quotation/status', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Quotation', 'can_update'), quotationCntrl_1.markAcceptOrReject);
+//payment terms
+router.post('/payment-terms', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentTerms', 'can_create'), paymentTerms_1.upsertPaymentTerms);
+router.get('/payment-terms/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentTerms', 'can_read'), paymentTerms_1.getAllPaymentTerms);
+//create saleorder 
+router.post('/sale-order', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_create'), imgUpload_1.upload.array('documents', 10), saleOrderCntls_1.createSaleOrder);
+router.put('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_update'), imgUpload_1.upload.array('documents', 10), saleOrderCntls_1.updateSaleOrder);
+router.get('/sale-order', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getAllSaleOrder);
+router.get('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getOneSaleOrder);
+router.delete('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
+router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_create'), projectCntrl_1.createProject);
+router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
+router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
+router.get('/project/projectid', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.getOneProject);
 exports.default = router;

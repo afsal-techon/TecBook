@@ -3,13 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteItems = exports.getOneItem = exports.getAllItems = exports.updateItem = exports.createItem = exports.deleteUnit = exports.updateUnit = exports.getAllUnits = exports.createUnit = exports.deleteCategory = exports.updateCategory = exports.getAllCategories = exports.createCategory = void 0;
+exports.deleteItems = exports.getOneItem = exports.getItemsList = exports.getAllItems = exports.updateItem = exports.createItem = exports.deleteUnit = exports.updateUnit = exports.getAllUnits = exports.createUnit = exports.deleteCategory = exports.updateCategory = exports.getAllCategories = exports.createCategory = void 0;
 const category_1 = __importDefault(require("../../models/category"));
 const user_1 = __importDefault(require("../../models/user"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const branch_1 = __importDefault(require("../../models/branch"));
 const unit_1 = __importDefault(require("../../models/unit"));
 const items_1 = __importDefault(require("../../models/items"));
+const mongoose_2 = require("mongoose");
 const tax_1 = __importDefault(require("../../models/tax"));
 const createCategory = async (req, res, next) => {
     try {
@@ -189,7 +190,7 @@ const updateCategory = async (req, res, next) => {
         const branches = await branch_1.default.find({ _id: { $in: branchIds } });
         const category = await category_1.default.findOne({
             _id: categoryId,
-            isDeleted: false
+            isDeleted: false,
         });
         if (!category) {
             return res.status(404).json({ message: "Category not found!" });
@@ -235,7 +236,7 @@ const deleteCategory = async (req, res, next) => {
         }
         const itemExist = await items_1.default.findOne({
             categoryId: categoryId,
-            isDeleted: false
+            isDeleted: false,
         });
         if (itemExist) {
             return res.status(400).json({
@@ -290,7 +291,7 @@ const createUnit = async (req, res, next) => {
         if (existunits.length > 0) {
             existunits.map((d) => d.unit);
             return res.status(400).json({
-                message: `The following units already exist: ${existunits.join(", ")}`
+                message: `The following units already exist!`,
             });
         }
         const unitData = unitNames.map((uni) => ({
@@ -480,9 +481,9 @@ const deleteUnit = async (req, res, next) => {
         const unitUsed = await items_1.default.findOne({
             isDeleted: false,
             $or: [
-                { 'salesInfo.saleUnitId': unitId },
-                { 'purchaseInfo.purchaseUnitId': unitId }
-            ]
+                { "salesInfo.saleUnitId": unitId },
+                { "purchaseInfo.purchaseUnitId": unitId },
+            ],
         });
         if (unitUsed) {
             return res.status(400).json({
@@ -507,7 +508,9 @@ exports.deleteUnit = deleteUnit;
 //items
 const createItem = async (req, res, next) => {
     try {
-        const { branchId, type, categoryId, name, salesInfo, purchaseInfo, conversionRate, taxTreatment, inventoryTracking, sellable, purchasable, taxId, } = req.body;
+        const { branchId, type, categoryId, name, salesInfo, purchaseInfo, conversionRate, taxTreatment, inventoryTracking, sellable, purchasable,
+        // taxId,
+         } = req.body;
         const userId = req.user?.id;
         // 1️ Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
@@ -536,11 +539,28 @@ const createItem = async (req, res, next) => {
                 inventoryTracking.isTrackable = false;
             }
         }
-        let taxData = null;
-        if (taxId) {
-            taxData = await tax_1.default.findOne({ _id: taxId, isDeleted: false });
-            if (!taxData) {
-                return res.status(400).json({ message: "Invalid tax selected!" });
+        let purchaseTaxData = null;
+        let salesTaxData = null;
+        // Purchase Tax
+        if (purchaseInfo?.taxId) {
+            purchaseTaxData = await tax_1.default.findOne({
+                _id: purchaseInfo.taxId,
+                isDeleted: false,
+            });
+            if (!purchaseTaxData) {
+                return res
+                    .status(400)
+                    .json({ message: "Invalid purchase tax selected!" });
+            }
+        }
+        // Sales Tax
+        if (salesInfo?.taxId) {
+            salesTaxData = await tax_1.default.findOne({
+                _id: salesInfo.taxId,
+                isDeleted: false,
+            });
+            if (!salesTaxData) {
+                return res.status(400).json({ message: "Invalid sales tax selected!" });
             }
         }
         // Calculate totalOpeningValue if inventory tracking is enabled
@@ -555,19 +575,20 @@ const createItem = async (req, res, next) => {
             branchId,
             categoryId,
             name: name.trim(),
-            taxId: taxData?._id || null,
             type,
             salesInfo: {
                 sellingPrice: salesInfo?.sellingPrice || null,
                 accountId: salesInfo?.accountId || null,
                 description: salesInfo?.description || null,
                 saleUnitId: salesInfo?.saleUnitId || null,
+                taxId: salesTaxData?._id || null,
             },
             purchaseInfo: {
                 costPrice: purchaseInfo?.costPrice || null,
                 accountId: purchaseInfo?.accountId || null,
                 description: purchaseInfo?.description || null,
                 purchaseUnitId: purchaseInfo?.purchaseUnitId || null,
+                taxId: purchaseTaxData?._id || null,
             },
             conversionRate: conversionRate || 1,
             taxTreatment: taxTreatment || null,
@@ -597,7 +618,7 @@ const createItem = async (req, res, next) => {
 exports.createItem = createItem;
 const updateItem = async (req, res, next) => {
     try {
-        const { branchId, itemId, type, categoryId, name, salesInfo, purchaseInfo, conversionRate, taxTreatment, inventoryTracking, sellable, purchasable, taxId, } = req.body;
+        const { branchId, itemId, type, categoryId, name, salesInfo, purchaseInfo, conversionRate, taxTreatment, inventoryTracking, sellable, purchasable, } = req.body;
         const userId = req.user?.id;
         // 1 Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
@@ -655,11 +676,28 @@ const updateItem = async (req, res, next) => {
             };
         }
         // 6️Validate tax (if provided)
-        let taxData = null;
-        if (taxId) {
-            taxData = await tax_1.default.findOne({ _id: taxId, isDeleted: false });
-            if (!taxData) {
-                return res.status(400).json({ message: "Invalid tax selected!" });
+        let purchaseTaxData = null;
+        let salesTaxData = null;
+        // Purchase Tax
+        if (purchaseInfo?.taxId) {
+            purchaseTaxData = await tax_1.default.findOne({
+                _id: purchaseInfo.taxId,
+                isDeleted: false,
+            });
+            if (!purchaseTaxData) {
+                return res
+                    .status(400)
+                    .json({ message: "Invalid purchase tax selected!" });
+            }
+        }
+        // Sales Tax
+        if (salesInfo?.taxId) {
+            salesTaxData = await tax_1.default.findOne({
+                _id: salesInfo.taxId,
+                isDeleted: false,
+            });
+            if (!salesTaxData) {
+                return res.status(400).json({ message: "Invalid sales tax selected!" });
             }
         }
         // 7 Update base item fields
@@ -667,7 +705,6 @@ const updateItem = async (req, res, next) => {
         item.categoryId = categoryId || item.categoryId;
         item.name = name ? name.trim() : item.name;
         item.type = updatedType;
-        item.taxId = taxId || null;
         item.taxTreatment = taxTreatment ?? item.taxTreatment;
         item.sellable = sellable ?? item.sellable;
         item.purchasable = purchasable ?? item.purchasable;
@@ -680,6 +717,7 @@ const updateItem = async (req, res, next) => {
                 accountId: salesInfo.accountId ?? item.salesInfo?.accountId,
                 description: salesInfo.description ?? item.salesInfo?.description,
                 saleUnitId: salesInfo.saleUnitId ?? item.salesInfo?.saleUnitId,
+                taxId: salesInfo.taxId ?? item.salesInfo?.taxId,
             };
         }
         // 9 Update purchase info (if provided)
@@ -690,6 +728,7 @@ const updateItem = async (req, res, next) => {
                 accountId: purchaseInfo.accountId ?? item.purchaseInfo?.accountId,
                 description: purchaseInfo.description ?? item.purchaseInfo?.description,
                 purchaseUnitId: purchaseInfo.purchaseUnitId ?? item.purchaseInfo?.purchaseUnitId,
+                taxId: purchaseInfo.taxId ?? item.purchaseInfo?.taxId,
             };
         }
         // Apply inventory tracking
@@ -853,7 +892,6 @@ const getAllItems = async (req, res, next) => {
                 sellable: 1,
                 purchasable: 1,
                 salesInfo: 1,
-                taxId: 1,
                 conversionRate: 1,
                 purchaseInfo: 1,
                 taxTreatment: 1,
@@ -889,6 +927,199 @@ const getAllItems = async (req, res, next) => {
     }
 };
 exports.getAllItems = getAllItems;
+const getItemsList = async (req, res, next) => {
+    try {
+        const { branchId } = req.params;
+        const userId = req.user?.id;
+        //  Validate user
+        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        if (!user) {
+            return res.status(400).json({ message: "User not found!" });
+        }
+        //  Validate branchId
+        if (!branchId) {
+            return res.status(400).json({ message: "Branch Id is required!" });
+        }
+        const branchObjectId = new mongoose_2.Types.ObjectId(branchId);
+        const pipeline = [
+            {
+                $match: {
+                    branchId: branchObjectId,
+                    isDeleted: false,
+                    sellable: true
+                },
+            },
+            // Category
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "categoryId",
+                    foreignField: "_id",
+                    as: "category",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$category",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Sales account
+            {
+                $lookup: {
+                    from: "accounts",
+                    localField: "salesInfo.accountId",
+                    foreignField: "_id",
+                    as: "salesAccount",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$salesAccount",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Purchase account
+            {
+                $lookup: {
+                    from: "accounts",
+                    localField: "purchaseInfo.accountId",
+                    foreignField: "_id",
+                    as: "purchaseAccount",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$purchaseAccount",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Inventory account
+            {
+                $lookup: {
+                    from: "accounts",
+                    localField: "inventoryTracking.inventoryAccountId",
+                    foreignField: "_id",
+                    as: "inventoryAccount",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$inventoryAccount",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Sales tax
+            {
+                $lookup: {
+                    from: "taxes",
+                    localField: "salesInfo.taxId",
+                    foreignField: "_id",
+                    as: "salesTax",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$salesTax",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Purchase tax
+            {
+                $lookup: {
+                    from: "taxes",
+                    localField: "purchaseInfo.taxId",
+                    foreignField: "_id",
+                    as: "purchaseTax",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$purchaseTax",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Sales unit
+            {
+                $lookup: {
+                    from: "units",
+                    localField: "salesInfo.saleUnitId",
+                    foreignField: "_id",
+                    as: "saleUnit",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$saleUnit",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Purchase unit
+            {
+                $lookup: {
+                    from: "units",
+                    localField: "purchaseInfo.purchaseUnitId",
+                    foreignField: "_id",
+                    as: "purchaseUnit",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$purchaseUnit",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Final projection
+            {
+                $project: {
+                    _id: 1,
+                    branchId: 1,
+                    categoryId: 1,
+                    name: 1,
+                    type: 1,
+                    taxTreatment: 1,
+                    // sellable: 1,
+                    // inventoryTracking: 1,
+                    // Category
+                    categoryName: "$category.name", // adjust field name if different
+                    // Sales info + joined fields
+                    // "salesInfo.sellingPrice": 1,
+                    // "salesInfo.accountId": 1,
+                    // "salesInfo.saleUnitId": 1,
+                    // "salesInfo.taxId": 1,
+                    salesAccountName: "$salesAccount.name", // adjust field name
+                    saleUnit: "$saleUnit.unit", // adjust field name
+                    salesTaxName: "$salesTax.name", // adjust field name
+                    salesVATRate: "$salesTax.vatRate",
+                    sellingPrice: "$salesInfo.sellingPrice",
+                    salesSGST: "$salesTax.cgstRate", // or gst fields, depending on your model
+                    salesCGST: "$salesTax.sgstRate",
+                    // Purchase info + joined fields
+                    // "purchaseInfo.costPrice": 1,
+                    // "purchaseInfo.description": 1,
+                    // "purchaseInfo.accountId": 1,
+                    // "purchaseInfo.purchaseUnitId": 1,
+                    // "purchaseInfo.taxId": 1,
+                    // purchaseAccountName: "$purchaseAccount.name",
+                    // purchaseUnitName: "$purchaseUnit.name",
+                    // purchaseTaxName: "$purchaseTax.name",
+                    // purchaseTaxRate: "$purchaseTax.vatRate",
+                    // Inventory account
+                    // inventoryAccountName: "$inventoryAccount.name",
+                },
+            },
+            { $sort: { createdAt: -1 } },
+        ];
+        const items = await items_1.default.aggregate(pipeline);
+        return res.status(200).json({
+            data: items,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getItemsList = getItemsList;
 const getOneItem = async (req, res, next) => {
     try {
         const { itemId } = req.params;

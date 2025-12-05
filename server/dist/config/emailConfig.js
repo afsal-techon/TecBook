@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const sendEmail = async ({ to, subject, html }) => {
     try {
-        // ✅ Configure your mail transporter
+        // Configure your mail transporter
         const transporter = nodemailer_1.default.createTransport({
             host: process.env.SMTP_HOST, // e.g. "smtp.gmail.com"
             port: Number(process.env.SMTP_PORT) || 587,

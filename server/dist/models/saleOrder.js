@@ -34,75 +34,85 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const itemSchema = new mongoose_1.Schema({
+const saleOrderSchema = new mongoose_1.Schema({
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Branch",
         default: null,
     },
-    categoryId: {
+    saleOrderId: {
+        type: String,
+        required: true,
+    },
+    customerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Category",
+        ref: "Customer",
         default: null,
     },
-    name: {
+    salesPersonId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Employee",
+        default: null,
+    },
+    saleOrderDate: {
+        type: Date,
+        default: null,
+    },
+    deliveryDate: {
+        type: Date,
+        default: null,
+    },
+    status: {
         type: String,
-        default: null,
-        trim: true,
+        enum: ["Draft", "Closed", "Confirmed", "Accepted", "Approved", "Invoiced", "Pending"],
     },
-    type: {
-        type: String,
-        default: null,
-    },
-    salesInfo: {
-        sellingPrice: { type: Number, default: null },
-        accountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
-        description: { type: String, default: null },
-        saleUnitId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Unit", default: null },
-        taxId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Tax",
-            default: null,
+    items: [
+        {
+            itemId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Item", default: null },
+            qty: { type: Number, default: 1 },
+            tax: { type: Number, default: 0 },
+            rate: { type: Number, default: 0 },
+            amount: { type: Number, default: 0 },
+            unit: { type: String, default: 0 },
+            discount: { type: Number, default: 0 },
         },
-    },
-    purchaseInfo: {
-        costPrice: { type: Number, default: null },
-        accountId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Account", default: null },
-        description: { type: String, default: null },
-        purchaseUnitId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Unit",
-            default: null,
-        },
-        taxId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Tax",
-            default: null,
-        },
-    },
-    conversionRate: {
+    ],
+    subTotal: {
         type: Number,
         default: 1,
     },
-    taxTreatment: { type: String, default: null, enum: ["VAT", "Non-VAT"] },
-    sellable: {
-        type: Boolean,
-        default: false,
+    taxTotal: {
+        type: Number,
+        default: 0,
     },
-    purchasable: {
-        type: Boolean,
-        default: false,
+    total: {
+        type: Number,
+        default: 0,
     },
-    inventoryTracking: {
-        isTrackable: { type: Boolean, default: false },
-        inventoryAccountId: {
-            type: mongoose_1.Schema.Types.ObjectId,
-            ref: "Account",
-            default: null,
-        },
-        openingStock: { type: Number, default: 0 },
-        openingStockRatePerUnit: { type: Number, default: 0 },
-        reorderPoint: { type: Number, default: 0 },
+    discount: {
+        type: Number,
+        default: 0,
+    },
+    reference: {
+        type: String,
+        default: null,
+    },
+    documents: {
+        type: [String],
+        default: [],
+    },
+    paymentTerms: {
+        _id: { type: String, default: null },
+        termName: { type: String, default: null },
+        days: { type: Number, default: 0 },
+    },
+    terms: {
+        type: String,
+        default: false
+    },
+    note: {
+        type: String,
+        default: "null",
     },
     isDeleted: {
         type: Boolean,
@@ -128,11 +138,15 @@ const itemSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true } //  automatically manages createdAt & updatedAt
 );
-itemSchema.index({ branchId: 1, isDeleted: 1 });
-itemSchema.index({ categoryId: 1, isDeleted: 1 });
-itemSchema.index({ branchId: 1, sellable: 1, isDeleted: 1 });
-itemSchema.index({ branchId: 1, purchasable: 1, isDeleted: 1 });
-itemSchema.index({ type: 1, branchId: 1, isDeleted: 1 });
-itemSchema.index({ branchId: 1, name: 1, isDeleted: 1 });
-const itemModel = mongoose_1.default.model("Item", itemSchema);
-exports.default = itemModel;
+saleOrderSchema.index({
+    branchId: 1,
+    isDeleted: 1,
+    status: 1,
+    quoteDate: -1,
+    createdAt: -1,
+});
+saleOrderSchema.index({ customerId: 1, saleOrderDate: -1 });
+saleOrderSchema.index({ salesPersonId: 1, deliveryDate: -1 });
+saleOrderSchema.index({ branchId: 1, isDeleted: 1 });
+const saleOrderModel = mongoose_1.default.model("SaleOrder", saleOrderSchema);
+exports.default = saleOrderModel;
