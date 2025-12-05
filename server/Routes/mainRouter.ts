@@ -15,6 +15,7 @@ import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAccep
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
+import { createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
 const router = express.Router();
 
 
@@ -136,7 +137,7 @@ router.get('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation',
 router.delete('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation','can_delete'),deleteQuotation)
 
 
-router.post('/quotation/staus',verifyUser,checkPermission('admin','Quotation','can_update'),markAcceptOrReject)
+router.post('/quotation/status',verifyUser,checkPermission('admin','Quotation','can_update'),markAcceptOrReject)
 
 //payment terms
 router.post('/payment-terms',verifyUser,checkPermission('admin','PaymentTerms','can_create'),upsertPaymentTerms)
@@ -151,7 +152,10 @@ router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOr
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
 
 
-
+router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
+router.post('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
+router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
+router.get('/project/projectid',verifyUser,checkPermission('admin','Project','can_update'),getOneProject)
 
 
 

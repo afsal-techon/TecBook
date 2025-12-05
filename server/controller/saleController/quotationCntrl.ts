@@ -34,9 +34,8 @@ export const createQuotes = async (
     } = req.body;
 
     const userId = req.user?.id;
-    
-    console.log('dat',status)
-   
+
+    console.log("dat", status);
 
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
@@ -219,7 +218,7 @@ export const updateQuotes = async (
 
     const userId = req.user?.id;
 
-      console.log('dat',status)
+    console.log("dat", status);
 
     //  Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
@@ -324,8 +323,6 @@ export const updateQuotes = async (
         finalDocuments.push(uploadResponse.url);
       }
     }
-
-     
 
     //  Update quote fields (do NOT change auto-generated quoteId)
     quote.branchId = new Types.ObjectId(branchId);
@@ -810,8 +807,7 @@ export const markAcceptOrReject = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
-    let { status,quoteId } = req.body;
+    let { status, quoteId } = req.body;
 
     const userId = req.user?.id;
 
@@ -839,7 +835,7 @@ export const markAcceptOrReject = async (
 
     // normalize / validate status
     status = String(status);
-    if (status !== "Accepted" && status !== "Declined") {
+    if (status !== "Accepted" && status !== "Declined" && status !== "Sent") {
       return res
         .status(400)
         .json({ message: "Status must be either 'Accepted' or 'Declined'" });
@@ -848,15 +844,19 @@ export const markAcceptOrReject = async (
     quotation.status = status;
     await quotation.save(); // <-- important
 
-    return res.status(200).json({
-      message:
-        status === "Accepted"
-          ? "Quotation changed to Accepted"
-          : "Quotation changed to Declined",
-    });
+
+
+
+return res.status(200).json({
+  message:
+    status === "Accepted"
+      ? "Quotation marked as Accepted"
+      : status === "Declined"
+      ? "Quotation marked as Declined"
+      : "Quotation marked as Sent",
+});
+
   } catch (err) {
     next(err);
   }
 };
-
-

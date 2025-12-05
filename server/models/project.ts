@@ -1,38 +1,46 @@
 import mongoose, { Schema, Model } from "mongoose";
 import { IProject } from "../types/common.types";
 
-const proejctSchema = new Schema<IProject>(
+const projectSchema = new Schema<IProject>(
   {
     branchId: {
       type: Schema.Types.ObjectId,
       ref: "Branch",
-      default: null,
+      required: true,
     },
     customerId: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
-      default: null,
+      required: true,
     },
     projectName: {
       type: String,
-      default: null,
+      required: true,
+      trim: true,
     },
-    projectCode: {
+    projectId: {
       type: String,
+      trim: true,
       default: null,
     },
-    billingMethod:{
-        type:String,
-        default:null
+    billingMethod: {
+      type: String,
+      enum: [
+        "Fixed Cost for Project",
+        "Based on Project Hours",
+        "Based on Task Hours",
+        "Based on Staff Hours",
+      ],
+      required: true,
     },
-    descriptoin: {
+    description: {
       type: String,
       default: null,
     },
     users: [
       {
         userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
-        email: { type: String, default: null },
+        email: { type: String, trim: true },
       },
     ],
     projectCost: {
@@ -43,14 +51,23 @@ const proejctSchema = new Schema<IProject>(
       type: Number,
       default: 0,
     },
-       tasks: [
+    tasks: [
       {
-        taskName: { type: String, default: null },
-         description: { type: String, default: null },
-          ratePerHour: { type: Number, default: 0 },
-           billable: { type: Boolean, default: true },
+        taskName: { type: String, trim: true },
+        description: { type: String, trim: true },
+        ratePerHour: { type: Number, default: 0 }, // Only used in Task Hour method
+        billable: { type: Boolean, default: true },
       },
     ],
+    costBudget: {
+      type: Number,
+      default: 0,
+    },
+    revenueBudget: {
+      type: Number,
+      default: 0,
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
@@ -77,19 +94,12 @@ const proejctSchema = new Schema<IProject>(
   { timestamps: true } //  automatically manages createdAt & updatedAt
 );
 
-proejctSchema.index({
-  branchId: 1,
-  isDeleted: 1,
-  status: 1,
-  quoteDate: -1,
-  createdAt: -1,
-});
-proejctSchema.index({ customerId: 1, quoteDate: -1 });
-proejctSchema.index({ salesPersonId: 1, quoteDate: -1 });
-proejctSchema.index({ branchId: 1, isDeleted: 1 });
+projectSchema.index({ branchId: 1, isDeleted: 1, createdAt: -1 });
+projectSchema.index({ customerId: 1, isDeleted: 1 });
+projectSchema.index({ projectName: 1, branchId: 1 });
 
-const quottionModel: Model<IProject> = mongoose.model<IProject>(
-  "Quotation",
-  proejctSchema
+const projectModel: Model<IProject> = mongoose.model<IProject>(
+  "Project",
+  projectSchema
 );
-export default quottionModel;
+export default projectModel;

@@ -460,9 +460,9 @@ export interface IProject extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
   projectName?: string;
-  projectCode?: string;
+  projectId?: string;
   billingMethod?: string;
-  descriptoin?: string;
+  description?: string;
   users?: {
     userId: Types.ObjectId | null;
     email: string;
@@ -476,6 +476,8 @@ export interface IProject extends Document {
     ratePerHour: number;
     billable: boolean;
   }[];
+  costBudget: number | 0;
+  revenueBudget: number | 0
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;
