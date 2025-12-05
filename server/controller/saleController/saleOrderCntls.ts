@@ -1,14 +1,15 @@
+import SALES_ORDER from "../../models/saleOrder";
 import USER from "../../models/user";
-import QUOTATION from "../../models/quotation";
 import express, { Request, Response, NextFunction } from "express";
 import CUSTOMER from "../../models/customer";
 import { imagekit } from "../../config/imageKit";
 import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
-import QuoteNumberSetting from "../../models/numberSetting";
+import saleNumberSetting from "../../models/numberSetting";
+import PAYMENT_TEMRS from "../../models/paymentTerms";
 
-export const createQuotes = async (
+export const createSaleOrder = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -16,26 +17,24 @@ export const createQuotes = async (
   try {
     const {
       branchId,
-      quoteId, // may be null/ignored in auto mode
+      saleOrderId, // may be null/ignored in auto mode
       customerId,
-      projectId,
       salesPersonId,
-      quoteDate,
-      expDate,
+      saleOrderDate,
+      deliveryDate,
       status,
+      reference,
       items,
+      paymentTerms,
       terms,
       note,
       subTotal,
       taxTotal,
-      reference,
       total,
       discountValue,
     } = req.body;
 
     const userId = req.user?.id;
-
-    console.log("dat", status);
 
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
@@ -46,8 +45,10 @@ export const createQuotes = async (
       return res.status(400).json({ message: "Branch ID is required!" });
     if (!customerId)
       return res.status(400).json({ message: "Customer ID is required!" });
-    if (!quoteDate)
-      return res.status(400).json({ message: "Quote Date is required!" });
+    if (!saleOrderDate)
+      return res.status(400).json({ message: "Sale order Date is required!" });
+    if (!deliveryDate)
+      return res.status(400).json({ message: "Delivery Date is required!" });
     if (!status)
       return res.status(400).json({ message: "Status is required!" });
 
@@ -69,6 +70,16 @@ export const createQuotes = async (
       }
     }
 
+    let parsedTerms: any[] = [];
+
+    if (paymentTerms) {
+      if (typeof items === "string") {
+        parsedTerms = JSON.parse(paymentTerms); // <-- main step
+      } else {
+        parsedTerms = paymentTerms; // in case it's already object/array
+      }
+    }
+
     if (
       !parsedItems ||
       !Array.isArray(parsedItems) ||
@@ -76,7 +87,7 @@ export const createQuotes = async (
     ) {
       return res
         .status(400)
-        .json({ message: "At least one item is required in the quotation" });
+        .json({ message: "At least one payment term is required!" });
     }
 
     if (isNaN(subTotal))
@@ -86,9 +97,9 @@ export const createQuotes = async (
       return res.status(400).json({ message: "Invalid taxTotal" });
 
     //  Get quote number setting for this branch
-    let setting = await QuoteNumberSetting.findOne({
+    let setting = await saleNumberSetting.findOne({
       branchId: new Types.ObjectId(branchId),
-      docType: "QUOTE",
+      docType: "SALE_ORDER",
     });
 
     let finalQuoteId: string;
@@ -103,14 +114,14 @@ export const createQuotes = async (
       finalQuoteId = `${setting.prefix}${padded}`;
 
       // optionally: ensure uniqueness
-      const exists = await QUOTATION.findOne({
+      const exists = await SALES_ORDER.findOne({
         branchId: new Types.ObjectId(branchId),
-        quoteId: finalQuoteId,
+        saleOrderId: finalQuoteId,
         isDeleted: false,
       });
       if (exists) {
         return res.status(400).json({
-          message: "Generated quote ID already exists. Please try again.",
+          message: "Generated sale Id already exists. Please try again.",
         });
       }
 
@@ -120,24 +131,27 @@ export const createQuotes = async (
       await setting.save();
     } else {
       // ---------- MANUAL MODE ----------
-      if (!quoteId || typeof quoteId !== "string" || !quoteId.trim()) {
+      if (
+        !saleOrderId ||
+        typeof saleOrderId !== "string" ||
+        !saleOrderId.trim()
+      ) {
         return res
           .status(400)
-          .json({ message: "Quote ID is required in manual mode!" });
+          .json({ message: "Sale order Id is required in manual mode!" });
       }
 
-      finalQuoteId = quoteId.trim();
+      finalQuoteId = saleOrderId.trim();
 
       // ensure unique
-      const exists = await QUOTATION.findOne({
+      const exists = await SALES_ORDER.findOne({
         branchId: new Types.ObjectId(branchId),
-        quoteId: finalQuoteId,
+        saleOrderId: finalQuoteId,
         isDeleted: false,
       });
       if (exists) {
         return res.status(400).json({
-          message:
-            "This quote ID already exists. Please enter a different one.",
+          message: "This Sale Id already exists. Please enter a different one.",
         });
       }
     }
@@ -155,207 +169,217 @@ export const createQuotes = async (
       }
     }
 
-    const newQuote = new QUOTATION({
+    const saleOrder = new SALES_ORDER({
       branchId: new Types.ObjectId(branchId),
-      quoteId: finalQuoteId, //  always use this
+      saleOrderId: finalQuoteId, //  always use this
       customerId: new Types.ObjectId(customerId),
       // projectId: projectId ? new Types.ObjectId(projectId) : null,
-      projectId: projectId ? projectId : null,
       salesPersonId: salesPersonId ? new Types.ObjectId(salesPersonId) : null,
-      quoteDate,
-      expDate,
+      saleOrderDate,
+      deliveryDate,
       status,
       items: parsedItems,
+      paymentTerms: parsedTerms,
+      terms,
+      reference,
       subTotal,
       taxTotal,
       total,
       discount: discountValue,
       documents: uploadedFiles,
-      terms,
-      reference,
       note,
       createdById: userId,
     });
 
-    await newQuote.save();
+    await saleOrder.save();
 
     return res.status(201).json({
-      message: `Quotation created successfully.`,
-      quoteId: finalQuoteId,
+      message: `Sale order created successfully.`,
+      saleOrderId: finalQuoteId,
     });
   } catch (err) {
     next(err);
   }
 };
 
-export const updateQuotes = async (
+export const updateSaleOrder = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { quoteId } = req.params;
+    const { saleOrderId } = req.params;
 
     const {
-      // ID of the quote document in DB (or _id) – adjust naming if needed
       branchId,
       customerId,
-      projectId,
       salesPersonId,
-      quoteDate,
-      expDate,
+      deliveryDate,
+      saleOrderDate,
       status,
       items,
       subTotal,
       terms,
+      paymentTerms,
       reference,
       note,
       taxTotal,
       total,
       discountValue,
-      existingDocuments, // from frontend: existing docs (JSON string or array)
+      existingDocuments,
     } = req.body;
 
     const userId = req.user?.id;
 
-    console.log("dat", status);
-
-    //  Validate user
+    // Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
-    if (!user) {
-      return res.status(400).json({ message: "User not found!" });
-    }
+    if (!user) return res.status(400).json({ message: "User not found!" });
 
-    //   quote identifier provided (assuming `quoteId` is Mongo _id here)
-    if (!quoteId) {
-      return res.status(400).json({ message: "Quote ID is required!" });
-    }
+    // Validate saleOrderId
+    if (!saleOrderId)
+      return res.status(400).json({ message: "Sale Id is required!" });
 
-    //  Find existing quote
-    const quote = await QUOTATION.findOne({
-      _id: quoteId,
+    const saleOrder = await SALES_ORDER.findOne({
+      _id: saleOrderId,
       isDeleted: false,
     });
 
-    if (!quote) {
-      return res.status(400).json({ message: "Quotation not found!" });
-    }
+    if (!saleOrder)
+      return res.status(400).json({ message: "Sale order not found!" });
 
-    //  Basic validations
+    // Required fields
     if (!branchId)
       return res.status(400).json({ message: "Branch ID is required!" });
     if (!customerId)
       return res.status(400).json({ message: "Customer ID is required!" });
-    if (!quoteDate)
-      return res.status(400).json({ message: "Quote Date is required!" });
+    if (!saleOrderDate)
+      return res.status(400).json({ message: "Sale order date is required!" });
+    if (!deliveryDate)
+      return res.status(400).json({ message: "Delivery date is required!" });
     if (!status)
       return res.status(400).json({ message: "Status is required!" });
 
-    //  Validate customer
+    // Validate customer
     const customer = await CUSTOMER.findOne({
       _id: customerId,
       isDeleted: false,
     });
-    if (!customer) {
+    if (!customer)
       return res.status(400).json({ message: "Customer not found!" });
-    }
 
-    //  Parse items (from FormData string or array)
+    // -----------------------------
+    // Parse ITEMS
+    // -----------------------------
     let parsedItems: any[] = [];
 
     if (items) {
-      if (typeof items === "string") {
-        parsedItems = JSON.parse(items);
-      } else {
-        parsedItems = items;
-      }
+      parsedItems = typeof items === "string" ? JSON.parse(items) : items;
     }
 
-    if (
-      !parsedItems ||
-      !Array.isArray(parsedItems) ||
-      parsedItems.length === 0
-    ) {
+    if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
       return res.status(400).json({
-        message: "At least one item is required in the quotation",
+        message: "At least one item is required!",
       });
     }
 
-    if (isNaN(subTotal)) {
-      return res.status(400).json({ message: "Invalid subTotal" });
-    }
-    if (isNaN(total)) {
-      return res.status(400).json({ message: "Invalid total" });
-    }
-    if (isNaN(taxTotal)) {
-      return res.status(400).json({ message: "Invalid taxTotal" });
+    // -----------------------------
+    // Parse TERMS (payment term object - REQUIRED)
+    // -----------------------------
+    interface ITerm {
+      _id: string | null;
+      termName: string | null;
+      days: number;
     }
 
-    //  Handle existingDocuments (similar pattern to updateEmployee)
-    // Frontend sends existingDocuments as JSON string or array
+    if (!paymentTerms) {
+      return res.status(400).json({ message: "Payment term  is required!" });
+    }
+
+    const rawTerms =
+      typeof paymentTerms === "string"
+        ? JSON.parse(paymentTerms)
+        : paymentTerms;
+
+    if (!rawTerms || typeof rawTerms !== "object") {
+      return res.status(400).json({ message: "Invalid payment term format!" });
+    }
+
+    if (!rawTerms._id) {
+      return res.status(400).json({ message: "payment term Id is required!" });
+    }
+
+    if (!rawTerms.termName || !String(rawTerms.termName).trim()) {
+      return res.status(400).json({ message: "Term name is required!" });
+    }
+
+    if (rawTerms.days == null || isNaN(Number(rawTerms.days))) {
+      return res.status(400).json({ message: "Valid days is required!" });
+    }
+
+    const parsedTerms: ITerm = {
+      _id: String(rawTerms._id),
+      termName: String(rawTerms.termName).trim(),
+      days: Number(rawTerms.days),
+    };
+
+    // -----------------------------
+    // Parse existing documents
+    // -----------------------------
     let finalDocuments: string[] = [];
 
     if (existingDocuments) {
-      const parsedExistingDocs = Array.isArray(existingDocuments)
+      const parsedDocs = Array.isArray(existingDocuments)
         ? existingDocuments
         : JSON.parse(existingDocuments);
 
-      // Support both string array and array of objects with doc_file
-      finalDocuments = parsedExistingDocs
-        .map((doc: any) => {
-          if (typeof doc === "string") {
-            return doc;
-          }
-          // if object: { doc_file: 'url', ... }
-          return doc.doc_file || "";
-        })
-        .filter((url: string) => !!url);
+      finalDocuments = parsedDocs
+        .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+        .filter((d: string) => !!d);
     }
 
-    //  Handle new file uploads (same as createQuotes)
+    // New uploads
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
-        const uploadResponse = await imagekit.upload({
+        const uploaded = await imagekit.upload({
           file: file.buffer.toString("base64"),
           fileName: file.originalname,
           folder: "/images",
         });
-        finalDocuments.push(uploadResponse.url);
+        finalDocuments.push(uploaded.url);
       }
     }
 
-    //  Update quote fields (do NOT change auto-generated quoteId)
-    quote.branchId = new Types.ObjectId(branchId);
-    quote.customerId = new Types.ObjectId(customerId);
-    quote.projectId = projectId ? projectId : null;
-    quote.salesPersonId = salesPersonId
-      ? new Types.ObjectId(salesPersonId)
-      : null;
-    quote.quoteDate = quoteDate;
-    quote.expDate = expDate;
-    quote.status = status;
-    quote.items = parsedItems;
-    quote.subTotal = subTotal;
-    quote.taxTotal = taxTotal;
-    quote.total = total;
-    quote.reference = reference;
-    quote.discount = discountValue;
-    quote.documents = finalDocuments;
-    quote.terms = terms;
-    quote.note = note;
-    // quote.updatedById = userId; // if you track updatedBy
+    // -----------------------------
+    // Assign fields
+    // -----------------------------
+    saleOrder.branchId = branchId;
+    saleOrder.customerId = customerId;
+    saleOrder.salesPersonId = salesPersonId || null;
+    saleOrder.saleOrderDate = saleOrderDate;
+    saleOrder.deliveryDate = deliveryDate;
+    saleOrder.status = status;
+    saleOrder.items = parsedItems;
+    saleOrder.paymentTerms = parsedTerms; // now always assigned
+    saleOrder.terms = terms;
+    saleOrder.subTotal = subTotal;
+    saleOrder.taxTotal = taxTotal;
+    saleOrder.reference = reference;
+    saleOrder.total = total;
+    saleOrder.discount = discountValue;
+    saleOrder.documents = finalDocuments;
+    saleOrder.note = note;
 
-    await quote.save();
+    await saleOrder.save();
 
     return res.status(200).json({
-      message: "Quotation updated successfully.",
+      message: "Sale order updated successfully.",
     });
   } catch (err) {
     next(err);
   }
 };
 
-export const getAllQuotes = async (
+export const getAllSaleOrder = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -381,10 +405,10 @@ export const getAllQuotes = async (
       "Draft",
       "Accepted",
       "Approved",
-      "Sent",
+      "Closed",
+      "Confirmed",
       "Invoiced",
       "Pending",
-      "Declined",
     ];
 
     // Pagination
@@ -438,9 +462,9 @@ export const getAllQuotes = async (
         $lte: new Date(endDate),
       };
     } else if (startDate) {
-      matchStage.quoteDate = { $gte: new Date(startDate) };
+      matchStage.saleOrderDate = { $gte: new Date(startDate) };
     } else if (endDate) {
-      matchStage.quoteDate = { $lte: new Date(endDate) };
+      matchStage.saleOrderDate = { $lte: new Date(endDate) };
     }
 
     if (statusFilter && allowedStatuses.includes(statusFilter)) {
@@ -479,7 +503,7 @@ export const getAllQuotes = async (
       pipeline.push({
         $match: {
           $or: [
-            { quoteId: { $regex: search, $options: "i" } },
+            { saleOrderId: { $regex: search, $options: "i" } },
             { "customer.name": { $regex: search, $options: "i" } },
             // { "customer.email": { $regex: search, $options: "i" } },
             // { "salesPerson.firstName": { $regex: search, $options: "i" } },
@@ -491,7 +515,7 @@ export const getAllQuotes = async (
 
     // 🔹 Count total after filters
     const countPipeline = [...pipeline, { $count: "total" }];
-    const countResult = await QUOTATION.aggregate(countPipeline);
+    const countResult = await SALES_ORDER.aggregate(countPipeline);
     const totalCount = countResult[0]?.total || 0;
 
     // 🔹 Pagination + sorting
@@ -502,17 +526,19 @@ export const getAllQuotes = async (
     // 🔹 Project fields
     pipeline.push({
       $project: {
-        quoteId: 1,
+        saleOrderId: 1,
         branchId: 1,
         customerId: 1,
         projectId: 1,
         salesPersonId: 1,
-        quoteDate: 1,
-        expDate: 1,
+        saleOrderDate: 1,
+        deliveryDate: 1,
+        terms: 1,
+        paymentTerms: 1,
         status: 1,
         subTotal: 1,
-        taxTotal: 1,
         reference: 1,
+        taxTotal: 1,
         total: 1,
         discount: 1,
         documents: 1,
@@ -525,10 +551,10 @@ export const getAllQuotes = async (
     });
 
     // 🔹 Execute
-    const quotes = await QUOTATION.aggregate(pipeline);
+    const saleOrder = await SALES_ORDER.aggregate(pipeline);
 
     return res.status(200).json({
-      data: quotes,
+      data: saleOrder,
       totalCount,
       page,
       limit,
@@ -538,20 +564,20 @@ export const getAllQuotes = async (
   }
 };
 
-export const getOneQuotation = async (
+export const getOneSaleOrder = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    const { quoteId } = req.params; // assuming /quotes/:id
+    const { saleOrderId } = req.params; // assuming /quotes/:id
 
     // 1) Validate ID
-    if (!quoteId || !Types.ObjectId.isValid(quoteId)) {
-      return res.status(400).json({ message: "Invalid quotation ID!" });
+    if (!saleOrderId || !Types.ObjectId.isValid(saleOrderId)) {
+      return res.status(400).json({ message: "Invalid sale order Id!" });
     }
-    const quoteObjectId = new Types.ObjectId(quoteId);
+    const saleObjectId = new Types.ObjectId(saleOrderId);
 
     // 2) Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
@@ -588,7 +614,7 @@ export const getOneQuotation = async (
     const pipeline: any[] = [
       {
         $match: {
-          _id: quoteObjectId,
+          _id: saleObjectId,
           // branchId: { $in: allowedBranchIds },
           isDeleted: false,
         },
@@ -614,6 +640,7 @@ export const getOneQuotation = async (
           as: "salesPerson",
         },
       },
+      { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "items",
@@ -622,18 +649,6 @@ export const getOneQuotation = async (
           as: "itemDetails",
         },
       },
-      { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
-
-      // (Optional) Join Project
-      {
-        $lookup: {
-          from: "projects", // change to your actual collection name
-          localField: "projectId",
-          foreignField: "_id",
-          as: "project",
-        },
-      },
-      { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
 
       // You can also lookup branch if you need branch info
       // {
@@ -650,23 +665,25 @@ export const getOneQuotation = async (
         $project: {
           _id: 1,
           branchId: 1,
-          quoteId: 1,
+          saleOrderId: 1,
           customerId: 1,
-          projectId: 1,
+          paymentTermsId: 1,
           salesPersonId: 1,
-          quoteDate: 1,
-          expDate: 1,
+          saleOrderDate: 1,
+          deliveryDate: 1,
           status: 1,
           subTotal: 1,
-          taxTotal: 1,
           reference: 1,
+          taxTotal: 1,
           total: 1,
           discount: 1,
           documents: 1,
           note: 1,
-          terms: 1, // full items array as saved
+          terms: 1,
+          paymentTerms: 1, // full items array as saved
           createdAt: 1,
           updatedAt: 1,
+
           items: {
             $map: {
               input: "$items",
@@ -718,27 +735,14 @@ export const getOneQuotation = async (
             lastName: "$salesPerson.lastName",
             email: "$salesPerson.email",
           },
-
-          // project fields (if you need)
-          project: {
-            _id: "$project._id",
-            name: "$project.name",
-            // add more project fields as needed
-          },
-
-          // If you joined branch
-          // branch: {
-          //   _id: "$branch._id",
-          //   name: "$branch.name",
-          // },
         },
       },
     ];
 
-    const result = await QUOTATION.aggregate(pipeline);
+    const result = await SALES_ORDER.aggregate(pipeline);
 
     if (!result || result.length === 0) {
-      return res.status(404).json({ message: "Quotation not found!" });
+      return res.status(404).json({ message: "Sale order not found!" });
     }
 
     // Since we matched by _id, there will be exactly one
@@ -750,13 +754,13 @@ export const getOneQuotation = async (
   }
 };
 
-export const deleteQuotation = async (
+export const deleteSaleOrder = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { quoteId } = req.params;
+    const { saleOrderId } = req.params;
 
     const userId = req.user?.id;
 
@@ -765,13 +769,13 @@ export const deleteQuotation = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-    if (!quoteId) {
-      return res.status(400).json({ message: "Quotation Id is required!" });
+    if (!saleOrderId) {
+      return res.status(400).json({ message: "Sale order Id is required!" });
     }
 
-    const quotation = await QUOTATION.findOne({ _id: quoteId });
-    if (!quotation) {
-      return res.status(404).json({ message: "Quotation not found!" });
+    const saleOrder = await SALES_ORDER.findOne({ _id: saleOrderId });
+    if (!saleOrder) {
+      return res.status(404).json({ message: "Sale order not found!" });
     }
 
     // const itemExist = await ITEMS.findOne({
@@ -786,7 +790,7 @@ export const deleteQuotation = async (
     //   });
     // }
 
-    await QUOTATION.findByIdAndUpdate(quoteId, {
+    await SALES_ORDER.findByIdAndUpdate(saleOrderId, {
       isDeleted: true,
       deletedAt: new Date(),
       deletedById: user._id,
@@ -794,68 +798,8 @@ export const deleteQuotation = async (
     });
 
     return res.status(200).json({
-      message: "Quotation deleted successfully!",
+      message: "Sale order deleted successfully!",
     });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const markAcceptOrReject = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    let { status, quoteId } = req.body;
-
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const user = await USER.findOne({ _id: userId, isDeleted: false });
-    if (!user) {
-      return res.status(400).json({ message: "User not found!" });
-    }
-
-    if (!quoteId) {
-      return res.status(400).json({ message: "Quotation Id is required!" });
-    }
-
-    const quotation = await QUOTATION.findOne({ _id: quoteId });
-    if (!quotation) {
-      return res.status(404).json({ message: "Quotation not found!" });
-    }
-
-    if (!status) {
-      return res.status(400).json({ message: "Status is required!" });
-    }
-
-    // normalize / validate status
-    status = String(status);
-    if (status !== "Accepted" && status !== "Declined" && status !== "Sent") {
-      return res
-        .status(400)
-        .json({ message: "Status must be either 'Accepted' or 'Declined'" });
-    }
-
-    quotation.status = status;
-    await quotation.save(); // <-- important
-
-
-
-
-return res.status(200).json({
-  message:
-    status === "Accepted"
-      ? "Quotation marked as Accepted"
-      : status === "Declined"
-      ? "Quotation marked as Declined"
-      : "Quotation marked as Sent",
-});
-
   } catch (err) {
     next(err);
   }

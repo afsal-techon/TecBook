@@ -8,7 +8,7 @@ interface EmailOptions {
 
 const sendEmail = async ({ to, subject, html }: EmailOptions) => {
   try {
-    // ✅ Configure your mail transporter
+    // Configure your mail transporter
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST, // e.g. "smtp.gmail.com"
       port: Number(process.env.SMTP_PORT) || 587,

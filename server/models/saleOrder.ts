@@ -1,14 +1,14 @@
 import mongoose, { Schema, Model } from "mongoose";
-import { IQuotes } from "../types/common.types";
+import { ISaleOrder } from "../types/common.types";
 
-const quotationSchema = new Schema<IQuotes>(
+const saleOrderSchema = new Schema<ISaleOrder>(
   {
     branchId: {
       type: Schema.Types.ObjectId,
       ref: "Branch",
       default: null,
     },
-    quoteId: {
+    saleOrderId: {
       type: String,
       required: true,
     },
@@ -17,32 +17,22 @@ const quotationSchema = new Schema<IQuotes>(
       ref: "Customer",
       default: null,
     },
-    projectId: {
-      // type: Schema.Types.ObjectId,
-      type:String,
-      // ref: "Project",
-      default: null,
-    },
     salesPersonId: {
       type: Schema.Types.ObjectId,
       ref: "Employee",
       default: null,
     },
-    quoteDate: {
+    saleOrderDate: {
       type: Date,
       default: null,
     },
-    expDate: {
+    deliveryDate: {
       type: Date,
-      default: null,
-    },
-      reference: {
-      type: String,
       default: null,
     },
     status: {
       type: String,
-      enum: ["Draft", "Sent","Accepted","Approved","Invoiced","Pending","Declined"],
+      enum: ["Draft", "Closed","Confirmed", "Accepted", "Approved", "Invoiced", "Pending"],
     },
     items: [
       {
@@ -51,8 +41,8 @@ const quotationSchema = new Schema<IQuotes>(
         tax: { type: Number, default: 0 },
         rate: { type: Number, default: 0 },
         amount: { type: Number, default: 0 },
-         unit: { type: String, default: 0 },
-         discount: { type: Number, default: 0 },
+        unit: { type: String, default: 0 },
+        discount: { type: Number, default: 0 },
       },
     ],
     subTotal: {
@@ -71,17 +61,26 @@ const quotationSchema = new Schema<IQuotes>(
       type: Number,
       default: 0,
     },
-        terms: {
+     reference: {
       type: String,
-      default:'null'
-    },
-            note: {
-      type: String,
-      default:'null'
+      default: null,
     },
     documents: {
       type: [String],
       default: [],
+    },
+        paymentTerms: {
+         _id:{type:String , default:null},
+        termName: { type: String, default: null },
+        days :{ type:Number, default:0},
+    },
+    terms:{
+      type:String,
+      default:false
+    },
+    note: {
+      type: String,
+      default: "null",
     },
     isDeleted: {
       type: Boolean,
@@ -109,16 +108,19 @@ const quotationSchema = new Schema<IQuotes>(
   { timestamps: true } //  automatically manages createdAt & updatedAt
 );
 
-quotationSchema.index(
-  { branchId: 1, isDeleted: 1, status: 1, quoteDate: -1, createdAt: -1 }
-);
-quotationSchema.index({ customerId: 1, quoteDate: -1 });
-quotationSchema.index({ salesPersonId: 1, quoteDate: -1 });
-quotationSchema.index({ branchId: 1, isDeleted: 1 });
+saleOrderSchema.index({
+  branchId: 1,
+  isDeleted: 1,
+  status: 1,
+  quoteDate: -1,
+  createdAt: -1,
+});
+saleOrderSchema.index({ customerId: 1, saleOrderDate: -1 });
+saleOrderSchema.index({ salesPersonId: 1, deliveryDate: -1 });
+saleOrderSchema.index({ branchId: 1, isDeleted: 1 });
 
-
-const quottionModel: Model<IQuotes> = mongoose.model<IQuotes>(
-  "Quotation",
-  quotationSchema
+const saleOrderModel: Model<ISaleOrder> = mongoose.model<ISaleOrder>(
+  "SaleOrder",
+  saleOrderSchema
 );
-export default quottionModel;
+export default saleOrderModel;

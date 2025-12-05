@@ -8,9 +8,16 @@ import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, 
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
-import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
+import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
+import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
+import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAcceptOrReject, updateQuotes } from '../controller/saleController/quotationCntrl';
+import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
+import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
+import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
+import { createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
 const router = express.Router();
+
 
 
 router.post('/create-admin',createAdmin)
@@ -97,6 +104,7 @@ router.delete('/unit/:unitId',verifyUser,checkPermission('admin','Unit','can_del
 //Items
 router.post('/item',verifyUser,checkPermission('admin','Item','can_create'),createItem)
 router.get('/item',verifyUser,checkPermission('admin','Item','can_read'),getAllItems)
+router.get('/items/sale/:branchId',verifyUser,getItemsList)
 router.get('/item/one/:itemId',verifyUser,checkPermission('admin','Item','can_read'),getOneItem)
 router.put('/item',verifyUser,checkPermission('admin','Item','can_update'),updateItem)
 router.delete('/item/:itemId',verifyUser,checkPermission('admin','Item','can_delete'),deleteItems)
@@ -109,6 +117,46 @@ router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),u
 router.delete('/vendor/:vendorId',verifyUser,checkPermission('admin','Vendor','can_delete'),deleteVendor)
 
 
+//create quotesetting number
+router.post('/number-setting',verifyUser,upsertDocumentNumberSetting);
+router.get('/number/next',verifyUser,getNextQuotePreview)
+
+
+//tax
+router.post('/tax',verifyUser,checkPermission('admin','Tax','can_create'),createTax)
+router.get('/tax/list',verifyUser,checkPermission('admin','Tax','can_read'),getTaxes);
+router.put('/tax/:taxId',verifyUser,checkPermission('admin','Tax','can_update'),updateTax);
+router.get('/tax',verifyUser,checkPermission('admin','Tax','can_update'),getALLTaxes);
+router.delete('/tax/:taxId',verifyUser,checkPermission('admin','Tax','can_delete'),deleteTax);
+
+
+//create quotation 
+router.post('/quotation',verifyUser,checkPermission('admin','Quotation','can_create'),upload.array('documents',10),createQuotes);
+router.put('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation','can_update'),upload.array('documents',10),updateQuotes);
+router.get('/quotation',verifyUser,checkPermission('admin','Quotation','can_read'),getAllQuotes)
+router.get('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation','can_read'),getOneQuotation)
+router.delete('/quotation/:quoteId',verifyUser,checkPermission('admin','Quotation','can_delete'),deleteQuotation)
+
+
+router.post('/quotation/status',verifyUser,checkPermission('admin','Quotation','can_update'),markAcceptOrReject)
+
+//payment terms
+router.post('/payment-terms',verifyUser,checkPermission('admin','PaymentTerms','can_create'),upsertPaymentTerms)
+router.get('/payment-terms/:branchId',verifyUser,checkPermission('admin','PaymentTerms','can_read'),getAllPaymentTerms)
+
+
+//create saleorder 
+router.post('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_create'),upload.array('documents',10),createSaleOrder);
+router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_update'),upload.array('documents',10),updateSaleOrder);
+router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
+router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
+router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+
+
+router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
+router.post('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
+router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
+router.get('/project/projectid',verifyUser,checkPermission('admin','Project','can_update'),getOneProject)
 
 
 
