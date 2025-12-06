@@ -14,6 +14,7 @@ export const createQuotes = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+
     const {
       branchId,
       quoteId, // may be null/ignored in auto mode
@@ -559,32 +560,6 @@ export const getOneQuotation = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-    // const userRole = user.role; // "CompanyAdmin" or "User"
-
-    // // 3) Determine allowed branch IDs
-    // let allowedBranchIds: Types.ObjectId[] = [];
-
-    // if (userRole === "CompanyAdmin") {
-    //   const branches = await BRANCH.find({
-    //     companyAdminId: userId,
-    //     isDeleted: false,
-    //   }).select("_id");
-
-    //   allowedBranchIds = branches.map(
-    //     (b) => new Types.ObjectId(b._id as Types.ObjectId)
-    //   );
-    // } else if (userRole === "User") {
-    //   if (!user.branchId) {
-    //     return res
-    //       .status(400)
-    //       .json({ message: "User is not assigned to any branch!" });
-    //   }
-    //   allowedBranchIds = [user.branchId];
-    // } else {
-    //   return res.status(403).json({ message: "Unauthorized role!" });
-    // }
-
-    // 4) Aggregation pipeline
     const pipeline: any[] = [
       {
         $match: {
@@ -635,17 +610,6 @@ export const getOneQuotation = async (
       },
       { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
 
-      // You can also lookup branch if you need branch info
-      // {
-      //   $lookup: {
-      //     from: "branches",
-      //     localField: "branchId",
-      //     foreignField: "_id",
-      //     as: "branch",
-      //   },
-      // },
-      // { $unwind: { path: "$branch", preserveNullAndEmptyArrays: true } },
-
       {
         $project: {
           _id: 1,
@@ -673,28 +637,13 @@ export const getOneQuotation = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
+                itemName: "$$it.itemName", // <-- DIRECTLY FROM SAVED DATA
                 qty: "$$it.qty",
                 tax: "$$it.tax",
                 rate: "$$it.rate",
                 amount: "$$it.amount",
                 unit: "$$it.unit",
                 discount: "$$it.discount",
-                itemName: {
-                  $let: {
-                    vars: {
-                      matchedItem: {
-                        $first: {
-                          $filter: {
-                            input: "$itemDetails",
-                            as: "id",
-                            cond: { $eq: ["$$id._id", "$$it.itemId"] },
-                          },
-                        },
-                      },
-                    },
-                    in: "$$matchedItem.name",
-                  },
-                },
               },
             },
           },
@@ -736,6 +685,8 @@ export const getOneQuotation = async (
     ];
 
     const result = await QUOTATION.aggregate(pipeline);
+
+   
 
     if (!result || result.length === 0) {
       return res.status(404).json({ message: "Quotation not found!" });
@@ -844,18 +795,14 @@ export const markAcceptOrReject = async (
     quotation.status = status;
     await quotation.save(); // <-- important
 
-
-
-
-return res.status(200).json({
-  message:
-    status === "Accepted"
-      ? "Quotation marked as Accepted"
-      : status === "Declined"
-      ? "Quotation marked as Declined"
-      : "Quotation marked as Sent",
-});
-
+    return res.status(200).json({
+      message:
+        status === "Accepted"
+          ? "Quotation marked as Accepted"
+          : status === "Declined"
+          ? "Quotation marked as Declined"
+          : "Quotation marked as Sent",
+    });
   } catch (err) {
     next(err);
   }
