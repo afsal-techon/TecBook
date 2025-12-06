@@ -7,6 +7,7 @@ import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import QuoteNumberSetting from "../../models/numberSetting";
+import SALSE_PERSON from '../../models/salesPerson'
 
 export const createQuotes = async (
   req: Request,
@@ -36,8 +37,6 @@ export const createQuotes = async (
 
     const userId = req.user?.id;
 
-    console.log("dat", status);
-
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
@@ -58,6 +57,13 @@ export const createQuotes = async (
     });
     if (!customer) {
       return res.status(400).json({ message: "Customer not found!" });
+    }
+
+    if(salesPersonId){
+      const salesPerson = await SALSE_PERSON.findById(salesPersonId);
+      if(!salesPerson){
+        return res.status(400).json({ message:'Sales person not found!'})
+      }
     }
 
     let parsedItems: any[] = [];
@@ -466,7 +472,7 @@ export const getAllQuotes = async (
       // Join Sales Person (user)
       {
         $lookup: {
-          from: "employees",
+          from: "salespeople",
           localField: "salesPersonId",
           foreignField: "_id",
           as: "salesPerson",
@@ -483,8 +489,7 @@ export const getAllQuotes = async (
             { quoteId: { $regex: search, $options: "i" } },
             { "customer.name": { $regex: search, $options: "i" } },
             // { "customer.email": { $regex: search, $options: "i" } },
-            // { "salesPerson.firstName": { $regex: search, $options: "i" } },
-            // { "salesPerson.lastName": { $regex: search, $options: "i" } },
+            // { "salesPerson.name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -520,8 +525,8 @@ export const getAllQuotes = async (
         createdAt: 1,
         "customer.name": 1,
         "customer.email": 1,
-        "salesPerson.firstName": 1,
-        "salesPerson.lastName": 1,
+        "salesPerson.name": 1,
+          "salesPerson.email": 1,
       },
     });
 
@@ -583,7 +588,7 @@ export const getOneQuotation = async (
       // Join Sales Person (user)
       {
         $lookup: {
-          from: "employees",
+          from: "salespeople",
           localField: "salesPersonId",
           foreignField: "_id",
           as: "salesPerson",
@@ -663,8 +668,7 @@ export const getOneQuotation = async (
           // sales person fields
           salesPerson: {
             _id: "$salesPerson._id",
-            firstName: "$salesPerson.firstName",
-            lastName: "$salesPerson.lastName",
+            name: "$salesPerson.name",
             email: "$salesPerson.email",
           },
 

@@ -8,6 +8,7 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import saleNumberSetting from "../../models/numberSetting";
 import PAYMENT_TEMRS from "../../models/paymentTerms";
+import SALSE_PERSON from '../../models/salesPerson'
 
 export const createSaleOrder = async (
   req: Request,
@@ -58,6 +59,14 @@ export const createSaleOrder = async (
     });
     if (!customer) {
       return res.status(400).json({ message: "Customer not found!" });
+    }
+
+    
+    if(salesPersonId){
+      const salesPerson = await SALSE_PERSON.findById(salesPersonId);
+      if(!salesPerson){
+        return res.status(400).json({ message:'Sales person not found!'})
+      }
     }
 
     let parsedItems: any[] = [];
@@ -489,7 +498,7 @@ export const getAllSaleOrder = async (
       // Join Sales Person (user)
       {
         $lookup: {
-          from: "employees",
+          from: "salespeople",
           localField: "salesPersonId",
           foreignField: "_id",
           as: "salesPerson",
@@ -545,8 +554,8 @@ export const getAllSaleOrder = async (
         createdAt: 1,
         "customer.name": 1,
         "customer.email": 1,
-        "salesPerson.firstName": 1,
-        "salesPerson.lastName": 1,
+        "salesPerson.name": 1,
+          "salesPerson.email": 1,
       },
     });
 
@@ -634,7 +643,7 @@ export const getOneSaleOrder = async (
       // Join Sales Person (user)
       {
         $lookup: {
-          from: "employees",
+          from: "salespeople",
           localField: "salesPersonId",
           foreignField: "_id",
           as: "salesPerson",
@@ -729,10 +738,9 @@ export const getOneSaleOrder = async (
           },
 
           // sales person fields
-          salesPerson: {
+         salesPerson: {
             _id: "$salesPerson._id",
-            firstName: "$salesPerson.firstName",
-            lastName: "$salesPerson.lastName",
+            name: "$salesPerson.name",
             email: "$salesPerson.email",
           },
         },

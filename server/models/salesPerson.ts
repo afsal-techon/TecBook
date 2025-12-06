@@ -22,7 +22,7 @@ salesPersonSchema.index({ branchId: 1,email: 1 });
 salesPersonSchema.index({ branchId: 1,email: 1 ,isDeleted:1 });
 
 const salesPersonModel: Model<ISalesPerson> = mongoose.model<ISalesPerson>(
-  "SalesPerson",
+  "SalesPeople",
   salesPersonSchema
 );
 

@@ -25,7 +25,7 @@ const quotationSchema = new Schema<IQuotes>(
     },
     salesPersonId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
+      ref: "SalesPerson",
       default: null,
     },
     quoteDate: {

@@ -1,6 +1,6 @@
 import SALES_PERSON from "../../models/salesPerson";
 import express, { Request, Response, NextFunction } from "express";
-import { ICustomer } from "../../types/common.types";
+import { ICustomer, ISalesPerson } from "../../types/common.types";
 import USER from "../../models/user";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
@@ -16,18 +16,8 @@ export const createSalesPerson = async (
     const {
       branchId,
       name,
-      phone,
-      note,
-      openingBalance,
-      email,
-      currency,
-      paymentTerms,
-      taxTreatment,
-      trn,
-      placeOfSupplay,
-    } = req.body as ICustomer;
-
-   
+      email
+    } = req.body as ISalesPerson;
 
     const userId = req.user?.id;
 
@@ -36,55 +26,18 @@ export const createSalesPerson = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-
     if (!branchId) {
       return res.status(400).json({ message: "Branch ID is required!" });
     }
-
-    if(typeof req.body.billingInfo ==='string'){
-       req.body.billingInfo = JSON.parse(req.body.billingInfo);
+      if (!name) {
+      return res.status(400).json({ message: "Name  is required!" });
+    }
+      if (!email) {
+      return res.status(400).json({ message: "Email ID is required!" });
     }
 
-    if(typeof req.body.shippingInfo ==='string'){
-       req.body.shippingInfo = JSON.parse(req.body.shippingInfo);
-    }
 
-    if (!name) {
-      return res.status(400).json({ message: "Name is required!" });
-    }
-    if (!phone) {
-      return res.status(400).json({ message: "Phone number is required!" });
-    }
-    if (!req.body.billingInfo) {
-      return res.status(400).json({ message: "Billing address is required!" });
-    }
-
-    if (!req.body.shippingInfo) {
-      return res.status(400).json({ message: "Shipping address is required!" });
-    }
-    if (!taxTreatment) {
-      return res.status(400).json({ message: "Tax treatment is required!" });
-    }
-
-    // if (!trn) {
-    //   return res.status(400).json({ message: "trn is required!" });
-    // }
-
-    // if (!placeOfSupplay) {
-    //   return res.status(400).json({ message: "Place of supplay required!" });
-    // }
-
-    const existContact = await CUSTOMER.findOne({
-      phone,
-      branchId,
-      isDeleted: false,
-    });
-    if (existContact)
-      return res
-        .status(400)
-        .json({ message: "Phone number is already exists!" });
-
-    const existEmail = await CUSTOMER.findOne({
+    const existEmail = await SALES_PERSON.findOne({
       email,
       branchId,
       isDeleted: false,
@@ -92,60 +45,150 @@ export const createSalesPerson = async (
     if (existEmail)
       return res.status(400).json({ message: "Email is already exists!" });
 
-    let uploadedDocuments: Array<{
-      doc_name: string;
-      doc_file: string;
-      doc_typeId: Types.ObjectId | null;
-      startDate: Date | null;
-      endDate: Date | null;
-    }> = [];
-    const documentsMetadata = req.body.metadata
-      ? JSON.parse(req.body.metadata)
-      : [];
-
-    if (req.files && Array.isArray(req.files)) {
-      for (let i = 0; i < req.files.length; i++) {
-        const file = req.files[i];
-        const meta = documentsMetadata[i] || {}; // fallback in case metadata missing
-
-        const uploadResponse = await imagekit.upload({
-          file: file.buffer.toString("base64"),
-          fileName: file.originalname,
-          folder: "/images",
-        });
-
-        uploadedDocuments.push({
-          doc_name: meta.doc_name || file.originalname,
-          doc_file: uploadResponse.url,
-          doc_typeId: meta.doc_typeId
-            ? new Types.ObjectId(meta.doc_typeId)
-            : null,
-          startDate: meta.startDate,
-          endDate: meta.endDate,
-        });
-      }
-    }
-
-    await CUSTOMER.create({
+    await SALES_PERSON.create({
       branchId,
       name,
-      phone,
-      openingBalance,
-      billingInfo : req.body.billingInfo,
-      shippingInfo :req.body.shippingInfo,
-      taxTreatment,
-      trn,
       email,
-      note,
-      paymentTerms,
-      currency,
-      placeOfSupplay,
-      createdById: user._id,
-       documents: uploadedDocuments,
+     createdById: user._id,
     });
 
-    return res.status(200).json({ message: "Customer created successfully" });
+    return res.status(200).json({ message: "Sales person created successfully" });
   } catch (err) {
     next(err);
   }
 };
+
+export const updateSalesPerson = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const {
+      branchId,
+      name,
+      email,
+    } = req.body; // allow partial
+
+    const userId = req.user?.id;
+    const { salesPersonId } = req.params;
+
+
+    // Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+
+    if (!salesPersonId) {
+      return res.status(400).json({ message: "SalesPerson id is required!" });
+    }
+
+    // Check if customer exists
+    const salesPerson = await SALES_PERSON.findOne({
+      _id: salesPersonId,
+      isDeleted: false,
+    });
+    if (!salesPerson) {
+      return res.status(404).json({ message: "Sales person not found!" });
+    }
+
+    if (email && email !== salesPerson.email) {
+      const existPhone = await SALES_PERSON.findOne({
+        email,
+        branchId: branchId || salesPerson.branchId,
+        _id: { $ne: salesPersonId },
+      });
+
+      if (existPhone) {
+        return res.status(400).json({
+          message: "Email already exists for another sales person!",
+        });
+      }
+    }
+
+    // Build update object — take new values if given, else keep old
+    const updateData = {
+      branchId: branchId ?? salesPerson.branchId,
+      name: name ?? salesPerson.name,
+      email: email ?? salesPerson.email,
+    };
+  
+    await SALES_PERSON.findByIdAndUpdate(salesPersonId, updateData, { new: true });
+    await salesPerson.save();
+
+    return res.status(200).json({
+      message: "Sales person updated successfully!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getSalesPerson = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const { branchId } = req.params;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    const salesPerson = await SALES_PERSON.find({ branchId,isDeleted:false });
+
+    return res.status(200).json({
+      data: salesPerson
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const deleteSalesPerson = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const { salesPersonId } = req.params;
+
+    // Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    if (!salesPersonId) {
+      return res.status(400).json({ message: "Sales person Id is required!" });
+    }
+
+    const customer = await SALES_PERSON.findOne({ _id: salesPersonId });
+    if (!customer) {
+      return res.status(404).json({ message: "Sales person not found!" });
+    }
+
+    await SALES_PERSON.findByIdAndUpdate(salesPersonId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      // deletedBy: user.name,
+    });
+
+    return res.status(200).json({
+      message: "Sales person deleted successfully!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
