@@ -38,7 +38,8 @@ const quotationSchema = new Schema<IQuotes>(
     },
       reference: {
       type: String,
-      default: null,
+      default: null, 
+      
     },
     status: {
       type: String,
