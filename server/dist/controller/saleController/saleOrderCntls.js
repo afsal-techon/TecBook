@@ -12,6 +12,7 @@ const mongoose_1 = require("mongoose");
 const branch_1 = __importDefault(require("../../models/branch"));
 const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
+const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const createSaleOrder = async (req, res, next) => {
     try {
         const { branchId, saleOrderId, // may be null/ignored in auto mode
@@ -37,6 +38,12 @@ const createSaleOrder = async (req, res, next) => {
         });
         if (!customer) {
             return res.status(400).json({ message: "Customer not found!" });
+        }
+        if (salesPersonId) {
+            const salesPerson = await salesPerson_1.default.findById(salesPersonId);
+            if (!salesPerson) {
+                return res.status(400).json({ message: 'Sales person not found!' });
+            }
         }
         let parsedItems = [];
         if (items) {
@@ -381,7 +388,7 @@ const getAllSaleOrder = async (req, res, next) => {
             // Join Sales Person (user)
             {
                 $lookup: {
-                    from: "employees",
+                    from: "salespeople",
                     localField: "salesPersonId",
                     foreignField: "_id",
                     as: "salesPerson",
@@ -433,8 +440,8 @@ const getAllSaleOrder = async (req, res, next) => {
                 createdAt: 1,
                 "customer.name": 1,
                 "customer.email": 1,
-                "salesPerson.firstName": 1,
-                "salesPerson.lastName": 1,
+                "salesPerson.name": 1,
+                "salesPerson.email": 1,
             },
         });
         // 🔹 Execute
@@ -508,7 +515,7 @@ const getOneSaleOrder = async (req, res, next) => {
             // Join Sales Person (user)
             {
                 $lookup: {
-                    from: "employees",
+                    from: "salespeople",
                     localField: "salesPersonId",
                     foreignField: "_id",
                     as: "salesPerson",
@@ -600,8 +607,7 @@ const getOneSaleOrder = async (req, res, next) => {
                     // sales person fields
                     salesPerson: {
                         _id: "$salesPerson._id",
-                        firstName: "$salesPerson.firstName",
-                        lastName: "$salesPerson.lastName",
+                        name: "$salesPerson.name",
                         email: "$salesPerson.email",
                     },
                 },

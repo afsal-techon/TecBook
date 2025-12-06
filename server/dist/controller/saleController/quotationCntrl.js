@@ -12,12 +12,12 @@ const mongoose_1 = require("mongoose");
 const branch_1 = __importDefault(require("../../models/branch"));
 const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
+const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const createQuotes = async (req, res, next) => {
     try {
         const { branchId, quoteId, // may be null/ignored in auto mode
         customerId, projectId, salesPersonId, quoteDate, expDate, status, items, terms, note, subTotal, taxTotal, reference, total, discountValue, } = req.body;
         const userId = req.user?.id;
-        console.log("dat", status);
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
@@ -36,6 +36,12 @@ const createQuotes = async (req, res, next) => {
         });
         if (!customer) {
             return res.status(400).json({ message: "Customer not found!" });
+        }
+        if (salesPersonId) {
+            const salesPerson = await salesPerson_1.default.findById(salesPersonId);
+            if (!salesPerson) {
+                return res.status(400).json({ message: 'Sales person not found!' });
+            }
         }
         let parsedItems = [];
         if (items) {
@@ -374,7 +380,7 @@ const getAllQuotes = async (req, res, next) => {
             // Join Sales Person (user)
             {
                 $lookup: {
-                    from: "employees",
+                    from: "salespeople",
                     localField: "salesPersonId",
                     foreignField: "_id",
                     as: "salesPerson",
@@ -390,8 +396,7 @@ const getAllQuotes = async (req, res, next) => {
                         { quoteId: { $regex: search, $options: "i" } },
                         { "customer.name": { $regex: search, $options: "i" } },
                         // { "customer.email": { $regex: search, $options: "i" } },
-                        // { "salesPerson.firstName": { $regex: search, $options: "i" } },
-                        // { "salesPerson.lastName": { $regex: search, $options: "i" } },
+                        // { "salesPerson.name": { $regex: search, $options: "i" } },
                     ],
                 },
             });
@@ -424,8 +429,8 @@ const getAllQuotes = async (req, res, next) => {
                 createdAt: 1,
                 "customer.name": 1,
                 "customer.email": 1,
-                "salesPerson.firstName": 1,
-                "salesPerson.lastName": 1,
+                "salesPerson.name": 1,
+                "salesPerson.email": 1,
             },
         });
         // 🔹 Execute
@@ -456,28 +461,6 @@ const getOneQuotation = async (req, res, next) => {
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
         }
-        // const userRole = user.role; // "CompanyAdmin" or "User"
-        // // 3) Determine allowed branch IDs
-        // let allowedBranchIds: Types.ObjectId[] = [];
-        // if (userRole === "CompanyAdmin") {
-        //   const branches = await BRANCH.find({
-        //     companyAdminId: userId,
-        //     isDeleted: false,
-        //   }).select("_id");
-        //   allowedBranchIds = branches.map(
-        //     (b) => new Types.ObjectId(b._id as Types.ObjectId)
-        //   );
-        // } else if (userRole === "User") {
-        //   if (!user.branchId) {
-        //     return res
-        //       .status(400)
-        //       .json({ message: "User is not assigned to any branch!" });
-        //   }
-        //   allowedBranchIds = [user.branchId];
-        // } else {
-        //   return res.status(403).json({ message: "Unauthorized role!" });
-        // }
-        // 4) Aggregation pipeline
         const pipeline = [
             {
                 $match: {
@@ -499,7 +482,7 @@ const getOneQuotation = async (req, res, next) => {
             // Join Sales Person (user)
             {
                 $lookup: {
-                    from: "employees",
+                    from: "salespeople",
                     localField: "salesPersonId",
                     foreignField: "_id",
                     as: "salesPerson",
@@ -524,16 +507,6 @@ const getOneQuotation = async (req, res, next) => {
                 },
             },
             { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
-            // You can also lookup branch if you need branch info
-            // {
-            //   $lookup: {
-            //     from: "branches",
-            //     localField: "branchId",
-            //     foreignField: "_id",
-            //     as: "branch",
-            //   },
-            // },
-            // { $unwind: { path: "$branch", preserveNullAndEmptyArrays: true } },
             {
                 $project: {
                     _id: 1,
@@ -561,28 +534,13 @@ const getOneQuotation = async (req, res, next) => {
                             as: "it",
                             in: {
                                 itemId: "$$it.itemId",
+                                itemName: "$$it.itemName", // <-- DIRECTLY FROM SAVED DATA
                                 qty: "$$it.qty",
                                 tax: "$$it.tax",
                                 rate: "$$it.rate",
                                 amount: "$$it.amount",
                                 unit: "$$it.unit",
                                 discount: "$$it.discount",
-                                itemName: {
-                                    $let: {
-                                        vars: {
-                                            matchedItem: {
-                                                $first: {
-                                                    $filter: {
-                                                        input: "$itemDetails",
-                                                        as: "id",
-                                                        cond: { $eq: ["$$id._id", "$$it.itemId"] },
-                                                    },
-                                                },
-                                            },
-                                        },
-                                        in: "$$matchedItem.name",
-                                    },
-                                },
                             },
                         },
                     },
@@ -600,8 +558,7 @@ const getOneQuotation = async (req, res, next) => {
                     // sales person fields
                     salesPerson: {
                         _id: "$salesPerson._id",
-                        firstName: "$salesPerson.firstName",
-                        lastName: "$salesPerson.lastName",
+                        name: "$salesPerson.name",
                         email: "$salesPerson.email",
                     },
                     // project fields (if you need)

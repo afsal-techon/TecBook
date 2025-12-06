@@ -21,6 +21,7 @@ const taxCntrol_1 = require("../controller/commonCntroller/taxCntrol");
 const paymentTerms_1 = require("../controller/commonCntroller/paymentTerms");
 const saleOrderCntls_1 = require("../controller/saleController/saleOrderCntls");
 const projectCntrl_1 = require("../controller/projectController/projectCntrl");
+const salesPerson_1 = require("../controller/commonCntroller/salesPerson");
 const router = express_1.default.Router();
 router.post('/create-admin', UserAuth_1.createAdmin);
 router.post('/login', UserAuth_1.loginUser);
@@ -122,4 +123,8 @@ router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin
 router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
 router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
 router.get('/project/projectid', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.getOneProject);
+router.post('/sales-person', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_create'), salesPerson_1.createSalesPerson);
+router.get('/sales-person/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_read'), salesPerson_1.getSalesPerson);
+router.put('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_update'), salesPerson_1.updateSalesPerson);
+router.delete('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_delete'), salesPerson_1.deleteSalesPerson);
 exports.default = router;

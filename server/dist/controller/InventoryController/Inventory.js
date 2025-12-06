@@ -618,6 +618,7 @@ const createItem = async (req, res, next) => {
 exports.createItem = createItem;
 const updateItem = async (req, res, next) => {
     try {
+        console.log(req.body, "body");
         const { branchId, itemId, type, categoryId, name, salesInfo, purchaseInfo, conversionRate, taxTreatment, inventoryTracking, sellable, purchasable, } = req.body;
         const userId = req.user?.id;
         // 1 Validate user
@@ -661,9 +662,9 @@ const updateItem = async (req, res, next) => {
                 isTrackable: inventoryTracking.isTrackable ??
                     updatedInventoryTracking.isTrackable ??
                     false,
-                inventoryAccountId: inventoryTracking.inventoryAccountId ??
-                    updatedInventoryTracking.inventoryAccountId ??
-                    null,
+                inventoryAccountId: inventoryTracking.inventoryAccountId
+                    ? new mongoose_2.Types.ObjectId(inventoryTracking.inventoryAccountId)
+                    : null,
                 openingStock: inventoryTracking.openingStock ??
                     updatedInventoryTracking.openingStock ??
                     0,
@@ -673,6 +674,16 @@ const updateItem = async (req, res, next) => {
                 reOrderPoint: inventoryTracking.reOrderPoint ??
                     updatedInventoryTracking.reOrderPoint ??
                     0,
+            };
+        }
+        // If not trackable → wipe all inventory fields
+        if (!updatedInventoryTracking.isTrackable) {
+            updatedInventoryTracking = {
+                isTrackable: false,
+                inventoryAccountId: null,
+                openingStock: 0,
+                openingStockRatePerUnit: 0,
+                reOrderPoint: 0,
             };
         }
         // 6️Validate tax (if provided)
@@ -697,7 +708,9 @@ const updateItem = async (req, res, next) => {
                 isDeleted: false,
             });
             if (!salesTaxData) {
-                return res.status(400).json({ message: "Invalid sales tax selected!" });
+                return res
+                    .status(400)
+                    .json({ message: "Invalid sales tax selected!" });
             }
         }
         // 7 Update base item fields
@@ -731,7 +744,7 @@ const updateItem = async (req, res, next) => {
                 taxId: purchaseInfo.taxId ?? item.purchaseInfo?.taxId,
             };
         }
-        // Apply inventory tracking
+        // Apply inventory tracking (FIXED TYPE)
         item.inventoryTracking =
             updatedInventoryTracking;
         item.updatedAt = new Date();
