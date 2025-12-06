@@ -324,6 +324,7 @@ export interface IQuotes extends Document {
   documents?: string[];
   items?: {
     itemId: Types.ObjectId | null;
+    itemName: string | null;
     qty: number | null;
     tax: number | null;
     rate: Types.ObjectId | null;
@@ -478,6 +479,20 @@ export interface IProject extends Document {
   }[];
   costBudget: number | 0;
   revenueBudget: number | 0
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface ISalesPerson extends Document {
+  branchId?: Types.ObjectId | null;
+  name?: string;
+   email?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;

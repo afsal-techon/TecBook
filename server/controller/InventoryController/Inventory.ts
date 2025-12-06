@@ -761,12 +761,15 @@ export const createItem = async (
   }
 };
 
+
+
 export const updateItem = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    console.log(req.body, "body");
     const {
       branchId,
       itemId,
@@ -780,7 +783,6 @@ export const updateItem = async (
       inventoryTracking,
       sellable,
       purchasable,
-
     } = req.body;
 
     const userId = req.user?.id;
@@ -811,7 +813,7 @@ export const updateItem = async (
     // 4 Define inventory tracking type
     type InventoryTracking = {
       isTrackable: boolean;
-      inventoryAccountId?: string | null;
+      inventoryAccountId?: Types.ObjectId | null;
       openingStock?: number;
       openingStockRatePerUnit?: number;
       reOrderPoint?: number;
@@ -839,10 +841,9 @@ export const updateItem = async (
           inventoryTracking.isTrackable ??
           updatedInventoryTracking.isTrackable ??
           false,
-        inventoryAccountId:
-          inventoryTracking.inventoryAccountId ??
-          updatedInventoryTracking.inventoryAccountId ??
-          null,
+        inventoryAccountId: inventoryTracking.inventoryAccountId
+          ? new Types.ObjectId(inventoryTracking.inventoryAccountId)
+          : null,
         openingStock:
           inventoryTracking.openingStock ??
           updatedInventoryTracking.openingStock ??
@@ -858,8 +859,19 @@ export const updateItem = async (
       };
     }
 
+    // If not trackable → wipe all inventory fields
+    if (!updatedInventoryTracking.isTrackable) {
+      updatedInventoryTracking = {
+        isTrackable: false,
+        inventoryAccountId: null,
+        openingStock: 0,
+        openingStockRatePerUnit: 0,
+        reOrderPoint: 0,
+      };
+    }
+
     // 6️Validate tax (if provided)
-      let purchaseTaxData = null;
+    let purchaseTaxData = null;
     let salesTaxData = null;
 
     // Purchase Tax
@@ -884,7 +896,9 @@ export const updateItem = async (
       });
 
       if (!salesTaxData) {
-        return res.status(400).json({ message: "Invalid sales tax selected!" });
+        return res
+          .status(400)
+          .json({ message: "Invalid sales tax selected!" });
       }
     }
 
@@ -906,7 +920,7 @@ export const updateItem = async (
         accountId: salesInfo.accountId ?? item.salesInfo?.accountId,
         description: salesInfo.description ?? item.salesInfo?.description,
         saleUnitId: salesInfo.saleUnitId ?? item.salesInfo?.saleUnitId,
-        taxId : salesInfo.taxId ?? item.salesInfo?.taxId,
+        taxId: salesInfo.taxId ?? item.salesInfo?.taxId,
       };
     }
 
@@ -919,11 +933,11 @@ export const updateItem = async (
         description: purchaseInfo.description ?? item.purchaseInfo?.description,
         purchaseUnitId:
           purchaseInfo.purchaseUnitId ?? item.purchaseInfo?.purchaseUnitId,
-             taxId: purchaseInfo.taxId ?? item.purchaseInfo?.taxId,
+        taxId: purchaseInfo.taxId ?? item.purchaseInfo?.taxId,
       };
     }
 
-    // Apply inventory tracking
+    // Apply inventory tracking (FIXED TYPE)
     item.inventoryTracking =
       updatedInventoryTracking as IItem["inventoryTracking"];
 
@@ -937,6 +951,7 @@ export const updateItem = async (
     next(err);
   }
 };
+
 
 export const getAllItems = async (
   req: Request,
@@ -1360,7 +1375,7 @@ export const getItemsList = async (
       data: items,
     });
   } catch (err) {
-    next(err);
+    next(err); 
   }
 };
 

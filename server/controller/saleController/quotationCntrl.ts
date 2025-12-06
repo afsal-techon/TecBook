@@ -7,6 +7,7 @@ import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import QuoteNumberSetting from "../../models/numberSetting";
+import SALSE_PERSON from '../../models/salesPerson'
 
 export const createQuotes = async (
   req: Request,
@@ -14,6 +15,7 @@ export const createQuotes = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+
     const {
       branchId,
       quoteId, // may be null/ignored in auto mode
@@ -35,8 +37,6 @@ export const createQuotes = async (
 
     const userId = req.user?.id;
 
-    console.log("dat", status);
-
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
@@ -57,6 +57,13 @@ export const createQuotes = async (
     });
     if (!customer) {
       return res.status(400).json({ message: "Customer not found!" });
+    }
+
+    if(salesPersonId){
+      const salesPerson = await SALSE_PERSON.findById(salesPersonId);
+      if(!salesPerson){
+        return res.status(400).json({ message:'Sales person not found!'})
+      }
     }
 
     let parsedItems: any[] = [];
@@ -465,7 +472,7 @@ export const getAllQuotes = async (
       // Join Sales Person (user)
       {
         $lookup: {
-          from: "employees",
+          from: "salespeople",
           localField: "salesPersonId",
           foreignField: "_id",
           as: "salesPerson",
@@ -482,8 +489,7 @@ export const getAllQuotes = async (
             { quoteId: { $regex: search, $options: "i" } },
             { "customer.name": { $regex: search, $options: "i" } },
             // { "customer.email": { $regex: search, $options: "i" } },
-            // { "salesPerson.firstName": { $regex: search, $options: "i" } },
-            // { "salesPerson.lastName": { $regex: search, $options: "i" } },
+            // { "salesPerson.name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -519,8 +525,8 @@ export const getAllQuotes = async (
         createdAt: 1,
         "customer.name": 1,
         "customer.email": 1,
-        "salesPerson.firstName": 1,
-        "salesPerson.lastName": 1,
+        "salesPerson.name": 1,
+          "salesPerson.email": 1,
       },
     });
 
@@ -559,32 +565,6 @@ export const getOneQuotation = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-    // const userRole = user.role; // "CompanyAdmin" or "User"
-
-    // // 3) Determine allowed branch IDs
-    // let allowedBranchIds: Types.ObjectId[] = [];
-
-    // if (userRole === "CompanyAdmin") {
-    //   const branches = await BRANCH.find({
-    //     companyAdminId: userId,
-    //     isDeleted: false,
-    //   }).select("_id");
-
-    //   allowedBranchIds = branches.map(
-    //     (b) => new Types.ObjectId(b._id as Types.ObjectId)
-    //   );
-    // } else if (userRole === "User") {
-    //   if (!user.branchId) {
-    //     return res
-    //       .status(400)
-    //       .json({ message: "User is not assigned to any branch!" });
-    //   }
-    //   allowedBranchIds = [user.branchId];
-    // } else {
-    //   return res.status(403).json({ message: "Unauthorized role!" });
-    // }
-
-    // 4) Aggregation pipeline
     const pipeline: any[] = [
       {
         $match: {
@@ -608,7 +588,7 @@ export const getOneQuotation = async (
       // Join Sales Person (user)
       {
         $lookup: {
-          from: "employees",
+          from: "salespeople",
           localField: "salesPersonId",
           foreignField: "_id",
           as: "salesPerson",
@@ -634,17 +614,6 @@ export const getOneQuotation = async (
         },
       },
       { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
-
-      // You can also lookup branch if you need branch info
-      // {
-      //   $lookup: {
-      //     from: "branches",
-      //     localField: "branchId",
-      //     foreignField: "_id",
-      //     as: "branch",
-      //   },
-      // },
-      // { $unwind: { path: "$branch", preserveNullAndEmptyArrays: true } },
 
       {
         $project: {
@@ -673,28 +642,13 @@ export const getOneQuotation = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
+                itemName: "$$it.itemName", // <-- DIRECTLY FROM SAVED DATA
                 qty: "$$it.qty",
                 tax: "$$it.tax",
                 rate: "$$it.rate",
                 amount: "$$it.amount",
                 unit: "$$it.unit",
                 discount: "$$it.discount",
-                itemName: {
-                  $let: {
-                    vars: {
-                      matchedItem: {
-                        $first: {
-                          $filter: {
-                            input: "$itemDetails",
-                            as: "id",
-                            cond: { $eq: ["$$id._id", "$$it.itemId"] },
-                          },
-                        },
-                      },
-                    },
-                    in: "$$matchedItem.name",
-                  },
-                },
               },
             },
           },
@@ -714,8 +668,7 @@ export const getOneQuotation = async (
           // sales person fields
           salesPerson: {
             _id: "$salesPerson._id",
-            firstName: "$salesPerson.firstName",
-            lastName: "$salesPerson.lastName",
+            name: "$salesPerson.name",
             email: "$salesPerson.email",
           },
 
@@ -736,6 +689,8 @@ export const getOneQuotation = async (
     ];
 
     const result = await QUOTATION.aggregate(pipeline);
+
+   
 
     if (!result || result.length === 0) {
       return res.status(404).json({ message: "Quotation not found!" });
@@ -844,18 +799,14 @@ export const markAcceptOrReject = async (
     quotation.status = status;
     await quotation.save(); // <-- important
 
-
-
-
-return res.status(200).json({
-  message:
-    status === "Accepted"
-      ? "Quotation marked as Accepted"
-      : status === "Declined"
-      ? "Quotation marked as Declined"
-      : "Quotation marked as Sent",
-});
-
+    return res.status(200).json({
+      message:
+        status === "Accepted"
+          ? "Quotation marked as Accepted"
+          : status === "Declined"
+          ? "Quotation marked as Declined"
+          : "Quotation marked as Sent",
+    });
   } catch (err) {
     next(err);
   }

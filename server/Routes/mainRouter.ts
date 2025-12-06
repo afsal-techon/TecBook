@@ -16,6 +16,7 @@ import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../contr
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
 import { createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
+import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
 const router = express.Router();
 
 
@@ -158,6 +159,10 @@ router.post('/project',verifyUser,checkPermission('admin','Project','can_update'
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
 router.get('/project/projectid',verifyUser,checkPermission('admin','Project','can_update'),getOneProject)
 
+router.post('/sales-person',verifyUser,checkPermission('admin','SalesPerson','can_create'),createSalesPerson)
+router.get('/sales-person/:branchId',verifyUser,checkPermission('admin','SalesPerson','can_read'),getSalesPerson)
+router.put('/sales-person/:salesPersonId',verifyUser,checkPermission('admin','SalesPerson','can_update'),updateSalesPerson)
+router.delete('/sales-person/:salesPersonId',verifyUser,checkPermission('admin','SalesPerson','can_delete'),deleteSalesPerson)
 
 
 

@@ -25,7 +25,7 @@ const quotationSchema = new Schema<IQuotes>(
     },
     salesPersonId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
+      ref: "SalesPerson",
       default: null,
     },
     quoteDate: {
@@ -47,6 +47,7 @@ const quotationSchema = new Schema<IQuotes>(
     items: [
       {
         itemId: { type: Schema.Types.ObjectId, ref: "Item", default: null },
+        itemName:{ type:String, required:true},
         qty: { type: Number, default: 1 },
         tax: { type: Number, default: 0 },
         rate: { type: Number, default: 0 },
