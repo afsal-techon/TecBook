@@ -372,6 +372,43 @@ export const updateQuotes = async (
       }
     }
 
+       for (let item of parsedItems) {
+      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+        return res.status(400).json({ message: "Invalid item data!" });
+      }
+
+    
+      let taxAmount = 0;
+
+      // TAX CALCULATION (Backend Controlled)
+      if (item.taxId) {
+        const taxDoc = await TAX.findOne({
+          _id: item.taxId,
+          isDeleted: false,
+          isActive: true,
+        });
+
+        if (!taxDoc) {
+          return res.status(400).json({
+            message: `Invalid tax selected for item ${item.itemName}`,
+          });
+        }
+         const taxableAmount = Number(item.amount);
+
+        if (taxDoc.type === "VAT") {
+          taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
+        }
+
+        if (taxDoc.type === "GST") {
+          const totalGstRate = (taxDoc.cgstRate || 0) + (taxDoc.sgstRate || 0);
+          taxAmount = (taxableAmount * totalGstRate) / 100;
+        }
+      }
+
+
+      item.tax = Number(taxAmount.toFixed(2));
+    }
+
     //  Update quote fields (do NOT change auto-generated quoteId)
     quote.branchId = new Types.ObjectId(branchId);
     quote.customerId = new Types.ObjectId(customerId);
