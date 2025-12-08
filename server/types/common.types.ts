@@ -501,3 +501,44 @@ export interface ISalesPerson extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+
+
+export interface IInvoice extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  invoiceId?: string;
+  orderNumber?: string;
+  invoiceDate?: Date | null;
+  dueDate?:Date | null;
+  salesPersonId?: Types.ObjectId | null;
+  paymentTerms?: {
+    termName?: string | null;
+    days?: number | 0;
+  };
+  subject:string  | null;
+  terms?: string | null;
+  note: string | null;
+  documents?: string[];
+  items?: {
+    itemId: Types.ObjectId | null;
+    qty: number | null;
+    tax: number | null;
+    rate: Types.ObjectId | null;
+    unit: string;
+    amount: number | null;
+    discount: number | null;
+  }[];
+  status: string | null;
+  subTotal: number | null;
+  total: number | null;
+  taxTotal: number | null;
+  discount: number | null;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}

@@ -46,6 +46,7 @@ const quotationSchema = new Schema<IQuotes>(
     },
     items: [
       {
+        taxId: {  type: Schema.Types.ObjectId,  ref: "Tax",default: null,},
         itemId: { type: Schema.Types.ObjectId, ref: "Item", default: null },
         itemName:{ type:String, required:true},
         qty: { type: Number, default: 1 },

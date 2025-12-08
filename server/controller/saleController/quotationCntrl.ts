@@ -7,7 +7,8 @@ import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import QuoteNumberSetting from "../../models/numberSetting";
-import SALSE_PERSON from '../../models/salesPerson'
+import SALSE_PERSON from "../../models/salesPerson";
+import TAX from '../../models/tax'
 
 export const createQuotes = async (
   req: Request,
@@ -15,7 +16,6 @@ export const createQuotes = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
     const {
       branchId,
       quoteId, // may be null/ignored in auto mode
@@ -59,10 +59,10 @@ export const createQuotes = async (
       return res.status(400).json({ message: "Customer not found!" });
     }
 
-    if(salesPersonId){
+    if (salesPersonId) {
       const salesPerson = await SALSE_PERSON.findById(salesPersonId);
-      if(!salesPerson){
-        return res.status(400).json({ message:'Sales person not found!'})
+      if (!salesPerson) {
+        return res.status(400).json({ message: "Sales person not found!" });
       }
     }
 
@@ -86,10 +86,10 @@ export const createQuotes = async (
         .json({ message: "At least one item is required in the quotation" });
     }
 
-    if (isNaN(subTotal))
+    if (isNaN(Number(subTotal)))
       return res.status(400).json({ message: "Invalid subTotal" });
-    if (isNaN(total)) return res.status(400).json({ message: "Invalid total" });
-    if (isNaN(taxTotal))
+    if (isNaN(Number(total))) return res.status(400).json({ message: "Invalid total" });
+    if (isNaN(Number(taxTotal)))
       return res.status(400).json({ message: "Invalid taxTotal" });
 
     //  Get quote number setting for this branch
@@ -160,6 +160,47 @@ export const createQuotes = async (
         });
         uploadedFiles.push(uploadResponse.url);
       }
+    }
+
+    for (let item of parsedItems) {
+      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+        return res.status(400).json({ message: "Invalid item data!" });
+      }
+
+      
+
+      let taxAmount = 0;
+
+      // TAX CALCULATION (Backend Controlled)
+      if (item.taxId) {
+        const taxDoc = await TAX.findOne({
+          _id: item.taxId,
+          isDeleted: false,
+          isActive: true,
+        });
+
+        if (!taxDoc) {
+          return res.status(400).json({
+            message: `Invalid tax selected for item ${item.itemName}`,
+          });
+        }
+         const taxableAmount = Number(item.amount);
+
+        if (taxDoc.type === "VAT") {
+          taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
+        }
+
+        if (taxDoc.type === "GST") {
+          const totalGstRate = (taxDoc.cgstRate || 0) + (taxDoc.sgstRate || 0);
+          taxAmount = (taxableAmount * totalGstRate) / 100;
+        }
+      }
+
+      //  Apply discount per item if exists
+      // let itemDiscount = item.discount || 0;
+      // let finalItemAmount = itemAmount - itemDiscount;
+
+      item.tax = Number(taxAmount.toFixed(2));
     }
 
     const newQuote = new QUOTATION({
@@ -526,7 +567,7 @@ export const getAllQuotes = async (
         "customer.name": 1,
         "customer.email": 1,
         "salesPerson.name": 1,
-          "salesPerson.email": 1,
+        "salesPerson.email": 1,
       },
     });
 
@@ -689,8 +730,6 @@ export const getOneQuotation = async (
     ];
 
     const result = await QUOTATION.aggregate(pipeline);
-
-   
 
     if (!result || result.length === 0) {
       return res.status(404).json({ message: "Quotation not found!" });
