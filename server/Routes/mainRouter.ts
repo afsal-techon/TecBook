@@ -164,6 +164,13 @@ router.put('/sales-person/:salesPersonId',verifyUser,checkPermission('admin','Sa
 router.delete('/sales-person/:salesPersonId',verifyUser,checkPermission('admin','SalesPerson','can_delete'),deleteSalesPerson)
 
 
+//invoice 
+router.post('/invoice',verifyUser,checkPermission('admin','SaleOrder','can_create'),upload.array('documents',10),createSaleOrder);
+router.put('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_update'),upload.array('documents',10),updateSaleOrder);
+router.get('/invoice',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
+router.get('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
+router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+
 
 
 export default router;

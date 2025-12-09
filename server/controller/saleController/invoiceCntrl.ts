@@ -461,3 +461,399 @@ export const updateInvoice = async (
     next(err);
   }
 };
+
+
+export const getALLInvoices = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    // 🔹 Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    const userRole = user.role; // "CompanyAdmin" or "User"
+    const filterBranchId = req.query.branchId as string;
+    const search = ((req.query.search as string) || "").trim();
+
+    // Date filters
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+
+    const statusFilter = (req.query.status as string) || "";
+
+    const allowedStatuses = [
+      "Draft",
+      "Accepted",
+      "Approved",
+      "Sent",
+      "Invoiced",
+      "Pending",
+      "Paid",
+      "Declined",
+    ];
+
+    // Pagination
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    // 🔹 Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res
+          .status(400)
+          .json({ message: "User is not assigned to any branch!" });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
+
+    // 🔹 Apply branch filter if passed
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view invoice for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
+
+    // 🔹 Base match condition
+    const matchStage: any = {
+      branchId: { $in: allowedBranchIds },
+      isDeleted: false,
+    };
+
+    // 🔹 Date filter (quoteDate)
+    if (startDate && endDate) {
+      matchStage.quoteDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (startDate) {
+      matchStage.quoteDate = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      matchStage.quoteDate = { $lte: new Date(endDate) };
+    }
+
+    if (statusFilter && allowedStatuses.includes(statusFilter)) {
+      matchStage.status = statusFilter;
+    }
+
+    // 🔹 Pipeline
+    const pipeline: any[] = [
+      { $match: matchStage },
+
+      // Join Customer
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+
+      // Join Sales Person (user)
+      {
+        $lookup: {
+          from: "salespeople",
+          localField: "salesPersonId",
+          foreignField: "_id",
+          as: "salesPerson",
+        },
+      },
+      { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
+    ];
+
+    // 🔹 Search
+    if (search.length > 0) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { invoiceId: { $regex: search, $options: "i" } },
+            { "customer.name": { $regex: search, $options: "i" } },
+            // { "customer.email": { $regex: search, $options: "i" } },
+            // { "salesPerson.name": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // 🔹 Count total after filters
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await INVOICE.aggregate(countPipeline);
+    const totalCount = countResult[0]?.total || 0;
+
+    // 🔹 Pagination + sorting
+    pipeline.push({ $sort: { createdAt: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // 🔹 Project fields
+    pipeline.push({
+      $project: {
+        quoteId: 1,
+        branchId: 1,
+        customerId: 1,
+        projectId: 1,
+        invoiceId: 1,
+        invoiceDate: 1,
+        dueDate: 1,
+        status: 1,
+        subTotal: 1,
+        taxTotal: 1,
+        orderNumber: 1,
+        subject:1,
+        total: 1,
+        discount: 1,
+        documents: 1,
+        createdAt: 1,
+        "customer.name": 1,
+        "customer.email": 1,
+        "salesPerson.name": 1,
+        "salesPerson.email": 1,
+      },
+    });
+
+    // 🔹 Execute
+    const quotes = await INVOICE.aggregate(pipeline);
+
+    return res.status(200).json({
+      data: quotes,
+      totalCount,
+      page,
+      limit,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+export const getOneInvoice = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+    const { invoiceId } = req.params; // assuming /quotes/:id
+
+    // 1) Validate ID
+    if (!invoiceId || !Types.ObjectId.isValid(invoiceId)) {
+      return res.status(400).json({ message: "Invalid Invoice Id!" });
+    }
+    const saleObjectId = new Types.ObjectId(invoiceId);
+
+    // 2) Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    
+
+    // 4) Aggregation pipeline
+    const pipeline: any[] = [
+      {
+        $match: {
+          _id: saleObjectId,
+          // branchId: { $in: allowedBranchIds },
+          isDeleted: false,
+        },
+      },
+
+      // Join Customer
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+
+      // Join Sales Person (user)
+      {
+        $lookup: {
+          from: "salespeople",
+          localField: "salesPersonId",
+          foreignField: "_id",
+          as: "salesPerson",
+        },
+      },
+      { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "items",
+          localField: "items.itemId",
+          foreignField: "_id",
+          as: "itemDetails",
+        },
+      },
+
+      {
+        $project: {
+          _id: 1,
+          branchId: 1,
+          invoiceId: 1,
+          customerId: 1,
+          paymentTermsId: 1,
+          salesPersonId: 1,
+          invoiceDate: 1,
+          dueDate: 1,
+          status: 1,
+          subTotal: 1,
+          orderNumber: 1,
+           subject:1,
+          taxTotal: 1,
+          total: 1,
+          discount: 1,
+          documents: 1,
+          note: 1,
+          terms: 1,
+          paymentTerms: 1, // full items array as saved
+          createdAt: 1,
+          updatedAt: 1,
+
+          items: {
+            $map: {
+              input: "$items",
+              as: "it",
+              in: {
+                itemId: "$$it.itemId",
+                 taxId : "$$it.taxId",
+                qty: "$$it.qty",
+                tax: "$$it.tax",
+                rate: "$$it.rate",
+                amount: "$$it.amount",
+                unit: "$$it.unit",
+                discount: "$$it.discount",
+                itemName: {
+                  $let: {
+                    vars: {
+                      matchedItem: {
+                        $first: {
+                          $filter: {
+                            input: "$itemDetails",
+                            as: "id",
+                            cond: { $eq: ["$$id._id", "$$it.itemId"] },
+                          },
+                        },
+                      },
+                    },
+                    in: "$$matchedItem.name",
+                  },
+                },
+              },
+            },
+          },
+
+          // customer fields
+          customer: {
+            _id: "$customer._id",
+            name: "$customer.name",
+            phone: "$customer.phone",
+            email: "$customer.email",
+            billingInfo: "$customer.billingInfo",
+            shippingInfo: "$customer.shippingInfo",
+            taxTreatment: "$customer.taxTreatment",
+            trn: "$customer.trn",
+          },
+
+          // sales person fields
+         salesPerson: {
+            _id: "$salesPerson._id",
+            name: "$salesPerson.name",
+            email: "$salesPerson.email",
+          },
+        },
+      },
+    ];
+
+    const result = await INVOICE.aggregate(pipeline);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "Invoice not found!" });
+    }
+
+    // Since we matched by _id, there will be exactly one
+    return res.status(200).json({
+      data: result[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const deleteInvoice = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { invoiceId } = req.params;
+
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!invoiceId) {
+      return res.status(400).json({ message: "Invoice Id is required!" });
+    }
+
+    const invoice = await INVOICE.findOne({ _id: invoiceId });
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found!" });
+    }
+
+    // const itemExist = await ITEMS.findOne({
+    //   quoteId: quoteId,
+    //   isDeleted: false,
+    // });
+
+    // if (itemExist) {
+    //   return res.status(400).json({
+    //     message:
+    //       "This category currently linked to Items. Please remove Items before deleting.",
+    //   });
+    // }
+
+    await INVOICE.findByIdAndUpdate(invoiceId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      deletedBy: user.username,
+    });
+
+    return res.status(200).json({
+      message: "Invoice deleted successfully!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -32,7 +32,7 @@ const invoiceSchema = new Schema<IInvoice>(
     },
     status: {
       type: String,
-      enum: ["Draft", "Closed","Confirmed", "Accepted", "Approved", "Invoiced", "Pending"],
+      enum: ["Draft", "Closed","Confirmed","Paid", "Accepted", "Approved", "Invoiced", "Pending"],
     },
     items: [
       {
