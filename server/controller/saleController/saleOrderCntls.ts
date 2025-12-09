@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import saleNumberSetting from "../../models/numberSetting";
 import PAYMENT_TEMRS from "../../models/paymentTerms";
 import SALSE_PERSON from '../../models/salesPerson'
+import TAX from '../../models/tax'
 
 export const createSaleOrder = async (
   req: Request,
@@ -176,6 +177,44 @@ export const createSaleOrder = async (
         });
         uploadedFiles.push(uploadResponse.url);
       }
+    }
+
+
+     for (let item of parsedItems) {
+      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+        return res.status(400).json({ message: "Invalid item data!" });
+      }
+
+    
+      let taxAmount = 0;
+
+      // TAX CALCULATION (Backend Controlled)
+      if (item.taxId) {
+        const taxDoc = await TAX.findOne({
+          _id: item.taxId,
+          isDeleted: false,
+          isActive: true,
+        });
+
+        if (!taxDoc) {
+          return res.status(400).json({
+            message: `Invalid tax selected for item ${item.itemName}`,
+          });
+        }
+         const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+
+        if (taxDoc.type === "VAT") {
+          taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
+        }
+
+        if (taxDoc.type === "GST") {
+          const totalGstRate = (taxDoc.cgstRate || 0) + (taxDoc.sgstRate || 0);
+          taxAmount = (taxableAmount * totalGstRate) / 100;
+        }
+      }
+
+
+      item.tax = Number(taxAmount.toFixed(2));
     }
 
     const saleOrder = new SALES_ORDER({
@@ -356,6 +395,44 @@ export const updateSaleOrder = async (
         });
         finalDocuments.push(uploaded.url);
       }
+    }
+
+
+     for (let item of parsedItems) {
+      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+        return res.status(400).json({ message: "Invalid item data!" });
+      }
+
+    
+      let taxAmount = 0;
+
+      // TAX CALCULATION (Backend Controlled)
+      if (item.taxId) {
+        const taxDoc = await TAX.findOne({
+          _id: item.taxId,
+          isDeleted: false,
+          isActive: true,
+        });
+
+        if (!taxDoc) {
+          return res.status(400).json({
+            message: `Invalid tax selected for item ${item.itemName}`,
+          });
+        }
+          const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+
+        if (taxDoc.type === "VAT") {
+          taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
+        }
+
+        if (taxDoc.type === "GST") {
+          const totalGstRate = (taxDoc.cgstRate || 0) + (taxDoc.sgstRate || 0);
+          taxAmount = (taxableAmount * totalGstRate) / 100;
+        }
+      }
+
+
+      item.tax = Number(taxAmount.toFixed(2));
     }
 
     // -----------------------------

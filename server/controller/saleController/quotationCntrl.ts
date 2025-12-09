@@ -184,7 +184,7 @@ export const createQuotes = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-         const taxableAmount = Number(item.amount);
+         const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -393,7 +393,7 @@ export const updateQuotes = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-         const taxableAmount = Number(item.amount);
+          const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
