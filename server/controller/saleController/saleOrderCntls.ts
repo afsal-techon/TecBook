@@ -776,6 +776,7 @@ export const getOneSaleOrder = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
+                 taxId : "$$it.taxId",
                 qty: "$$it.qty",
                 tax: "$$it.tax",
                 rate: "$$it.rate",

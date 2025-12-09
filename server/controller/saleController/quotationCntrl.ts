@@ -720,6 +720,7 @@ export const getOneQuotation = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
+                taxId : "$$it.taxId",
                 itemName: "$$it.itemName", // <-- DIRECTLY FROM SAVED DATA
                 qty: "$$it.qty",
                 tax: "$$it.tax",
