@@ -490,8 +490,6 @@ export const getOneProject = async (
 
     const result = await PROJECT.aggregate(pipeline);
 
-    console.log(result,'restl')
-
     if (!result.length) {
       return res.status(404).json({ message: "Project not found!" });
     }
