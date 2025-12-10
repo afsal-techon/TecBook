@@ -3,11 +3,11 @@ import { ILogEntry } from "../types/common.types";
 
 const timeLogSchema = new Schema<ILogEntry>(
   {
-    // branchId: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: "Branch",
-    //   required: true,
-    // },
+    branchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+    },
     date: {
       type: Date,
       required: true,
@@ -22,9 +22,9 @@ const timeLogSchema = new Schema<ILogEntry>(
       ref: "User",
       required: true,
     },
-    startTime: { type: Date, default: null },
-    endTime: { type: Date, default: null },
-    timeSpend: { type: Date, default: null },
+    startTime: { type: String, default: null },
+    endTime: { type: String, default: null },
+    timeSpend: { type: String, default: null },
     billable: {
       type: Boolean,
       default: true,

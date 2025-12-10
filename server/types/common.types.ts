@@ -546,13 +546,13 @@ export interface IInvoice extends Document {
 
 
 export interface ILogEntry extends Document {
-  // branchId?: Types.ObjectId | null;
+  branchId?: Types.ObjectId | null;
   date:Date;
   projectId?: string;
   taskId:Types.ObjectId | null;
- startTime:Date | null;
- endTime : Date | null;
- timeSpend: Date | null;
+ startTime:string | null;
+ endTime : string | null;
+ timeSpend: string | null;
   billable:boolean,
   userId:Types.ObjectId | null;
   note:string,
