@@ -467,6 +467,7 @@ export interface IProject extends Document {
   users?: {
     userId: Types.ObjectId | null;
     email: string;
+    ratePerHour:number;
   }[];
   ratePerHour:number;
   projectCost:number;
@@ -495,6 +496,68 @@ export interface ISalesPerson extends Document {
    email?: string;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+
+export interface IInvoice extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  invoiceId?: string;
+  orderNumber?: string;
+  invoiceDate?: Date | null;
+  dueDate?:Date | null;
+  salesPersonId?: Types.ObjectId | null;
+  paymentTerms?: {
+    termName?: string | null;
+    days?: number | 0;
+  };
+  subject:string  | null;
+  terms?: string | null;
+  note: string | null;
+  documents?: string[];
+  items?: {
+    itemId: Types.ObjectId | null;
+    qty: number | null;
+    tax: number | null;
+    rate: Types.ObjectId | null;
+    unit: string;
+    amount: number | null;
+    discount: number | null;
+  }[];
+  status: string | null;
+  subTotal: number | null;
+  total: number | null;
+  taxTotal: number | null;
+  discount: number | null;
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface ILogEntry extends Document {
+  branchId?: Types.ObjectId | null;
+  date:Date;
+  projectId?: string;
+  taskId:Types.ObjectId | null;
+ startTime:string | null;
+ endTime : string | null;
+ timeSpend: string | null;
+  billable:boolean,
+  userId:Types.ObjectId | null;
+  note:string,
+  createdById?: Types.ObjectId | null;
+   isDeleted?: boolean;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
   deletedBy?: string | null;

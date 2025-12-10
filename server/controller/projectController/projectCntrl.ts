@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import PROJECT from "../../models/project";
+import LOGENTRY from "../../models/logEntry";
 
 export const createProject = async (
   req: Request,
@@ -78,8 +79,7 @@ export const createProject = async (
       if (billingMethod === "Based on Task Hours") {
         if (!t.ratePerHour || t.ratePerHour <= 0) {
           return res.status(400).json({
-            message:
-              "Each task must include a valid ratePerHour!",
+            message: "Each task must include a valid ratePerHour!",
           });
         }
       }
@@ -109,7 +109,6 @@ export const createProject = async (
     next(err);
   }
 };
-
 
 export const getAllProjects = async (
   req: Request,
@@ -225,8 +224,8 @@ export const getAllProjects = async (
         users: 1,
         projectCost: 1,
         ratePerHour: 1,
-        costBudget:1,
-        revenueBudget:1,
+        costBudget: 1,
+        revenueBudget: 1,
         tasks: 1,
         createdAt: 1,
 
@@ -250,16 +249,12 @@ export const getAllProjects = async (
   }
 };
 
-
-
 export const updateProject = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-
-
     const {
       branchId,
       customerId,
@@ -272,7 +267,7 @@ export const updateProject = async (
       ratePerHour,
       tasks,
       costBudget,
-      revenueBudget
+      revenueBudget,
     } = req.body;
 
     const userId = req.user?.id;
@@ -342,8 +337,7 @@ export const updateProject = async (
 
         if (!t.ratePerHour || t.ratePerHour <= 0) {
           return res.status(400).json({
-            message:
-              "Each task must include a valid ratePerHour!",
+            message: "Each task must include a valid ratePerHour!",
           });
         }
       }
@@ -360,7 +354,8 @@ export const updateProject = async (
     existingProject.description = description ?? existingProject.description;
     existingProject.users = users ?? existingProject.users;
     existingProject.costBudget = costBudget ?? existingProject.costBudget;
-    existingProject.revenueBudget = revenueBudget ?? existingProject.revenueBudget
+    existingProject.revenueBudget =
+      revenueBudget ?? existingProject.revenueBudget;
 
     // Handle billing-based assignments
     if (billingMethod === "Fixed Cost for Project") {
@@ -390,7 +385,6 @@ export const updateProject = async (
   }
 };
 
-
 export const getOneProject = async (
   req: Request,
   res: Response,
@@ -398,9 +392,9 @@ export const getOneProject = async (
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    const { projectid } = req.params
+    const { projectId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(projectid)) {
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ message: "Invalid project ID!" });
     }
 
@@ -412,7 +406,7 @@ export const getOneProject = async (
     const pipeline: any[] = [
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(projectid),
+          _id: new mongoose.Types.ObjectId(projectId),
           isDeleted: false,
         },
       },
@@ -482,8 +476,6 @@ export const getOneProject = async (
             _id: 1,
             name: 1,
             email: 1,
-            phone: 1,
-            role: 1,
           },
         },
       },
@@ -503,5 +495,248 @@ export const getOneProject = async (
   }
 };
 
+//time sheeet
+
+export const createLogEntry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userid = req.user?.id;
+
+    if (!userid) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const {
+      date,
+      branchId,
+      projectId,
+      userId,
+      taskId,
+      billable,
+      startTime,
+      endTime,
+      timeSpend,
+      note,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "user Id is required!" });
+    }
+    if (!branchId) {
+      return res.status(400).json({ message: "Brnach Id is required!" });
+    }
+
+    if (!taskId) {
+      return res.status(400).json({ message: "Task Id is required!" });
+    }
+
+    if (!projectId) {
+      return res.status(400).json({ message: "Project Id  is required!" });
+    }
+
+    const newProject = await LOGENTRY.create({
+      branchId,
+      date,
+      projectId,
+      userId,
+      taskId,
+      timeSpend,
+      startTime,
+      endTime,
+      billable,
+      note,
+      createdById: userId,
+    });
+
+    return res.status(201).json({
+      message: "Log entry created successfully",
+      data: newProject,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 
+
+export const getAllLogEntries = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) return res.status(400).json({ message: "User not found!" });
+
+    const userRole = user.role;
+    const filterBranchId = req.query.branchId as string;
+    const search = ((req.query.search as string) || "").trim();
+
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res.status(400).json({
+          message: "User is not assigned to any branch!",
+        });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
+
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view log entries for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
+
+    // -------------------------------
+    // 🔥 MAIN AGGREGATION
+    // -------------------------------
+    const pipeline: any[] = [
+      {
+        $match: {
+          branchId: { $in: allowedBranchIds },
+        },
+      },
+
+      // Join USER
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+      // Join PROJECT
+      {
+        $lookup: {
+          from: "projects",
+          localField: "projectId",
+          foreignField: "_id",
+          as: "project",
+        },
+      },
+      { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
+
+      // Extract matching TASK from project.tasks based on taskId
+      {
+        $addFields: {
+          task: {
+            $cond: [
+              { $ifNull: ["$taskId", false] },
+              {
+                $first: {
+                  $filter: {
+                    input: "$project.tasks",
+                    as: "t",
+                    cond: { $eq: ["$$t._id", "$taskId"] },
+                  },
+                },
+              },
+              null,
+            ],
+          },
+        },
+      },
+    ];
+
+    // -------------------------------
+    // 🔍 SEARCH FILTER
+    // -------------------------------
+    if (search.length > 0) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "project.projectName": { $regex: search, $options: "i" } },
+            { "project.projectId": { $regex: search, $options: "i" } },
+            { "user.name": { $regex: search, $options: "i" } },
+            { "task.taskName": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // Count Pipeline
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await LOGENTRY.aggregate(countPipeline);
+    const totalCount = countResult[0]?.total || 0;
+
+    // Pagination
+    pipeline.push({ $sort: { createdAt: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Final Projection (clean JSON)
+    pipeline.push({
+      $project: {
+        branchId: 1,
+        date: 1,
+        startTime: 1,
+        endTime: 1,
+        timeSpend: 1,
+        billable: 1,
+        note: 1,
+
+        project: {
+          _id: "$project._id",
+          projectId: "$project.projectId",
+          projectName: "$project.projectName",
+          billingMethod: "$project.billingMethod",
+        },
+
+        user: {
+          _id: "$user._id",
+          name: "$user.name",
+          email: "$user.email",
+        },
+
+        task: {
+          _id: "$task._id",
+          taskName: "$task.taskName",
+          ratePerHour: "$task.ratePerHour",
+          billable: "$task.billable",
+        },
+
+        createdAt: 1,
+      },
+    });
+
+    const logs = await LOGENTRY.aggregate(pipeline);
+
+    return res.status(200).json({
+      data: logs,
+      totalCount,
+      page,
+      limit,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
