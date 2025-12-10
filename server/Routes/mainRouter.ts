@@ -15,7 +15,7 @@ import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAccep
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
-import { createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
+import { createLogEntry, createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
 const router = express.Router();
 
@@ -156,7 +156,7 @@ router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','Sal
 router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
 router.post('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
-router.get('/project/projectid',verifyUser,checkPermission('admin','Project','can_update'),getOneProject)
+router.get('/project/:projectId',verifyUser,checkPermission('admin','Project','can_read'),getOneProject)
 
 router.post('/sales-person',verifyUser,checkPermission('admin','SalesPerson','can_create'),createSalesPerson)
 router.get('/sales-person/:branchId',verifyUser,checkPermission('admin','SalesPerson','can_read'),getSalesPerson)
@@ -170,6 +170,9 @@ router.put('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder',
 router.get('/invoice',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
 router.get('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
 router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+
+//tune log entry
+router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_create'),createLogEntry)
 
 
 

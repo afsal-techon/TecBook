@@ -41,6 +41,10 @@ const projectSchema = new Schema<IProject>(
       {
         userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
         email: { type: String, trim: true },
+        ratePerHour: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
     projectCost: {

@@ -467,6 +467,7 @@ export interface IProject extends Document {
   users?: {
     userId: Types.ObjectId | null;
     email: string;
+    ratePerHour:number;
   }[];
   ratePerHour:number;
   projectCost:number;
@@ -536,6 +537,27 @@ export interface IInvoice extends Document {
   discount: number | null;
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface ILogEntry extends Document {
+  // branchId?: Types.ObjectId | null;
+  date:Date;
+  projectId?: string;
+  taskId:Types.ObjectId | null;
+ startTime:Date | null;
+ endTime : Date | null;
+ timeSpend: Date | null;
+  billable:boolean,
+  userId:Types.ObjectId | null;
+  note:string,
+  createdById?: Types.ObjectId | null;
+   isDeleted?: boolean;
   deletedAt?: Date | null;
   deletedById?: Types.ObjectId | null;
   deletedBy?: string | null;

@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import PROJECT from "../../models/project";
+import LOGENTRY from '../../models/logEntry'
 
 export const createProject = async (
   req: Request,
@@ -398,9 +399,9 @@ export const getOneProject = async (
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    const { projectid } = req.params
+    const { projectId } = req.params
 
-    if (!mongoose.Types.ObjectId.isValid(projectid)) {
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ message: "Invalid project ID!" });
     }
 
@@ -412,7 +413,7 @@ export const getOneProject = async (
     const pipeline: any[] = [
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(projectid),
+          _id: new mongoose.Types.ObjectId(projectId),
           isDeleted: false,
         },
       },
@@ -482,8 +483,6 @@ export const getOneProject = async (
             _id: 1,
             name: 1,
             email: 1,
-            phone: 1,
-            role: 1,
           },
         },
       },
@@ -504,4 +503,65 @@ export const getOneProject = async (
 };
 
 
+
+
+//time sheeet
+
+export const createLogEntry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userid = req.user?.id;
+
+    if (!userid) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const {
+      date,
+      projectId,
+      userId,
+      taskId,
+      billable,
+      startTime,
+      endTime,
+      timeSpend,
+      note
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "user Id is required!" });
+    }
+
+    if (!taskId) {
+      return res.status(400).json({ message: "Task Id is required!" });
+    }
+
+    if(!projectId){
+        return res.status(400).json({ message: "Project Id  is required!" });
+    }
+
+    const newProject = await LOGENTRY.create({
+      date,
+      projectId,
+      userId,
+      taskId,
+      timeSpend,
+      startTime,
+      endTime,
+      billable,
+      note,
+      createdById: userId,
+    });
+
+    return res.status(201).json({
+      message: "Log entry created successfully",
+      data: newProject,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
