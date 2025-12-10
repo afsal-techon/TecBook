@@ -3,9 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markAcceptOrReject = exports.deleteQuotation = exports.getOneQuotation = exports.getAllQuotes = exports.updateQuotes = exports.createQuotes = void 0;
+exports.deleteInvoice = exports.getOneInvoice = exports.getALLInvoices = exports.updateInvoice = exports.createInvoice = void 0;
+const invoice_1 = __importDefault(require("../../models/invoice"));
 const user_1 = __importDefault(require("../../models/user"));
-const quotation_1 = __importDefault(require("../../models/quotation"));
 const customer_1 = __importDefault(require("../../models/customer"));
 const imageKit_1 = require("../../config/imageKit");
 const mongoose_1 = require("mongoose");
@@ -14,10 +14,10 @@ const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
-const createQuotes = async (req, res, next) => {
+const createInvoice = async (req, res, next) => {
     try {
-        const { branchId, quoteId, // may be null/ignored in auto mode
-        customerId, projectId, salesPersonId, quoteDate, expDate, status, items, terms, note, subTotal, taxTotal, reference, total, discountValue, } = req.body;
+        const { branchId, invoiceId, // may be null/ignored in auto mode
+        customerId, salesPersonId, invoiceDate, dueDate, status, orderNumber, subject, items, paymentTerms, terms, note, subTotal, taxTotal, total, discountValue, } = req.body;
         const userId = req.user?.id;
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
@@ -27,8 +27,10 @@ const createQuotes = async (req, res, next) => {
             return res.status(400).json({ message: "Branch ID is required!" });
         if (!customerId)
             return res.status(400).json({ message: "Customer ID is required!" });
-        if (!quoteDate)
-            return res.status(400).json({ message: "Quote Date is required!" });
+        if (!invoiceDate)
+            return res.status(400).json({ message: "Invoice Date is required!" });
+        if (!dueDate)
+            return res.status(400).json({ message: "Due Date is required!" });
         if (!status)
             return res.status(400).json({ message: "Status is required!" });
         const customer = await customer_1.default.findOne({
@@ -41,7 +43,7 @@ const createQuotes = async (req, res, next) => {
         if (salesPersonId) {
             const salesPerson = await salesPerson_1.default.findById(salesPersonId);
             if (!salesPerson) {
-                return res.status(400).json({ message: "Sales person not found!" });
+                return res.status(400).json({ message: 'Sales person not found!' });
             }
         }
         let parsedItems = [];
@@ -53,23 +55,32 @@ const createQuotes = async (req, res, next) => {
                 parsedItems = items; // in case it's already object/array
             }
         }
+        let parsedTerms = [];
+        if (paymentTerms) {
+            if (typeof items === "string") {
+                parsedTerms = JSON.parse(paymentTerms); // <-- main step
+            }
+            else {
+                parsedTerms = paymentTerms; // in case it's already object/array
+            }
+        }
         if (!parsedItems ||
             !Array.isArray(parsedItems) ||
             parsedItems.length === 0) {
             return res
                 .status(400)
-                .json({ message: "At least one item is required in the quotation" });
+                .json({ message: "At least one payment term is required!" });
         }
-        if (isNaN(Number(subTotal)))
+        if (isNaN(subTotal))
             return res.status(400).json({ message: "Invalid subTotal" });
-        if (isNaN(Number(total)))
+        if (isNaN(total))
             return res.status(400).json({ message: "Invalid total" });
-        if (isNaN(Number(taxTotal)))
+        if (isNaN(taxTotal))
             return res.status(400).json({ message: "Invalid taxTotal" });
         //  Get quote number setting for this branch
         let setting = await numberSetting_1.default.findOne({
             branchId: new mongoose_1.Types.ObjectId(branchId),
-            docType: "QUOTE",
+            docType: "INVOICE",
         });
         let finalQuoteId;
         if (setting && setting.mode === "Auto") {
@@ -80,14 +91,14 @@ const createQuotes = async (req, res, next) => {
             const padded = String(numeric).padStart(length, "0");
             finalQuoteId = `${setting.prefix}${padded}`;
             // optionally: ensure uniqueness
-            const exists = await quotation_1.default.findOne({
+            const exists = await invoice_1.default.findOne({
                 branchId: new mongoose_1.Types.ObjectId(branchId),
-                quoteId: finalQuoteId,
+                invoiceId: finalQuoteId,
                 isDeleted: false,
             });
             if (exists) {
                 return res.status(400).json({
-                    message: "Generated quote ID already exists. Please try again.",
+                    message: "Generated invoice Id already exists. Please try again.",
                 });
             }
             // increment for next time
@@ -97,21 +108,23 @@ const createQuotes = async (req, res, next) => {
         }
         else {
             // ---------- MANUAL MODE ----------
-            if (!quoteId || typeof quoteId !== "string" || !quoteId.trim()) {
+            if (!invoiceId ||
+                typeof invoiceId !== "string" ||
+                !invoiceId.trim()) {
                 return res
                     .status(400)
-                    .json({ message: "Quote ID is required in manual mode!" });
+                    .json({ message: "Invoice Id is required in manual mode!" });
             }
-            finalQuoteId = quoteId.trim();
+            finalQuoteId = invoiceId.trim();
             // ensure unique
-            const exists = await quotation_1.default.findOne({
+            const exists = await invoice_1.default.findOne({
                 branchId: new mongoose_1.Types.ObjectId(branchId),
-                quoteId: finalQuoteId,
+                invoiceId: finalQuoteId,
                 isDeleted: false,
             });
             if (exists) {
                 return res.status(400).json({
-                    message: "This quote ID already exists. Please enter a different one.",
+                    message: "This invoice Id already exists. Please enter a different one.",
                 });
             }
         }
@@ -153,139 +166,130 @@ const createQuotes = async (req, res, next) => {
                     taxAmount = (taxableAmount * totalGstRate) / 100;
                 }
             }
-            //  Apply discount per item if exists
-            // let itemDiscount = item.discount || 0;
-            // let finalItemAmount = itemAmount - itemDiscount;
             item.tax = Number(taxAmount.toFixed(2));
         }
-        const newQuote = new quotation_1.default({
+        const invoice = new invoice_1.default({
             branchId: new mongoose_1.Types.ObjectId(branchId),
-            quoteId: finalQuoteId, //  always use this
+            invoiceId: finalQuoteId, //  always use this
             customerId: new mongoose_1.Types.ObjectId(customerId),
             // projectId: projectId ? new Types.ObjectId(projectId) : null,
-            projectId: projectId ? projectId : null,
             salesPersonId: salesPersonId ? new mongoose_1.Types.ObjectId(salesPersonId) : null,
-            quoteDate,
-            expDate,
+            invoiceDate,
+            dueDate,
             status,
             items: parsedItems,
+            paymentTerms: parsedTerms,
+            terms,
+            orderNumber,
+            subject,
             subTotal,
             taxTotal,
             total,
             discount: discountValue,
             documents: uploadedFiles,
-            terms,
-            reference,
             note,
             createdById: userId,
         });
-        await newQuote.save();
+        await invoice.save();
         return res.status(201).json({
-            message: `Quotation created successfully.`,
-            quoteId: finalQuoteId,
+            message: `Invoice created successfully.`,
+            invoiceId: finalQuoteId,
         });
     }
     catch (err) {
         next(err);
     }
 };
-exports.createQuotes = createQuotes;
-const updateQuotes = async (req, res, next) => {
+exports.createInvoice = createInvoice;
+const updateInvoice = async (req, res, next) => {
     try {
-        const { quoteId } = req.params;
-        const { 
-        // ID of the quote document in DB (or _id) – adjust naming if needed
-        branchId, customerId, projectId, salesPersonId, quoteDate, expDate, status, items, subTotal, terms, reference, note, taxTotal, total, discountValue, existingDocuments, // from frontend: existing docs (JSON string or array)
-         } = req.body;
+        const { invoiceId } = req.params;
+        const { branchId, customerId, salesPersonId, invoiceDate, dueDate, status, items, subTotal, terms, paymentTerms, orderNumber, subject, note, taxTotal, total, discountValue, existingDocuments, } = req.body;
         const userId = req.user?.id;
-        console.log("dat", status);
-        //  Validate user
+        // Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
-        if (!user) {
+        if (!user)
             return res.status(400).json({ message: "User not found!" });
-        }
-        //   quote identifier provided (assuming `quoteId` is Mongo _id here)
-        if (!quoteId) {
-            return res.status(400).json({ message: "Quote ID is required!" });
-        }
-        //  Find existing quote
-        const quote = await quotation_1.default.findOne({
-            _id: quoteId,
+        // Validate saleOrderId
+        if (!invoiceId)
+            return res.status(400).json({ message: "Invoice Id is required!" });
+        const invoice = await invoice_1.default.findOne({
+            _id: invoiceId,
             isDeleted: false,
         });
-        if (!quote) {
-            return res.status(400).json({ message: "Quotation not found!" });
-        }
-        //  Basic validations
+        if (!invoice)
+            return res.status(400).json({ message: "Invoice not found!" });
+        // Required fields
         if (!branchId)
             return res.status(400).json({ message: "Branch ID is required!" });
         if (!customerId)
             return res.status(400).json({ message: "Customer ID is required!" });
-        if (!quoteDate)
-            return res.status(400).json({ message: "Quote Date is required!" });
+        if (!invoiceDate)
+            return res.status(400).json({ message: "Invoice date is required!" });
+        if (!dueDate)
+            return res.status(400).json({ message: "Due  date is required!" });
         if (!status)
             return res.status(400).json({ message: "Status is required!" });
-        //  Validate customer
+        // Validate customer
         const customer = await customer_1.default.findOne({
             _id: customerId,
             isDeleted: false,
         });
-        if (!customer) {
+        if (!customer)
             return res.status(400).json({ message: "Customer not found!" });
-        }
-        //  Parse items (from FormData string or array)
+        // -----------------------------
+        // Parse ITEMS
+        // -----------------------------
         let parsedItems = [];
         if (items) {
-            if (typeof items === "string") {
-                parsedItems = JSON.parse(items);
-            }
-            else {
-                parsedItems = items;
-            }
+            parsedItems = typeof items === "string" ? JSON.parse(items) : items;
         }
-        if (!parsedItems ||
-            !Array.isArray(parsedItems) ||
-            parsedItems.length === 0) {
+        if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
             return res.status(400).json({
-                message: "At least one item is required in the quotation",
+                message: "At least one item is required!",
             });
         }
-        if (isNaN(subTotal)) {
-            return res.status(400).json({ message: "Invalid subTotal" });
+        if (!paymentTerms) {
+            return res.status(400).json({ message: "Payment term  is required!" });
         }
-        if (isNaN(total)) {
-            return res.status(400).json({ message: "Invalid total" });
+        const rawTerms = typeof paymentTerms === "string"
+            ? JSON.parse(paymentTerms)
+            : paymentTerms;
+        if (!rawTerms || typeof rawTerms !== "object") {
+            return res.status(400).json({ message: "Invalid payment term format!" });
         }
-        if (isNaN(taxTotal)) {
-            return res.status(400).json({ message: "Invalid taxTotal" });
+        if (!rawTerms._id) {
+            return res.status(400).json({ message: "payment term Id is required!" });
         }
-        //  Handle existingDocuments (similar pattern to updateEmployee)
-        // Frontend sends existingDocuments as JSON string or array
+        if (!rawTerms.termName || !String(rawTerms.termName).trim()) {
+            return res.status(400).json({ message: "Term name is required!" });
+        }
+        if (rawTerms.days == null || isNaN(Number(rawTerms.days))) {
+            return res.status(400).json({ message: "Valid days is required!" });
+        }
+        const parsedTerms = {
+            _id: String(rawTerms._id),
+            termName: String(rawTerms.termName).trim(),
+            days: Number(rawTerms.days),
+        };
         let finalDocuments = [];
         if (existingDocuments) {
-            const parsedExistingDocs = Array.isArray(existingDocuments)
+            const parsedDocs = Array.isArray(existingDocuments)
                 ? existingDocuments
                 : JSON.parse(existingDocuments);
-            // Support both string array and array of objects with doc_file
-            finalDocuments = parsedExistingDocs
-                .map((doc) => {
-                if (typeof doc === "string") {
-                    return doc;
-                }
-                // if object: { doc_file: 'url', ... }
-                return doc.doc_file || "";
-            })
-                .filter((url) => !!url);
+            finalDocuments = parsedDocs
+                .map((doc) => (typeof doc === "string" ? doc : doc.doc_file))
+                .filter((d) => !!d);
         }
-        //  Handle new file uploads (same as createQuotes)
+        // New uploads
         if (req.files && Array.isArray(req.files)) {
             for (const file of req.files) {
-                const uploadResponse = await imageKit_1.imagekit.upload({
+                const uploaded = await imageKit_1.imagekit.upload({
                     file: file.buffer.toString("base64"),
                     fileName: file.originalname,
                     folder: "/images",
                 });
-                finalDocuments.push(uploadResponse.url);
+                finalDocuments.push(uploaded.url);
             }
         }
         for (let item of parsedItems) {
@@ -316,37 +320,34 @@ const updateQuotes = async (req, res, next) => {
             }
             item.tax = Number(taxAmount.toFixed(2));
         }
-        //  Update quote fields (do NOT change auto-generated quoteId)
-        quote.branchId = new mongoose_1.Types.ObjectId(branchId);
-        quote.customerId = new mongoose_1.Types.ObjectId(customerId);
-        quote.projectId = projectId ? projectId : null;
-        quote.salesPersonId = salesPersonId
-            ? new mongoose_1.Types.ObjectId(salesPersonId)
-            : null;
-        quote.quoteDate = quoteDate;
-        quote.expDate = expDate;
-        quote.status = status;
-        quote.items = parsedItems;
-        quote.subTotal = subTotal;
-        quote.taxTotal = taxTotal;
-        quote.total = total;
-        quote.reference = reference;
-        quote.discount = discountValue;
-        quote.documents = finalDocuments;
-        quote.terms = terms;
-        quote.note = note;
-        // quote.updatedById = userId; // if you track updatedBy
-        await quote.save();
+        invoice.branchId = branchId;
+        invoice.customerId = customerId;
+        invoice.salesPersonId = salesPersonId || null;
+        invoice.invoiceDate = invoiceDate;
+        invoice.dueDate = dueDate;
+        invoice.status = status;
+        invoice.items = parsedItems;
+        invoice.paymentTerms = parsedTerms; // now always assigned
+        invoice.terms = terms;
+        invoice.subTotal = subTotal;
+        invoice.subject = subject;
+        invoice.taxTotal = taxTotal;
+        invoice.orderNumber = orderNumber;
+        invoice.total = total;
+        invoice.discount = discountValue;
+        invoice.documents = finalDocuments;
+        invoice.note = note;
+        await invoice.save();
         return res.status(200).json({
-            message: "Quotation updated successfully.",
+            message: "Invoice updated successfully.",
         });
     }
     catch (err) {
         next(err);
     }
 };
-exports.updateQuotes = updateQuotes;
-const getAllQuotes = async (req, res, next) => {
+exports.updateInvoice = updateInvoice;
+const getALLInvoices = async (req, res, next) => {
     try {
         const userId = req.user?.id;
         // 🔹 Validate user
@@ -367,6 +368,7 @@ const getAllQuotes = async (req, res, next) => {
             "Sent",
             "Invoiced",
             "Pending",
+            "Paid",
             "Declined",
         ];
         // Pagination
@@ -398,7 +400,7 @@ const getAllQuotes = async (req, res, next) => {
             const filterId = new mongoose_2.default.Types.ObjectId(filterBranchId);
             if (!allowedBranchIds.some((id) => id.equals(filterId))) {
                 return res.status(403).json({
-                    message: "You are not authorized to view quotations for this branch!",
+                    message: "You are not authorized to view invoice for this branch!",
                 });
             }
             allowedBranchIds = [filterId];
@@ -453,7 +455,7 @@ const getAllQuotes = async (req, res, next) => {
             pipeline.push({
                 $match: {
                     $or: [
-                        { quoteId: { $regex: search, $options: "i" } },
+                        { invoiceId: { $regex: search, $options: "i" } },
                         { "customer.name": { $regex: search, $options: "i" } },
                         // { "customer.email": { $regex: search, $options: "i" } },
                         // { "salesPerson.name": { $regex: search, $options: "i" } },
@@ -463,7 +465,7 @@ const getAllQuotes = async (req, res, next) => {
         }
         // 🔹 Count total after filters
         const countPipeline = [...pipeline, { $count: "total" }];
-        const countResult = await quotation_1.default.aggregate(countPipeline);
+        const countResult = await invoice_1.default.aggregate(countPipeline);
         const totalCount = countResult[0]?.total || 0;
         // 🔹 Pagination + sorting
         pipeline.push({ $sort: { createdAt: -1 } });
@@ -476,13 +478,14 @@ const getAllQuotes = async (req, res, next) => {
                 branchId: 1,
                 customerId: 1,
                 projectId: 1,
-                salesPersonId: 1,
-                quoteDate: 1,
-                expDate: 1,
+                invoiceId: 1,
+                invoiceDate: 1,
+                dueDate: 1,
                 status: 1,
                 subTotal: 1,
                 taxTotal: 1,
-                reference: 1,
+                orderNumber: 1,
+                subject: 1,
                 total: 1,
                 discount: 1,
                 documents: 1,
@@ -494,7 +497,7 @@ const getAllQuotes = async (req, res, next) => {
             },
         });
         // 🔹 Execute
-        const quotes = await quotation_1.default.aggregate(pipeline);
+        const quotes = await invoice_1.default.aggregate(pipeline);
         return res.status(200).json({
             data: quotes,
             totalCount,
@@ -506,25 +509,26 @@ const getAllQuotes = async (req, res, next) => {
         next(err);
     }
 };
-exports.getAllQuotes = getAllQuotes;
-const getOneQuotation = async (req, res, next) => {
+exports.getALLInvoices = getALLInvoices;
+const getOneInvoice = async (req, res, next) => {
     try {
         const userId = req.user?.id;
-        const { quoteId } = req.params; // assuming /quotes/:id
+        const { invoiceId } = req.params; // assuming /quotes/:id
         // 1) Validate ID
-        if (!quoteId || !mongoose_1.Types.ObjectId.isValid(quoteId)) {
-            return res.status(400).json({ message: "Invalid quotation ID!" });
+        if (!invoiceId || !mongoose_1.Types.ObjectId.isValid(invoiceId)) {
+            return res.status(400).json({ message: "Invalid Invoice Id!" });
         }
-        const quoteObjectId = new mongoose_1.Types.ObjectId(quoteId);
+        const saleObjectId = new mongoose_1.Types.ObjectId(invoiceId);
         // 2) Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
         }
+        // 4) Aggregation pipeline
         const pipeline = [
             {
                 $match: {
-                    _id: quoteObjectId,
+                    _id: saleObjectId,
                     // branchId: { $in: allowedBranchIds },
                     isDeleted: false,
                 },
@@ -548,6 +552,7 @@ const getOneQuotation = async (req, res, next) => {
                     as: "salesPerson",
                 },
             },
+            { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: "items",
@@ -556,36 +561,27 @@ const getOneQuotation = async (req, res, next) => {
                     as: "itemDetails",
                 },
             },
-            { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
-            // (Optional) Join Project
-            {
-                $lookup: {
-                    from: "projects", // change to your actual collection name
-                    localField: "projectId",
-                    foreignField: "_id",
-                    as: "project",
-                },
-            },
-            { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
             {
                 $project: {
                     _id: 1,
                     branchId: 1,
-                    quoteId: 1,
+                    invoiceId: 1,
                     customerId: 1,
-                    projectId: 1,
+                    paymentTermsId: 1,
                     salesPersonId: 1,
-                    quoteDate: 1,
-                    expDate: 1,
+                    invoiceDate: 1,
+                    dueDate: 1,
                     status: 1,
                     subTotal: 1,
+                    orderNumber: 1,
+                    subject: 1,
                     taxTotal: 1,
-                    reference: 1,
                     total: 1,
                     discount: 1,
                     documents: 1,
                     note: 1,
-                    terms: 1, // full items array as saved
+                    terms: 1,
+                    paymentTerms: 1, // full items array as saved
                     createdAt: 1,
                     updatedAt: 1,
                     items: {
@@ -595,13 +591,28 @@ const getOneQuotation = async (req, res, next) => {
                             in: {
                                 itemId: "$$it.itemId",
                                 taxId: "$$it.taxId",
-                                itemName: "$$it.itemName", // <-- DIRECTLY FROM SAVED DATA
                                 qty: "$$it.qty",
                                 tax: "$$it.tax",
                                 rate: "$$it.rate",
                                 amount: "$$it.amount",
                                 unit: "$$it.unit",
                                 discount: "$$it.discount",
+                                itemName: {
+                                    $let: {
+                                        vars: {
+                                            matchedItem: {
+                                                $first: {
+                                                    $filter: {
+                                                        input: "$itemDetails",
+                                                        as: "id",
+                                                        cond: { $eq: ["$$id._id", "$$it.itemId"] },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                        in: "$$matchedItem.name",
+                                    },
+                                },
                             },
                         },
                     },
@@ -622,23 +633,12 @@ const getOneQuotation = async (req, res, next) => {
                         name: "$salesPerson.name",
                         email: "$salesPerson.email",
                     },
-                    // project fields (if you need)
-                    project: {
-                        _id: "$project._id",
-                        name: "$project.name",
-                        // add more project fields as needed
-                    },
-                    // If you joined branch
-                    // branch: {
-                    //   _id: "$branch._id",
-                    //   name: "$branch.name",
-                    // },
                 },
             },
         ];
-        const result = await quotation_1.default.aggregate(pipeline);
+        const result = await invoice_1.default.aggregate(pipeline);
         if (!result || result.length === 0) {
-            return res.status(404).json({ message: "Quotation not found!" });
+            return res.status(404).json({ message: "Invoice not found!" });
         }
         // Since we matched by _id, there will be exactly one
         return res.status(200).json({
@@ -649,21 +649,21 @@ const getOneQuotation = async (req, res, next) => {
         next(err);
     }
 };
-exports.getOneQuotation = getOneQuotation;
-const deleteQuotation = async (req, res, next) => {
+exports.getOneInvoice = getOneInvoice;
+const deleteInvoice = async (req, res, next) => {
     try {
-        const { quoteId } = req.params;
+        const { invoiceId } = req.params;
         const userId = req.user?.id;
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
         }
-        if (!quoteId) {
-            return res.status(400).json({ message: "Quotation Id is required!" });
+        if (!invoiceId) {
+            return res.status(400).json({ message: "Invoice Id is required!" });
         }
-        const quotation = await quotation_1.default.findOne({ _id: quoteId });
-        if (!quotation) {
-            return res.status(404).json({ message: "Quotation not found!" });
+        const invoice = await invoice_1.default.findOne({ _id: invoiceId });
+        if (!invoice) {
+            return res.status(404).json({ message: "Invoice not found!" });
         }
         // const itemExist = await ITEMS.findOne({
         //   quoteId: quoteId,
@@ -675,61 +675,18 @@ const deleteQuotation = async (req, res, next) => {
         //       "This category currently linked to Items. Please remove Items before deleting.",
         //   });
         // }
-        await quotation_1.default.findByIdAndUpdate(quoteId, {
+        await invoice_1.default.findByIdAndUpdate(invoiceId, {
             isDeleted: true,
             deletedAt: new Date(),
             deletedById: user._id,
             deletedBy: user.username,
         });
         return res.status(200).json({
-            message: "Quotation deleted successfully!",
+            message: "Invoice deleted successfully!",
         });
     }
     catch (err) {
         next(err);
     }
 };
-exports.deleteQuotation = deleteQuotation;
-const markAcceptOrReject = async (req, res, next) => {
-    try {
-        let { status, quoteId } = req.body;
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
-        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
-        if (!user) {
-            return res.status(400).json({ message: "User not found!" });
-        }
-        if (!quoteId) {
-            return res.status(400).json({ message: "Quotation Id is required!" });
-        }
-        const quotation = await quotation_1.default.findOne({ _id: quoteId });
-        if (!quotation) {
-            return res.status(404).json({ message: "Quotation not found!" });
-        }
-        if (!status) {
-            return res.status(400).json({ message: "Status is required!" });
-        }
-        // normalize / validate status
-        status = String(status);
-        if (status !== "Accepted" && status !== "Declined" && status !== "Sent") {
-            return res
-                .status(400)
-                .json({ message: "Status must be either 'Accepted' or 'Declined'" });
-        }
-        quotation.status = status;
-        await quotation.save(); // <-- important
-        return res.status(200).json({
-            message: status === "Accepted"
-                ? "Quotation marked as Accepted"
-                : status === "Declined"
-                    ? "Quotation marked as Declined"
-                    : "Quotation marked as Sent",
-        });
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.markAcceptOrReject = markAcceptOrReject;
+exports.deleteInvoice = deleteInvoice;

@@ -122,9 +122,17 @@ router.delete('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission
 router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_create'), projectCntrl_1.createProject);
 router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
 router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
-router.get('/project/projectid', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.getOneProject);
+router.get('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getOneProject);
 router.post('/sales-person', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_create'), salesPerson_1.createSalesPerson);
 router.get('/sales-person/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_read'), salesPerson_1.getSalesPerson);
 router.put('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_update'), salesPerson_1.updateSalesPerson);
 router.delete('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_delete'), salesPerson_1.deleteSalesPerson);
+//invoice 
+router.post('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_create'), imgUpload_1.upload.array('documents', 10), saleOrderCntls_1.createSaleOrder);
+router.put('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_update'), imgUpload_1.upload.array('documents', 10), saleOrderCntls_1.updateSaleOrder);
+router.get('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getAllSaleOrder);
+router.get('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getOneSaleOrder);
+router.delete('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
+//tune log entry
+router.post('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_create'), projectCntrl_1.createLogEntry);
 exports.default = router;

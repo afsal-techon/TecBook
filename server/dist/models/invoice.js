@@ -34,13 +34,13 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const quotationSchema = new mongoose_1.Schema({
+const invoiceSchema = new mongoose_1.Schema({
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Branch",
         default: null,
     },
-    quoteId: {
+    invoiceId: {
         type: String,
         required: true,
     },
@@ -49,38 +49,26 @@ const quotationSchema = new mongoose_1.Schema({
         ref: "Customer",
         default: null,
     },
-    projectId: {
-        // type: Schema.Types.ObjectId,
-        type: String,
-        // ref: "Project",
-        default: null,
-    },
     salesPersonId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "SalesPerson",
+        ref: "Employee",
         default: null,
     },
-    quoteDate: {
+    invoiceDate: {
         type: Date,
         default: null,
     },
-    expDate: {
+    dueDate: {
         type: Date,
-        default: null,
-    },
-    reference: {
-        type: String,
         default: null,
     },
     status: {
         type: String,
-        enum: ["Draft", "Sent", "Accepted", "Approved", "Invoiced", "Pending", "Declined"],
+        enum: ["Draft", "Closed", "Confirmed", "Paid", "Accepted", "Approved", "Invoiced", "Pending"],
     },
     items: [
         {
-            taxId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Tax", default: null, },
             itemId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Item", default: null },
-            itemName: { type: String, required: true },
             qty: { type: Number, default: 1 },
             tax: { type: Number, default: 0 },
             rate: { type: Number, default: 0 },
@@ -105,17 +93,30 @@ const quotationSchema = new mongoose_1.Schema({
         type: Number,
         default: 0,
     },
-    terms: {
+    orderNumber: {
         type: String,
-        default: 'null'
+        default: null,
     },
-    note: {
+    subject: {
         type: String,
-        default: 'null'
+        default: null,
     },
     documents: {
         type: [String],
         default: [],
+    },
+    paymentTerms: {
+        _id: { type: String, default: null },
+        termName: { type: String, default: null },
+        days: { type: Number, default: 0 },
+    },
+    terms: {
+        type: String,
+        default: false
+    },
+    note: {
+        type: String,
+        default: "null",
     },
     isDeleted: {
         type: Boolean,
@@ -141,9 +142,15 @@ const quotationSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true } //  automatically manages createdAt & updatedAt
 );
-quotationSchema.index({ branchId: 1, isDeleted: 1, status: 1, quoteDate: -1, createdAt: -1 });
-quotationSchema.index({ customerId: 1, quoteDate: -1 });
-quotationSchema.index({ salesPersonId: 1, quoteDate: -1 });
-quotationSchema.index({ branchId: 1, isDeleted: 1 });
-const quottionModel = mongoose_1.default.model("Quotation", quotationSchema);
-exports.default = quottionModel;
+invoiceSchema.index({
+    branchId: 1,
+    isDeleted: 1,
+    status: 1,
+    invoiceDate: -1,
+    createdAt: -1,
+});
+invoiceSchema.index({ customerId: 1, saleOrderDate: -1 });
+invoiceSchema.index({ salesPersonId: 1, dueDate: -1 });
+invoiceSchema.index({ branchId: 1, isDeleted: 1 });
+const invoiceModel = mongoose_1.default.model("Invoice", invoiceSchema);
+exports.default = invoiceModel;

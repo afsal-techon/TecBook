@@ -1107,6 +1107,7 @@ const getItemsList = async (req, res, next) => {
                     sellingPrice: "$salesInfo.sellingPrice",
                     salesSGST: "$salesTax.cgstRate", // or gst fields, depending on your model
                     salesCGST: "$salesTax.sgstRate",
+                    taxId: "$salesInfo.taxId"
                     // Purchase info + joined fields
                     // "purchaseInfo.costPrice": 1,
                     // "purchaseInfo.description": 1,

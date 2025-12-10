@@ -13,6 +13,7 @@ const branch_1 = __importDefault(require("../../models/branch"));
 const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
+const tax_1 = __importDefault(require("../../models/tax"));
 const createSaleOrder = async (req, res, next) => {
     try {
         const { branchId, saleOrderId, // may be null/ignored in auto mode
@@ -139,6 +140,34 @@ const createSaleOrder = async (req, res, next) => {
                 uploadedFiles.push(uploadResponse.url);
             }
         }
+        for (let item of parsedItems) {
+            if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+                return res.status(400).json({ message: "Invalid item data!" });
+            }
+            let taxAmount = 0;
+            // TAX CALCULATION (Backend Controlled)
+            if (item.taxId) {
+                const taxDoc = await tax_1.default.findOne({
+                    _id: item.taxId,
+                    isDeleted: false,
+                    isActive: true,
+                });
+                if (!taxDoc) {
+                    return res.status(400).json({
+                        message: `Invalid tax selected for item ${item.itemName}`,
+                    });
+                }
+                const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+                if (taxDoc.type === "VAT") {
+                    taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
+                }
+                if (taxDoc.type === "GST") {
+                    const totalGstRate = (taxDoc.cgstRate || 0) + (taxDoc.sgstRate || 0);
+                    taxAmount = (taxableAmount * totalGstRate) / 100;
+                }
+            }
+            item.tax = Number(taxAmount.toFixed(2));
+        }
         const saleOrder = new saleOrder_1.default({
             branchId: new mongoose_1.Types.ObjectId(branchId),
             saleOrderId: finalQuoteId, //  always use this
@@ -264,6 +293,34 @@ const updateSaleOrder = async (req, res, next) => {
                 });
                 finalDocuments.push(uploaded.url);
             }
+        }
+        for (let item of parsedItems) {
+            if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+                return res.status(400).json({ message: "Invalid item data!" });
+            }
+            let taxAmount = 0;
+            // TAX CALCULATION (Backend Controlled)
+            if (item.taxId) {
+                const taxDoc = await tax_1.default.findOne({
+                    _id: item.taxId,
+                    isDeleted: false,
+                    isActive: true,
+                });
+                if (!taxDoc) {
+                    return res.status(400).json({
+                        message: `Invalid tax selected for item ${item.itemName}`,
+                    });
+                }
+                const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+                if (taxDoc.type === "VAT") {
+                    taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
+                }
+                if (taxDoc.type === "GST") {
+                    const totalGstRate = (taxDoc.cgstRate || 0) + (taxDoc.sgstRate || 0);
+                    taxAmount = (taxableAmount * totalGstRate) / 100;
+                }
+            }
+            item.tax = Number(taxAmount.toFixed(2));
         }
         // -----------------------------
         // Assign fields
@@ -568,6 +625,7 @@ const getOneSaleOrder = async (req, res, next) => {
                             as: "it",
                             in: {
                                 itemId: "$$it.itemId",
+                                taxId: "$$it.taxId",
                                 qty: "$$it.qty",
                                 tax: "$$it.tax",
                                 rate: "$$it.rate",

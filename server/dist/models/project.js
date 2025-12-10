@@ -73,6 +73,10 @@ const projectSchema = new mongoose_1.Schema({
         {
             userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", default: null },
             email: { type: String, trim: true },
+            ratePerHour: {
+                type: Number,
+                default: 0,
+            },
         },
     ],
     projectCost: {
