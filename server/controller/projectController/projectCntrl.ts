@@ -614,7 +614,7 @@ export const getAllLogEntries = async (
     }
 
     // -------------------------------
-    // 🔥 MAIN AGGREGATION
+    //  MAIN AGGREGATION
     // -------------------------------
     const pipeline: any[] = [
       {
