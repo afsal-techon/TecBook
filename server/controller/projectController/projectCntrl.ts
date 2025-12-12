@@ -426,8 +426,21 @@ export const getOneProject = async (
       {
         $lookup: {
           from: "users",
-          localField: "users",
-          foreignField: "_id",
+          let: { ids: "$users.userId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ["$_id", "$$ids"] },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                username: 1,
+                email: 1,
+              },
+            },
+          ],
           as: "assignedUsers",
         },
       },
@@ -471,12 +484,7 @@ export const getOneProject = async (
             email: 1,
             phone: 1,
           },
-
-          assignedUsers: {
-            _id: 1,
-            name: 1,
-            email: 1,
-          },
+          assignedUsers: 1,
         },
       },
     ];
