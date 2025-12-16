@@ -553,7 +553,7 @@ export interface ILogEntry extends Document {
   taskId:Types.ObjectId | null;
  startTime:Date | null;
  endTime : Date | null;
- timeSpend: string | null;
+ timeSpent: string | null;
   billable:boolean,
   userId:Types.ObjectId | null;
   note:string,

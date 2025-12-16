@@ -24,7 +24,7 @@ const timeLogSchema = new Schema<ILogEntry>(
     },
     startTime: { type: Date, default: null },
     endTime: { type: Date, default: null },
-    timeSpend: { type: String, default: null },
+    timeSpent: { type: String, default: null },
     billable: {
       type: Boolean,
       default: true,

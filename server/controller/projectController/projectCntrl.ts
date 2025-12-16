@@ -6,7 +6,7 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import PROJECT from "../../models/project";
 import LOGENTRY from "../../models/logEntry";
-import { parseTimeToMinutes } from '../../Helper/timeCalc'
+import { parseTimeToMinutes } from "../../Helper/timeCalc";
 
 export const createProject = async (
   req: Request,
@@ -477,8 +477,8 @@ export const getOneProject = async (
           projectCost: 1,
           ratePerHour: 1,
           createdAt: 1,
-          costBudget:1,
-          revenueBudget:1,
+          costBudget: 1,
+          revenueBudget: 1,
 
           tasks: 1,
 
@@ -519,6 +519,8 @@ export const createLogEntry = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    console.log(req.body, "body");
+
     const {
       date,
       branchId,
@@ -528,15 +530,19 @@ export const createLogEntry = async (
       billable,
       startTime,
       endTime,
-      timeSpend,
+      timeSpent,
       note,
     } = req.body;
 
     // -------- Required validations
-    if (!userId) return res.status(400).json({ message: "User Id is required!" });
-    if (!branchId) return res.status(400).json({ message: "Branch Id is required!" });
-    if (!taskId) return res.status(400).json({ message: "Task Id is required!" });
-    if (!projectId) return res.status(400).json({ message: "Project Id is required!" });
+    if (!userId)
+      return res.status(400).json({ message: "User Id is required!" });
+    if (!branchId)
+      return res.status(400).json({ message: "Branch Id is required!" });
+    if (!taskId)
+      return res.status(400).json({ message: "Task Id is required!" });
+    if (!projectId)
+      return res.status(400).json({ message: "Project Id is required!" });
 
     const project = await PROJECT.findById(projectId);
     if (!project) {
@@ -544,18 +550,17 @@ export const createLogEntry = async (
     }
 
     // -------- Time validation (NO calculation)
-    if(timeSpend){
-       if ( typeof timeSpend !== "number" || timeSpend <= 0) {
-      return res.status(400).json({
-        message: "Valid timeSpend (minutes) is required",
-      });
+    if (timeSpent) {
+      if (typeof timeSpent !== "number" || timeSpent <= 0) {
+        return res.status(400).json({
+          message: "Valid timeSpent (minutes) is required",
+        });
+      }
     }
-    }
-   
 
     // -------- Save
-    console.log(startTime,'st',endTime,'end');
-    
+    console.log(startTime, "st", endTime, "end");
+
     const logEntry = await LOGENTRY.create({
       branchId,
       date,
@@ -563,9 +568,9 @@ export const createLogEntry = async (
       userId,
       taskId,
       billable,
-      startTime: startTime  || null,
+      startTime: startTime || null,
       endTime: endTime || null,
-      timeSpend, // already in minutes
+      timeSpent, // already in minutes
       note,
       createdById: userid,
     });
@@ -578,9 +583,6 @@ export const createLogEntry = async (
     next(err);
   }
 };
-
-
-
 
 export const getAllLogEntries = async (
   req: Request,
@@ -627,7 +629,8 @@ export const getAllLogEntries = async (
       const filterId = new mongoose.Types.ObjectId(filterBranchId);
       if (!allowedBranchIds.some((id) => id.equals(filterId))) {
         return res.status(403).json({
-          message: "You are not authorized to view log entries for this branch!",
+          message:
+            "You are not authorized to view log entries for this branch!",
         });
       }
       allowedBranchIds = [filterId];
@@ -670,7 +673,7 @@ export const getAllLogEntries = async (
         $addFields: {
           task: {
             $cond: [
-              { $ifNull: ["$taskId", false] },
+              { $and: ["$taskId", "$project.tasks"] },
               {
                 $first: {
                   $filter: {
@@ -720,7 +723,7 @@ export const getAllLogEntries = async (
         date: 1,
         startTime: 1,
         endTime: 1,
-        timeSpend: 1,
+        timeSpent: 1,
         billable: 1,
         note: 1,
 
