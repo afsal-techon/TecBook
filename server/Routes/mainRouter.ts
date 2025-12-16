@@ -149,12 +149,12 @@ router.get('/payment-terms/:branchId',verifyUser,checkPermission('admin','Paymen
 router.post('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_create'),upload.array('documents',10),createSaleOrder);
 router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_update'),upload.array('documents',10),updateSaleOrder);
 router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
-router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
+router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder) 
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
 
 
 router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
-router.post('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
+router.put('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
 router.get('/project/:projectId',verifyUser,checkPermission('admin','Project','can_read'),getOneProject)
 
