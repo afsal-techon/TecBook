@@ -22,15 +22,20 @@ const timeLogSchema = new Schema<ILogEntry>(
       ref: "User",
       required: true,
     },
-    startTime: { type: String, default: null },
-    endTime: { type: String, default: null },
-    timeSpend: { type: String, default: null },
+    startTime: { type: Date, default: null },
+    endTime: { type: Date, default: null },
+    timeSpent: { type: String, default: null },
     billable: {
       type: Boolean,
       default: true,
     },
     note: {
       type: String,
+      default: null,
+    },
+    taskId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project.tasks",
       default: null,
     },
     isDeleted: {

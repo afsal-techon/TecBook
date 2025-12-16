@@ -6,6 +6,8 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import PROJECT from "../../models/project";
 import LOGENTRY from "../../models/logEntry";
+import { parseTimeToMinutes } from "../../Helper/timeCalc";
+import { log } from "console";
 
 export const createProject = async (
   req: Request,
@@ -426,8 +428,21 @@ export const getOneProject = async (
       {
         $lookup: {
           from: "users",
-          localField: "users",
-          foreignField: "_id",
+          let: { ids: "$users.userId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ["$_id", "$$ids"] },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                username: 1,
+                email: 1,
+              },
+            },
+          ],
           as: "assignedUsers",
         },
       },
@@ -463,6 +478,8 @@ export const getOneProject = async (
           projectCost: 1,
           ratePerHour: 1,
           createdAt: 1,
+          costBudget: 1,
+          revenueBudget: 1,
 
           tasks: 1,
 
@@ -471,12 +488,7 @@ export const getOneProject = async (
             email: 1,
             phone: 1,
           },
-
-          assignedUsers: {
-            _id: 1,
-            name: 1,
-            email: 1,
-          },
+          assignedUsers: 1,
         },
       },
     ];
@@ -504,10 +516,11 @@ export const createLogEntry = async (
 ) => {
   try {
     const userid = req.user?.id;
-
     if (!userid) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+
+    console.log(req.body, "body");
 
     const {
       date,
@@ -518,49 +531,59 @@ export const createLogEntry = async (
       billable,
       startTime,
       endTime,
-      timeSpend,
+      timeSpent,
       note,
     } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ message: "user Id is required!" });
-    }
-    if (!branchId) {
-      return res.status(400).json({ message: "Brnach Id is required!" });
-    }
-
-    if (!taskId) {
+    // -------- Required validations
+    if (!userId)
+      return res.status(400).json({ message: "User Id is required!" });
+    if (!branchId)
+      return res.status(400).json({ message: "Branch Id is required!" });
+    if (!taskId)
       return res.status(400).json({ message: "Task Id is required!" });
+    if (!projectId)
+      return res.status(400).json({ message: "Project Id is required!" });
+
+    const project = await PROJECT.findById(projectId);
+    if (!project) {
+      return res.status(400).json({ message: "Project not found!" });
     }
 
-    if (!projectId) {
-      return res.status(400).json({ message: "Project Id  is required!" });
+    // -------- Time validation (NO calculation)
+    if (timeSpent) {
+      if (typeof timeSpent !== "number" || timeSpent <= 0) {
+        return res.status(400).json({
+          message: "Valid timeSpent (minutes) is required",
+        });
+      }
     }
 
-    const newProject = await LOGENTRY.create({
+    // -------- Save
+    console.log(startTime, "st", endTime, "end");
+
+    const logEntry = await LOGENTRY.create({
       branchId,
       date,
       projectId,
       userId,
       taskId,
-      timeSpend,
-      startTime,
-      endTime,
       billable,
+      startTime: startTime || null,
+      endTime: endTime || null,
+      timeSpent, // already in minutes
       note,
-      createdById: userId,
+      createdById: userid,
     });
 
     return res.status(201).json({
       message: "Log entry created successfully",
-      data: newProject,
+      data: logEntry,
     });
   } catch (err) {
     next(err);
   }
 };
-
-
 
 export const getAllLogEntries = async (
   req: Request,
@@ -607,14 +630,15 @@ export const getAllLogEntries = async (
       const filterId = new mongoose.Types.ObjectId(filterBranchId);
       if (!allowedBranchIds.some((id) => id.equals(filterId))) {
         return res.status(403).json({
-          message: "You are not authorized to view log entries for this branch!",
+          message:
+            "You are not authorized to view log entries for this branch!",
         });
       }
       allowedBranchIds = [filterId];
     }
 
     // -------------------------------
-    // 🔥 MAIN AGGREGATION
+    //  MAIN AGGREGATION
     // -------------------------------
     const pipeline: any[] = [
       {
@@ -650,7 +674,7 @@ export const getAllLogEntries = async (
         $addFields: {
           task: {
             $cond: [
-              { $ifNull: ["$taskId", false] },
+              { $and: ["$taskId", "$project.tasks"] },
               {
                 $first: {
                   $filter: {
@@ -700,7 +724,7 @@ export const getAllLogEntries = async (
         date: 1,
         startTime: 1,
         endTime: 1,
-        timeSpend: 1,
+        timeSpent: 1,
         billable: 1,
         note: 1,
 
@@ -713,7 +737,7 @@ export const getAllLogEntries = async (
 
         user: {
           _id: "$user._id",
-          name: "$user.name",
+          name: "$user.username",
           email: "$user.email",
         },
 
@@ -729,6 +753,7 @@ export const getAllLogEntries = async (
     });
 
     const logs = await LOGENTRY.aggregate(pipeline);
+    console.log(logs,'time log')
 
     return res.status(200).json({
       data: logs,

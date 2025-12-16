@@ -15,7 +15,7 @@ import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAccep
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
-import { createLogEntry, createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
+import { createLogEntry, createProject, getAllLogEntries, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
 const router = express.Router();
 
@@ -150,12 +150,12 @@ router.get('/payment-terms/:branchId',verifyUser,checkPermission('admin','Paymen
 router.post('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_create'),upload.array('documents',10),createSaleOrder);
 router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_update'),upload.array('documents',10),updateSaleOrder);
 router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
-router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
+router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder) 
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
 
 
 router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
-router.post('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
+router.put('/project',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
 router.get('/project/:projectId',verifyUser,checkPermission('admin','Project','can_read'),getOneProject)
 
@@ -174,7 +174,7 @@ router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrde
 
 //tune log entry
 router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_create'),createLogEntry)
-
+router.get('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_read'),getAllLogEntries)
 
 
 export default router;

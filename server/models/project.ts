@@ -57,6 +57,10 @@ const projectSchema = new Schema<IProject>(
     },
     tasks: [
       {
+        _id: {
+      type: Schema.Types.ObjectId,
+      auto: true,
+    },
         taskName: { type: String, trim: true },
         description: { type: String, trim: true },
         ratePerHour: { type: Number, default: 0 }, // Only used in Task Hour method
@@ -70,6 +74,15 @@ const projectSchema = new Schema<IProject>(
     revenueBudget: {
       type: Number,
       default: 0,
+    },
+    status:{
+      type:String,
+      enum: [
+        "In progress",
+        "Completed",
+        "Not started",
+         "Cancelled",
+      ],
     },
 
     isDeleted: {

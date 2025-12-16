@@ -471,6 +471,7 @@ export interface IProject extends Document {
   }[];
   ratePerHour:number;
   projectCost:number;
+  status:string;
 
   tasks?: {
     taskName: string;
@@ -550,9 +551,9 @@ export interface ILogEntry extends Document {
   date:Date;
   projectId?: string;
   taskId:Types.ObjectId | null;
- startTime:string | null;
- endTime : string | null;
- timeSpend: string | null;
+ startTime:Date | null;
+ endTime : Date | null;
+ timeSpent: string | null;
   billable:boolean,
   userId:Types.ObjectId | null;
   note:string,
