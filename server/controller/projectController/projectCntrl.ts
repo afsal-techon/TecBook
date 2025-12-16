@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import PROJECT from "../../models/project";
 import LOGENTRY from "../../models/logEntry";
 import { parseTimeToMinutes } from "../../Helper/timeCalc";
+import { log } from "console";
 
 export const createProject = async (
   req: Request,
@@ -752,6 +753,7 @@ export const getAllLogEntries = async (
     });
 
     const logs = await LOGENTRY.aggregate(pipeline);
+    console.log(logs,'time log')
 
     return res.status(200).json({
       data: logs,
