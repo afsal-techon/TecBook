@@ -476,6 +476,8 @@ export const getOneProject = async (
           projectCost: 1,
           ratePerHour: 1,
           createdAt: 1,
+          costBudget:1,
+          revenueBudget:1,
 
           tasks: 1,
 
