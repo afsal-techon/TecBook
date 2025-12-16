@@ -120,7 +120,7 @@ router.get('/sale-order', auth_1.verifyUser, (0, checkPermission_1.default)('adm
 router.get('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getOneSaleOrder);
 router.delete('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
 router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_create'), projectCntrl_1.createProject);
-router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
+router.put('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
 router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
 router.get('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getOneProject);
 router.post('/sales-person', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_create'), salesPerson_1.createSalesPerson);
@@ -135,4 +135,5 @@ router.get('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.defau
 router.delete('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
 //tune log entry
 router.post('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_create'), projectCntrl_1.createLogEntry);
+router.get('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getAllLogEntries);
 exports.default = router;

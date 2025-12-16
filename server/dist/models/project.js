@@ -89,6 +89,10 @@ const projectSchema = new mongoose_1.Schema({
     },
     tasks: [
         {
+            _id: {
+                type: mongoose_1.Schema.Types.ObjectId,
+                auto: true,
+            },
             taskName: { type: String, trim: true },
             description: { type: String, trim: true },
             ratePerHour: { type: Number, default: 0 }, // Only used in Task Hour method
@@ -102,6 +106,15 @@ const projectSchema = new mongoose_1.Schema({
     revenueBudget: {
         type: Number,
         default: 0,
+    },
+    status: {
+        type: String,
+        enum: [
+            "In progress",
+            "Completed",
+            "Not started",
+            "Cancelled",
+        ],
     },
     isDeleted: {
         type: Boolean,

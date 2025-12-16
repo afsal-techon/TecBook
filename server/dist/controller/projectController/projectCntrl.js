@@ -333,8 +333,21 @@ const getOneProject = async (req, res, next) => {
             {
                 $lookup: {
                     from: "users",
-                    localField: "users",
-                    foreignField: "_id",
+                    let: { ids: "$users.userId" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $in: ["$_id", "$$ids"] },
+                            },
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                username: 1,
+                                email: 1,
+                            },
+                        },
+                    ],
                     as: "assignedUsers",
                 },
             },
@@ -368,17 +381,15 @@ const getOneProject = async (req, res, next) => {
                     projectCost: 1,
                     ratePerHour: 1,
                     createdAt: 1,
+                    costBudget: 1,
+                    revenueBudget: 1,
                     tasks: 1,
                     customer: {
                         name: 1,
                         email: 1,
                         phone: 1,
                     },
-                    assignedUsers: {
-                        _id: 1,
-                        name: 1,
-                        email: 1,
-                    },
+                    assignedUsers: 1,
                 },
             },
         ];
@@ -402,35 +413,47 @@ const createLogEntry = async (req, res, next) => {
         if (!userid) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        const { date, branchId, projectId, userId, taskId, billable, startTime, endTime, timeSpend, note, } = req.body;
-        if (!userId) {
-            return res.status(400).json({ message: "user Id is required!" });
-        }
-        if (!branchId) {
-            return res.status(400).json({ message: "Brnach Id is required!" });
-        }
-        if (!taskId) {
+        console.log(req.body, "body");
+        const { date, branchId, projectId, userId, taskId, billable, startTime, endTime, timeSpent, note, } = req.body;
+        // -------- Required validations
+        if (!userId)
+            return res.status(400).json({ message: "User Id is required!" });
+        if (!branchId)
+            return res.status(400).json({ message: "Branch Id is required!" });
+        if (!taskId)
             return res.status(400).json({ message: "Task Id is required!" });
+        if (!projectId)
+            return res.status(400).json({ message: "Project Id is required!" });
+        const project = await project_1.default.findById(projectId);
+        if (!project) {
+            return res.status(400).json({ message: "Project not found!" });
         }
-        if (!projectId) {
-            return res.status(400).json({ message: "Project Id  is required!" });
+        // -------- Time validation (NO calculation)
+        if (timeSpent) {
+            if (typeof timeSpent !== "number" || timeSpent <= 0) {
+                return res.status(400).json({
+                    message: "Valid timeSpent (minutes) is required",
+                });
+            }
         }
-        const newProject = await logEntry_1.default.create({
+        // -------- Save
+        console.log(startTime, "st", endTime, "end");
+        const logEntry = await logEntry_1.default.create({
             branchId,
             date,
             projectId,
             userId,
             taskId,
-            timeSpend,
-            startTime,
-            endTime,
             billable,
+            startTime: startTime || null,
+            endTime: endTime || null,
+            timeSpent, // already in minutes
             note,
-            createdById: userId,
+            createdById: userid,
         });
         return res.status(201).json({
             message: "Log entry created successfully",
-            data: newProject,
+            data: logEntry,
         });
     }
     catch (err) {
@@ -479,7 +502,7 @@ const getAllLogEntries = async (req, res, next) => {
             allowedBranchIds = [filterId];
         }
         // -------------------------------
-        // 🔥 MAIN AGGREGATION
+        //  MAIN AGGREGATION
         // -------------------------------
         const pipeline = [
             {
@@ -512,7 +535,7 @@ const getAllLogEntries = async (req, res, next) => {
                 $addFields: {
                     task: {
                         $cond: [
-                            { $ifNull: ["$taskId", false] },
+                            { $and: ["$taskId", "$project.tasks"] },
                             {
                                 $first: {
                                     $filter: {
@@ -558,7 +581,7 @@ const getAllLogEntries = async (req, res, next) => {
                 date: 1,
                 startTime: 1,
                 endTime: 1,
-                timeSpend: 1,
+                timeSpent: 1,
                 billable: 1,
                 note: 1,
                 project: {
@@ -569,7 +592,7 @@ const getAllLogEntries = async (req, res, next) => {
                 },
                 user: {
                     _id: "$user._id",
-                    name: "$user.name",
+                    name: "$user.username",
                     email: "$user.email",
                 },
                 task: {
@@ -582,6 +605,7 @@ const getAllLogEntries = async (req, res, next) => {
             },
         });
         const logs = await logEntry_1.default.aggregate(pipeline);
+        console.log(logs, 'time log');
         return res.status(200).json({
             data: logs,
             totalCount,
