@@ -33,6 +33,11 @@ const timeLogSchema = new Schema<ILogEntry>(
       type: String,
       default: null,
     },
+    taskId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project.tasks",
+      default: null,
+    },
     isDeleted: {
       type: Boolean,
       default: false,
