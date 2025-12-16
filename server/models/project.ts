@@ -71,6 +71,15 @@ const projectSchema = new Schema<IProject>(
       type: Number,
       default: 0,
     },
+    status:{
+      type:String,
+      enum: [
+        "In progress",
+        "Completed",
+        "Not started",
+         "Cancelled",
+      ],
+    },
 
     isDeleted: {
       type: Boolean,

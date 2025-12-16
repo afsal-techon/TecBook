@@ -15,7 +15,7 @@ import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAccep
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
-import { createLogEntry, createProject, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
+import { createLogEntry, createProject, getAllLogEntries, getAllProjects, getOneProject, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
 const router = express.Router();
 
@@ -173,7 +173,7 @@ router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrde
 
 //tune log entry
 router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_create'),createLogEntry)
-
+router.get('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_read'),getAllLogEntries)
 
 
 export default router;

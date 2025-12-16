@@ -6,6 +6,7 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import PROJECT from "../../models/project";
 import LOGENTRY from "../../models/logEntry";
+import { parseTimeToMinutes } from '../../Helper/timeCalc'
 
 export const createProject = async (
   req: Request,
@@ -514,7 +515,6 @@ export const createLogEntry = async (
 ) => {
   try {
     const userid = req.user?.id;
-
     if (!userid) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -532,43 +532,53 @@ export const createLogEntry = async (
       note,
     } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ message: "user Id is required!" });
-    }
-    if (!branchId) {
-      return res.status(400).json({ message: "Brnach Id is required!" });
+    // -------- Required validations
+    if (!userId) return res.status(400).json({ message: "User Id is required!" });
+    if (!branchId) return res.status(400).json({ message: "Branch Id is required!" });
+    if (!taskId) return res.status(400).json({ message: "Task Id is required!" });
+    if (!projectId) return res.status(400).json({ message: "Project Id is required!" });
+
+    const project = await PROJECT.findById(projectId);
+    if (!project) {
+      return res.status(400).json({ message: "Project not found!" });
     }
 
-    if (!taskId) {
-      return res.status(400).json({ message: "Task Id is required!" });
+    // -------- Time validation (NO calculation)
+    if(timeSpend){
+       if ( typeof timeSpend !== "number" || timeSpend <= 0) {
+      return res.status(400).json({
+        message: "Valid timeSpend (minutes) is required",
+      });
     }
-
-    if (!projectId) {
-      return res.status(400).json({ message: "Project Id  is required!" });
     }
+   
 
-    const newProject = await LOGENTRY.create({
+    // -------- Save
+    console.log(startTime,'st',endTime,'end');
+    
+    const logEntry = await LOGENTRY.create({
       branchId,
       date,
       projectId,
       userId,
       taskId,
-      timeSpend,
-      startTime,
-      endTime,
       billable,
+      startTime: startTime  || null,
+      endTime: endTime || null,
+      timeSpend, // already in minutes
       note,
-      createdById: userId,
+      createdById: userid,
     });
 
     return res.status(201).json({
       message: "Log entry created successfully",
-      data: newProject,
+      data: logEntry,
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 
 
@@ -723,7 +733,7 @@ export const getAllLogEntries = async (
 
         user: {
           _id: "$user._id",
-          name: "$user.name",
+          name: "$user.username",
           email: "$user.email",
         },
 
