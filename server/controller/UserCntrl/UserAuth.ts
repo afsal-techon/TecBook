@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import EMPlOYEE from "../../models/employee";
 import mongoose from "mongoose";
+import BRANCH from "../../models/branch";
 
 export const createAdmin = async (
   req: Request,
@@ -128,7 +129,7 @@ export const createUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { branchId, employeeId, username, password, permissionIds } =
+    const { branchId, employeeId, username, password, permissionIds,email } =
       req.body;
 
     const userId = req.user?.id;
@@ -153,6 +154,14 @@ export const createUser = async (
       return res.status(400).json({ message: "Username already exists!" });
     }
 
+        const existingUserEmail = await USER.findOne({ email, isDeleted: false });
+    if (existingUserEmail) {
+      return res.status(400).json({ message: "Email already exists!" });
+    }
+
+
+
+
     const emp = await EMPlOYEE.findById(employeeId);
 
     if (!emp) {
@@ -164,6 +173,7 @@ export const createUser = async (
     await USER.create({
       branchId,
       username,
+      email,
       password: hashedPassword,
       employeeId,
       role: "User",
@@ -185,20 +195,61 @@ export const getAllUsers = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const branchId = req.query.branchId as string;
+   
+  
+    
 
     const userId = req.user?.id;
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-    if (!branchId) {
-      return res.status(400).json({ message: "Branch Id is required!" });
-    }
+    // if (!branchId) {
+    //   return res.status(400).json({ message: "Branch Id is required!" });
+    // }
+
+
 
     // pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
+    const filterBranchId = req.query.branchId as string;
     const skip = (page - 1) * limit;
+
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+     const userRole = user.role;
+    
+        if (userRole === "CompanyAdmin") {
+          const branches = await BRANCH.find({
+            companyAdminId: userId,
+            isDeleted: false,
+          }).select("_id");
+    
+          allowedBranchIds = branches.map(
+            (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+          );
+        } else if (userRole === "User") {
+          if (!user.branchId) {
+            return res.status(400).json({
+              message: "User is not assigned to any branch!",
+            });
+          }
+          allowedBranchIds = [user.branchId];
+        } else {
+          return res.status(403).json({ message: "Unauthorized role!" });
+        }
+    
+        // Branch filter (if selected)
+        if (filterBranchId) {
+          const filterId = new mongoose.Types.ObjectId(filterBranchId);
+    
+          if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+            return res.status(403).json({
+              message: "You are not authorized to view projects for this branch!",
+            });
+          }
+    
+          allowedBranchIds = [filterId];
+        }
 
     // search term
     const search = ((req.query.search as string) || "").trim();
@@ -206,8 +257,8 @@ export const getAllUsers = async (
     const pipeline: any[] = [
       {
         $match: {
-          branchId: new mongoose.Types.ObjectId(branchId),
-          isDeleted: false,
+        branchId: { $in: allowedBranchIds },
+         isDeleted: false,
         },
       },
       {
@@ -232,6 +283,7 @@ export const getAllUsers = async (
         $match: {
           $or: [
             { username: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
             { "employee.firstName": { $regex: search, $options: "i" } },
             { "employee.lastName": { $regex: search, $options: "i" } },
           ],
@@ -252,6 +304,7 @@ export const getAllUsers = async (
           _id: 1,
           username: 1,
           role: 1,
+          email:1,
           branchId: 1,
           permissions: 1,
           "employee._id": 1,
@@ -282,7 +335,7 @@ export const updateUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { userId, branchId, employeeId, username, password, permissionIds } =
+    const { userId, branchId, employeeId, username, password, permissionIds ,email } =
       req.body;
 
     const loggedInUserId = req.user?.id;
@@ -323,6 +376,14 @@ export const updateUser = async (
     if (usernameExists)
       return res.status(400).json({ message: "Username already exists!" });
 
+        const usernameExistsEmail = await USER.findOne({
+      email,
+      _id: { $ne: userId },
+      isDeleted: false,
+    });
+    if (usernameExistsEmail)
+      return res.status(400).json({ message: "Email already exists!" });
+
     // 🔹 Hash password only if provided
     let hashedPassword = existingUser.password;
     if (password) {
@@ -333,6 +394,7 @@ export const updateUser = async (
     existingUser.branchId = branchId;
     existingUser.employeeId = employeeId;
     existingUser.username = username;
+    existingUser.email = email;
     existingUser.password = hashedPassword;
     existingUser.permissions = permissionIds || existingUser.permissions;
 
