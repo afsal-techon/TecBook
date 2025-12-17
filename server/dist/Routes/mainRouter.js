@@ -59,9 +59,9 @@ router.post("/document-type", auth_1.verifyUser, (0, checkPermission_1.default)(
 router.get("/document-type", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_read'), Employee_1.getAllDocumentTypes);
 router.put('/document-type', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_update'), Employee_1.updateDocument);
 router.delete('/document-type/:documentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'DocumentType', 'can_delete'), Employee_1.deleteDocumentType);
-router.post('/user', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_create'), UserAuth_1.createUser);
+router.post('/users', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_create'), UserAuth_1.createUser);
 router.get('/users', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_read'), UserAuth_1.getAllUsers);
-router.put('/user', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_update'), UserAuth_1.updateUser);
+router.put('/users', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_update'), UserAuth_1.updateUser);
 router.delete('/user/:userId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'User', 'can_delete'), UserAuth_1.deleteUser);
 router.post('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_create'), accountCntrl_1.createAccounts);
 router.get('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_read'), accountCntrl_1.getAccounts);
@@ -120,7 +120,7 @@ router.get('/sale-order', auth_1.verifyUser, (0, checkPermission_1.default)('adm
 router.get('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getOneSaleOrder);
 router.delete('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
 router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_create'), projectCntrl_1.createProject);
-router.put('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
+router.put('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
 router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
 router.get('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getOneProject);
 router.post('/sales-person', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_create'), salesPerson_1.createSalesPerson);
@@ -136,4 +136,6 @@ router.delete('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.de
 //tune log entry
 router.post('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_create'), projectCntrl_1.createLogEntry);
 router.get('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getAllLogEntries);
+router.put('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_update'), projectCntrl_1.updateLogEntry);
+router.delete('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_delete'), projectCntrl_1.deleteLogEntry);
 exports.default = router;

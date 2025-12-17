@@ -9,6 +9,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const employee_1 = __importDefault(require("../../models/employee"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const branch_1 = __importDefault(require("../../models/branch"));
 const createAdmin = async (req, res, next) => {
     try {
         const { username, password, role } = req.body;
@@ -114,7 +115,7 @@ const logoutHandle = async (req, res, next) => {
 exports.logoutHandle = logoutHandle;
 const createUser = async (req, res, next) => {
     try {
-        const { branchId, employeeId, username, password, permissionIds } = req.body;
+        const { branchId, employeeId, username, password, permissionIds, email } = req.body;
         const userId = req.user?.id;
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user)
@@ -135,6 +136,10 @@ const createUser = async (req, res, next) => {
         if (existingUser) {
             return res.status(400).json({ message: "Username already exists!" });
         }
+        const existingUserEmail = await user_1.default.findOne({ email, isDeleted: false });
+        if (existingUserEmail) {
+            return res.status(400).json({ message: "Email already exists!" });
+        }
         const emp = await employee_1.default.findById(employeeId);
         if (!emp) {
             return res.status(400).json({ message: "Employee not found!" });
@@ -143,6 +148,7 @@ const createUser = async (req, res, next) => {
         await user_1.default.create({
             branchId,
             username,
+            email,
             password: hashedPassword,
             employeeId,
             role: "User",
@@ -159,24 +165,54 @@ const createUser = async (req, res, next) => {
 exports.createUser = createUser;
 const getAllUsers = async (req, res, next) => {
     try {
-        const branchId = req.query.branchId;
         const userId = req.user?.id;
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user)
             return res.status(400).json({ message: "User not found!" });
-        if (!branchId) {
-            return res.status(400).json({ message: "Branch Id is required!" });
-        }
+        // if (!branchId) {
+        //   return res.status(400).json({ message: "Branch Id is required!" });
+        // }
         // pagination
         const limit = parseInt(req.query.limit) || 20;
         const page = parseInt(req.query.page) || 1;
+        const filterBranchId = req.query.branchId;
         const skip = (page - 1) * limit;
+        let allowedBranchIds = [];
+        const userRole = user.role;
+        if (userRole === "CompanyAdmin") {
+            const branches = await branch_1.default.find({
+                companyAdminId: userId,
+                isDeleted: false,
+            }).select("_id");
+            allowedBranchIds = branches.map((b) => new mongoose_1.default.Types.ObjectId(b._id));
+        }
+        else if (userRole === "User") {
+            if (!user.branchId) {
+                return res.status(400).json({
+                    message: "User is not assigned to any branch!",
+                });
+            }
+            allowedBranchIds = [user.branchId];
+        }
+        else {
+            return res.status(403).json({ message: "Unauthorized role!" });
+        }
+        // Branch filter (if selected)
+        if (filterBranchId) {
+            const filterId = new mongoose_1.default.Types.ObjectId(filterBranchId);
+            if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+                return res.status(403).json({
+                    message: "You are not authorized to view projects for this branch!",
+                });
+            }
+            allowedBranchIds = [filterId];
+        }
         // search term
         const search = (req.query.search || "").trim();
         const pipeline = [
             {
                 $match: {
-                    branchId: new mongoose_1.default.Types.ObjectId(branchId),
+                    branchId: { $in: allowedBranchIds },
                     isDeleted: false,
                 },
             },
@@ -201,6 +237,7 @@ const getAllUsers = async (req, res, next) => {
                 $match: {
                     $or: [
                         { username: { $regex: search, $options: "i" } },
+                        { email: { $regex: search, $options: "i" } },
                         { "employee.firstName": { $regex: search, $options: "i" } },
                         { "employee.lastName": { $regex: search, $options: "i" } },
                     ],
@@ -215,6 +252,7 @@ const getAllUsers = async (req, res, next) => {
                 _id: 1,
                 username: 1,
                 role: 1,
+                email: 1,
                 branchId: 1,
                 permissions: 1,
                 "employee._id": 1,
@@ -239,7 +277,7 @@ const getAllUsers = async (req, res, next) => {
 exports.getAllUsers = getAllUsers;
 const updateUser = async (req, res, next) => {
     try {
-        const { userId, branchId, employeeId, username, password, permissionIds } = req.body;
+        const { userId, branchId, employeeId, username, password, permissionIds, email } = req.body;
         const loggedInUserId = req.user?.id;
         // 🔹 Validate logged-in user
         const loggedInUser = await user_1.default.findOne({
@@ -273,6 +311,13 @@ const updateUser = async (req, res, next) => {
         });
         if (usernameExists)
             return res.status(400).json({ message: "Username already exists!" });
+        const usernameExistsEmail = await user_1.default.findOne({
+            email,
+            _id: { $ne: userId },
+            isDeleted: false,
+        });
+        if (usernameExistsEmail)
+            return res.status(400).json({ message: "Email already exists!" });
         // 🔹 Hash password only if provided
         let hashedPassword = existingUser.password;
         if (password) {
@@ -282,6 +327,7 @@ const updateUser = async (req, res, next) => {
         existingUser.branchId = branchId;
         existingUser.employeeId = employeeId;
         existingUser.username = username;
+        existingUser.email = email;
         existingUser.password = hashedPassword;
         existingUser.permissions = permissionIds || existingUser.permissions;
         await existingUser.save();

@@ -38,6 +38,7 @@ const userSchema = new mongoose_1.Schema({
     branchId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Branch", default: null },
     username: { type: String },
     password: { type: String },
+    email: { type: String, default: null },
     role: { type: String, enum: ["User", "CompanyAdmin"] },
     employeeId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Employee", default: null },
     permissions: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Permission" }],

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllLogEntries = exports.createLogEntry = exports.getOneProject = exports.updateProject = exports.getAllProjects = exports.createProject = void 0;
+exports.deleteLogEntry = exports.updateLogEntry = exports.getAllLogEntries = exports.createLogEntry = exports.getOneProject = exports.updateProject = exports.getAllProjects = exports.createProject = void 0;
 const user_1 = __importDefault(require("../../models/user"));
 const branch_1 = __importDefault(require("../../models/branch"));
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -413,7 +413,6 @@ const createLogEntry = async (req, res, next) => {
         if (!userid) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        console.log(req.body, "body");
         const { date, branchId, projectId, userId, taskId, billable, startTime, endTime, timeSpent, note, } = req.body;
         // -------- Required validations
         if (!userId)
@@ -436,8 +435,39 @@ const createLogEntry = async (req, res, next) => {
                 });
             }
         }
-        // -------- Save
-        console.log(startTime, "st", endTime, "end");
+        const MAX_MINUTES_PER_DAY = 24 * 60; // 1440
+        // Normalize date to start & end of day
+        const logDate = new Date(date);
+        logDate.setUTCHours(0, 0, 0, 0);
+        const startOfDay = new Date(logDate);
+        const endOfDay = new Date(logDate);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+        // Aggregate total minutes already logged
+        const existingLogs = await logEntry_1.default.aggregate([
+            {
+                $match: {
+                    userId: new mongoose_1.default.Types.ObjectId(userId),
+                    branchId: new mongoose_1.default.Types.ObjectId(branchId),
+                    date: {
+                        $gte: startOfDay,
+                        $lte: endOfDay,
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalMinutes: { $sum: "$timeSpent" },
+                },
+            },
+        ]);
+        const alreadyLoggedMinutes = existingLogs[0]?.totalMinutes || 0;
+        const incomingMinutes = timeSpent || 0;
+        if (alreadyLoggedMinutes + incomingMinutes > MAX_MINUTES_PER_DAY) {
+            return res.status(400).json({
+                message: `User already has 24 hours logged on this date. Cannot exceed 24 hours.`,
+            });
+        }
         const logEntry = await logEntry_1.default.create({
             branchId,
             date,
@@ -508,6 +538,7 @@ const getAllLogEntries = async (req, res, next) => {
             {
                 $match: {
                     branchId: { $in: allowedBranchIds },
+                    isDeleted: false,
                 },
             },
             // Join USER
@@ -530,6 +561,16 @@ const getAllLogEntries = async (req, res, next) => {
                 },
             },
             { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
+            // Join CUSTOMER via project.customerId
+            {
+                $lookup: {
+                    from: "customers",
+                    localField: "project.customerId",
+                    foreignField: "_id",
+                    as: "customer",
+                },
+            },
+            { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
             // Extract matching TASK from project.tasks based on taskId
             {
                 $addFields: {
@@ -589,6 +630,7 @@ const getAllLogEntries = async (req, res, next) => {
                     projectId: "$project.projectId",
                     projectName: "$project.projectName",
                     billingMethod: "$project.billingMethod",
+                    customer: "$customer.name",
                 },
                 user: {
                     _id: "$user._id",
@@ -605,7 +647,6 @@ const getAllLogEntries = async (req, res, next) => {
             },
         });
         const logs = await logEntry_1.default.aggregate(pipeline);
-        console.log(logs, 'time log');
         return res.status(200).json({
             data: logs,
             totalCount,
@@ -618,3 +659,139 @@ const getAllLogEntries = async (req, res, next) => {
     }
 };
 exports.getAllLogEntries = getAllLogEntries;
+const updateLogEntry = async (req, res, next) => {
+    try {
+        const userid = req.user?.id;
+        if (!userid) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        const { timeLogId } = req.params;
+        const { date, branchId, projectId, userId, taskId, billable, startTime, endTime, timeSpent, note, } = req.body;
+        // -------- Required validations
+        if (!userId)
+            return res.status(400).json({ message: "User Id is required!" });
+        if (!branchId)
+            return res.status(400).json({ message: "Branch Id is required!" });
+        if (!projectId)
+            return res.status(400).json({ message: "Project Id is required!" });
+        // -------- Fetch existing log
+        const existingLog = await logEntry_1.default.findById(timeLogId);
+        if (!existingLog) {
+            return res.status(400).json({ message: "Time log not found!" });
+        }
+        // -------- Validate project
+        const project = await project_1.default.findById(projectId);
+        if (!project) {
+            return res.status(400).json({ message: "Project not found!" });
+        }
+        // -------- Billing-based task validation
+        // if (
+        //   project.billingMethod === "Based on Task Hours" &&
+        //   !taskId
+        // ) {
+        //   return res.status(400).json({
+        //     message: "Task is required for task-based billing",
+        //   });
+        // }
+        // -------- Time validation
+        if (timeSpent !== undefined) {
+            if (typeof timeSpent !== "number" || timeSpent <= 0) {
+                return res.status(400).json({
+                    message: "Valid timeSpent (minutes) is required",
+                });
+            }
+        }
+        // -------- 24 HOUR VALIDATION (IMPORTANT)
+        const MAX_MINUTES_PER_DAY = 24 * 60;
+        const logDate = new Date(date || existingLog.date);
+        logDate.setUTCHours(0, 0, 0, 0);
+        const startOfDay = new Date(logDate);
+        const endOfDay = new Date(logDate);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+        const dailyLogs = await logEntry_1.default.aggregate([
+            {
+                $match: {
+                    _id: { $ne: existingLog._id }, //  exclude current log
+                    userId: new mongoose_1.default.Types.ObjectId(userId),
+                    branchId: new mongoose_1.default.Types.ObjectId(branchId),
+                    date: { $gte: startOfDay, $lte: endOfDay },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalMinutes: { $sum: "$timeSpent" },
+                },
+            },
+        ]);
+        const alreadyLoggedMinutes = dailyLogs[0]?.totalMinutes || 0;
+        const newMinutes = timeSpent !== undefined ? timeSpent : existingLog.timeSpent;
+        if (alreadyLoggedMinutes + newMinutes > MAX_MINUTES_PER_DAY) {
+            return res.status(400).json({
+                message: "User already has 24 hours logged on this date. Cannot exceed 24 hours.",
+            });
+        }
+        // -------- Update log entry
+        const updatedLog = await logEntry_1.default.findByIdAndUpdate(timeLogId, {
+            branchId,
+            date: logDate,
+            projectId,
+            userId,
+            taskId: taskId || null,
+            billable,
+            startTime: startTime ?? null,
+            endTime: endTime ?? null,
+            timeSpent: newMinutes,
+            note,
+            // updatedById: userid,
+        }, { new: true });
+        return res.status(200).json({
+            message: "Log entry updated successfully",
+            data: updatedLog,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.updateLogEntry = updateLogEntry;
+const deleteLogEntry = async (req, res, next) => {
+    try {
+        const { timeLogId } = req.params;
+        const userId = req.user?.id;
+        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        if (!user) {
+            return res.status(400).json({ message: "User not found!" });
+        }
+        if (!timeLogId) {
+            return res.status(400).json({ message: "Log entry Id is required!" });
+        }
+        const logEntry = await logEntry_1.default.findOne({ _id: timeLogId });
+        if (!logEntry) {
+            return res.status(404).json({ message: "Log entry not found!" });
+        }
+        // const itemExist = await ITEMS.findOne({
+        //   quoteId: quoteId,
+        //   isDeleted: false,
+        // });
+        // if (itemExist) {
+        //   return res.status(400).json({
+        //     message:
+        //       "This category currently linked to Items. Please remove Items before deleting.",
+        //   });
+        // }
+        await logEntry_1.default.findByIdAndUpdate(timeLogId, {
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedById: user._id,
+            deletedBy: user.username,
+        });
+        return res.status(200).json({
+            message: "Log entry deleted successfully!",
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.deleteLogEntry = deleteLogEntry;
