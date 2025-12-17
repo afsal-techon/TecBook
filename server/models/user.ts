@@ -5,6 +5,7 @@ const userSchema = new Schema<IUser>({
   branchId: { type: Schema.Types.ObjectId, ref: "Branch", default: null },
   username: { type: String },
   password: { type: String },
+    email: { type: String ,default:null },
   role: { type: String, enum: ["User", "CompanyAdmin"] },
   employeeId: {type: Schema.Types.ObjectId, ref: "Employee", default: null },
   permissions: [{ type: Schema.Types.ObjectId, ref: "Permission" }],

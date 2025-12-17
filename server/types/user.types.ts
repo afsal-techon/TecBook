@@ -4,6 +4,7 @@ export interface IUser extends Document {
   branchId?: Types.ObjectId | null;
   username?: string;
   password: string;
+  email:string;
   role: "User" | "CompanyAdmin";
   employeeId?:Types.ObjectId | null;
   permissions?: Types.ObjectId[];

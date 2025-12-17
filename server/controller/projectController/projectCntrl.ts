@@ -272,6 +272,7 @@ export const updateProject = async (
       revenueBudget,
     } = req.body;
 
+
     const userId = req.user?.id;
 
     if (!userId) {
@@ -520,8 +521,6 @@ export const createLogEntry = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    console.log(req.body, "body");
-
     const {
       date,
       branchId,
@@ -559,8 +558,44 @@ export const createLogEntry = async (
       }
     }
 
-    // -------- Save
-    console.log(startTime, "st", endTime, "end");
+    const MAX_MINUTES_PER_DAY = 24 * 60; // 1440
+
+    // Normalize date to start & end of day
+    const logDate = new Date(date);
+    logDate.setUTCHours(0, 0, 0, 0);
+
+    const startOfDay = new Date(logDate);
+    const endOfDay = new Date(logDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    // Aggregate total minutes already logged
+    const existingLogs = await LOGENTRY.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          branchId: new mongoose.Types.ObjectId(branchId),
+          date: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalMinutes: { $sum: "$timeSpent" },
+        },
+      },
+    ]);
+
+    const alreadyLoggedMinutes = existingLogs[0]?.totalMinutes || 0;
+    const incomingMinutes = timeSpent || 0;
+
+    if (alreadyLoggedMinutes + incomingMinutes > MAX_MINUTES_PER_DAY) {
+      return res.status(400).json({
+        message: `User already has 24 hours logged on this date. Cannot exceed 24 hours.`,
+      });
+    }
 
     const logEntry = await LOGENTRY.create({
       branchId,
@@ -644,6 +679,7 @@ export const getAllLogEntries = async (
       {
         $match: {
           branchId: { $in: allowedBranchIds },
+          isDeleted: false,
         },
       },
 
@@ -668,6 +704,16 @@ export const getAllLogEntries = async (
         },
       },
       { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
+      // Join CUSTOMER via project.customerId
+      {
+        $lookup: {
+          from: "customers",
+          localField: "project.customerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
 
       // Extract matching TASK from project.tasks based on taskId
       {
@@ -733,6 +779,7 @@ export const getAllLogEntries = async (
           projectId: "$project.projectId",
           projectName: "$project.projectName",
           billingMethod: "$project.billingMethod",
+          customer: "$customer.name",
         },
 
         user: {
@@ -753,13 +800,195 @@ export const getAllLogEntries = async (
     });
 
     const logs = await LOGENTRY.aggregate(pipeline);
-    console.log(logs,'time log')
 
     return res.status(200).json({
       data: logs,
       totalCount,
       page,
       limit,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateLogEntry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userid = req.user?.id;
+    if (!userid) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { timeLogId } = req.params;
+
+    const {
+      date,
+      branchId,
+      projectId,
+      userId,
+      taskId,
+      billable,
+      startTime,
+      endTime,
+      timeSpent,
+      note,
+    } = req.body;
+
+    // -------- Required validations
+    if (!userId)
+      return res.status(400).json({ message: "User Id is required!" });
+    if (!branchId)
+      return res.status(400).json({ message: "Branch Id is required!" });
+    if (!projectId)
+      return res.status(400).json({ message: "Project Id is required!" });
+
+    // -------- Fetch existing log
+    const existingLog = await LOGENTRY.findById(timeLogId);
+    if (!existingLog) {
+      return res.status(400).json({ message: "Time log not found!" });
+    }
+
+    // -------- Validate project
+    const project = await PROJECT.findById(projectId);
+    if (!project) {
+      return res.status(400).json({ message: "Project not found!" });
+    }
+
+    // -------- Billing-based task validation
+    // if (
+    //   project.billingMethod === "Based on Task Hours" &&
+    //   !taskId
+    // ) {
+    //   return res.status(400).json({
+    //     message: "Task is required for task-based billing",
+    //   });
+    // }
+
+    // -------- Time validation
+    if (timeSpent !== undefined) {
+      if (typeof timeSpent !== "number" || timeSpent <= 0) {
+        return res.status(400).json({
+          message: "Valid timeSpent (minutes) is required",
+        });
+      }
+    }
+
+    // -------- 24 HOUR VALIDATION (IMPORTANT)
+    const MAX_MINUTES_PER_DAY = 24 * 60;
+
+    const logDate = new Date(date || existingLog.date);
+    logDate.setUTCHours(0, 0, 0, 0);
+
+    const startOfDay = new Date(logDate);
+    const endOfDay = new Date(logDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const dailyLogs = await LOGENTRY.aggregate([
+      {
+        $match: {
+          _id: { $ne: existingLog._id }, //  exclude current log
+          userId: new mongoose.Types.ObjectId(userId),
+          branchId: new mongoose.Types.ObjectId(branchId),
+          date: { $gte: startOfDay, $lte: endOfDay },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalMinutes: { $sum: "$timeSpent" },
+        },
+      },
+    ]);
+
+    const alreadyLoggedMinutes = dailyLogs[0]?.totalMinutes || 0;
+    const newMinutes =
+      timeSpent !== undefined ? timeSpent : existingLog.timeSpent;
+
+    if (alreadyLoggedMinutes + newMinutes > MAX_MINUTES_PER_DAY) {
+      return res.status(400).json({
+        message:
+          "User already has 24 hours logged on this date. Cannot exceed 24 hours.",
+      });
+    }
+
+    // -------- Update log entry
+    const updatedLog = await LOGENTRY.findByIdAndUpdate(
+      timeLogId,
+      {
+        branchId,
+        date: logDate,
+        projectId,
+        userId,
+        taskId: taskId || null,
+        billable,
+        startTime: startTime ?? null,
+        endTime: endTime ?? null,
+        timeSpent: newMinutes,
+        note,
+        // updatedById: userid,
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      message: "Log entry updated successfully",
+      data: updatedLog,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const deleteLogEntry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { timeLogId } = req.params;
+
+    const userId = req.user?.id;
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!timeLogId) {
+      return res.status(400).json({ message: "Log entry Id is required!" });
+    }
+
+    const logEntry = await LOGENTRY.findOne({ _id: timeLogId });
+    if (!logEntry) {
+      return res.status(404).json({ message: "Log entry not found!" });
+    }
+
+    // const itemExist = await ITEMS.findOne({
+    //   quoteId: quoteId,
+    //   isDeleted: false,
+    // });
+
+    // if (itemExist) {
+    //   return res.status(400).json({
+    //     message:
+    //       "This category currently linked to Items. Please remove Items before deleting.",
+    //   });
+    // }
+
+    await LOGENTRY.findByIdAndUpdate(timeLogId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedById: user._id,
+      deletedBy: user.username,
+    });
+
+    return res.status(200).json({
+      message: "Log entry deleted successfully!",
     });
   } catch (err) {
     next(err);
