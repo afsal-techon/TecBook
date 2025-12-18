@@ -682,7 +682,7 @@ export const getOneProject = async (
      * 7️ FINAL RESPONSE
      * -----------------------------------------------------
      */
-    
+
     return res.status(200).json({
       project,
       summary: {
@@ -717,6 +717,10 @@ export const getOneProject = async (
     next(error);
   }
 };
+
+
+
+
 
 //time sheeet
 
