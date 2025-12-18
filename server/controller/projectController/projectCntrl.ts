@@ -388,25 +388,39 @@ export const updateProject = async (
   }
 };
 
+const minutesToHHMM = (minutes: number) => {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}:${m.toString().padStart(2, "0")}`;
+};
+
 export const getOneProject = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const userId = req.user?.id;
+    const loggedInUserId = req.user?.id;
     const { projectId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ message: "Invalid project ID!" });
     }
 
-    // Validate user
-    const user = await USER.findOne({ _id: userId, isDeleted: false });
-    if (!user) return res.status(400).json({ message: "User not found!" });
+    // Validate logged-in user
+    const loggedUser = await USER.findOne({
+      _id: loggedInUserId,
+      isDeleted: false,
+    });
 
-    // AGGREGATION PIPELINE
-    const pipeline: any[] = [
+    if (!loggedUser) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+
+    //  * 1️ GET PROJECT BASIC INFO
+    
+    const projectPipeline: any[] = [
       {
         $match: {
           _id: new mongoose.Types.ObjectId(projectId),
@@ -414,7 +428,6 @@ export const getOneProject = async (
         },
       },
 
-      // Join Customer
       {
         $lookup: {
           from: "customers",
@@ -425,7 +438,6 @@ export const getOneProject = async (
       },
       { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
 
-      // Join Users
       {
         $lookup: {
           from: "users",
@@ -441,6 +453,7 @@ export const getOneProject = async (
                 _id: 1,
                 username: 1,
                 email: 1,
+                role: 1,
               },
             },
           ],
@@ -448,26 +461,6 @@ export const getOneProject = async (
         },
       },
 
-      // Add taskId for each task object
-      {
-        $addFields: {
-          tasks: {
-            $map: {
-              input: "$tasks",
-              as: "t",
-              in: {
-                taskId: "$$t._id", // duplicate _id as taskId
-                taskName: "$$t.taskName",
-                description: "$$t.description",
-                ratePerHour: "$$t.ratePerHour",
-                billable: "$$t.billable",
-              },
-            },
-          },
-        },
-      },
-
-      // Final projection
       {
         $project: {
           branchId: 1,
@@ -478,12 +471,11 @@ export const getOneProject = async (
           description: 1,
           projectCost: 1,
           ratePerHour: 1,
-          createdAt: 1,
           costBudget: 1,
           revenueBudget: 1,
-
+          users: 1,
           tasks: 1,
-
+          createdAt: 1,
           customer: {
             name: 1,
             email: 1,
@@ -494,17 +486,235 @@ export const getOneProject = async (
       },
     ];
 
-    const result = await PROJECT.aggregate(pipeline);
+    const projectResult = await PROJECT.aggregate(projectPipeline);
 
-    if (!result.length) {
+    if (!projectResult.length) {
       return res.status(404).json({ message: "Project not found!" });
     }
 
+    const project = projectResult[0];
+
+    /**
+     * 2️ COMMON TIMELOG PIPELINE
+     */
+
+    const baseTimeLogPipeline: any[] = [
+      {
+        $match: {
+          projectId: new mongoose.Types.ObjectId(projectId),
+          isDeleted: false,
+        },
+      },
+      {
+        $addFields: {
+          minutes: { $toInt: "$timeSpent" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $addFields: {
+          task: {
+            $first: {
+              $filter: {
+                input: project.tasks,
+                as: "t",
+                cond: { $eq: ["$$t._id", "$taskId"] },
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    /**
+     * 3️ PROJECT SUMMARY
+     */
+
+    const projectSummaryAgg = await LOGENTRY.aggregate([
+      ...baseTimeLogPipeline,
+      {
+        $group: {
+          _id: null,
+          loggedMinutes: { $sum: "$minutes" },
+          billableMinutes: {
+            $sum: { $cond: ["$billable", "$minutes", 0] },
+          },
+          billedMinutes: { $sum: 0 },
+          unbilledMinutes: {
+            $sum: { $cond: ["$billable", "$minutes", 0] },
+          },
+          cost: {
+            $sum: {
+              $multiply: [
+                { $divide: ["$minutes", 60] },
+                {
+                  $let: {
+                    vars: {
+                      staff: {
+                        $first: {
+                          $filter: {
+                            input: project.users,
+                            as: "u",
+                            cond: { $eq: ["$$u.userId", "$userId"] },
+                          },
+                        },
+                      },
+                    },
+                    in: { $ifNull: ["$$staff.ratePerHour", 0] },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    const summary =
+      projectSummaryAgg[0] || {
+        loggedMinutes: 0,
+        billableMinutes: 0,
+        billedMinutes: 0,
+        unbilledMinutes: 0,
+        cost: 0,
+      };
+
+    /**
+     * 4️ USER-WISE DATA
+     */
+
+    const userWise = await LOGENTRY.aggregate([
+      ...baseTimeLogPipeline,
+      {
+        $group: {
+          _id: "$userId",
+          name: { $first: "$user.username" },
+          role: { $first: "$user.role" },
+          loggedMinutes: { $sum: "$minutes" },
+          billableMinutes: {
+            $sum: { $cond: ["$billable", "$minutes", 0] },
+          },
+          billedMinutes: { $sum: 0 },
+          unbilledMinutes: {
+            $sum: { $cond: ["$billable", "$minutes", 0] },
+          },
+        },
+      },
+    ]);
+
+    /**
+     * 5️ TASK-WISE DATA
+     */
+
+    const taskWise = await LOGENTRY.aggregate([
+      ...baseTimeLogPipeline,
+      {
+        $group: {
+          _id: "$taskId",
+          taskName: { $first: "$task.taskName" },
+          type: {
+            $first: {
+              $cond: ["$task.billable", "Billable", "Non-Billable"],
+            },
+          },
+          ratePerHour: { $first: "$task.ratePerHour" },
+          loggedMinutes: { $sum: "$minutes" },
+          billableMinutes: {
+            $sum: { $cond: ["$billable", "$minutes", 0] },
+          },
+          billedMinutes: { $sum: 0 },
+          unbilledMinutes: {
+            $sum: { $cond: ["$billable", "$minutes", 0] },
+          },
+        },
+      },
+    ]);
+
+    /**
+     * -----------------------------------------------------
+     * 6️ INCOME CALCULATION
+     * -----------------------------------------------------
+     */
+
+    let income = 0;
+
+    switch (project.billingMethod) {
+      case "Fixed Cost for Project":
+        income = project.projectCost;
+        break;
+
+      case "Based on Project Hours":
+        income =
+          (summary.billableMinutes / 60) * (project.ratePerHour || 0);
+        break;
+
+      case "Based on Task Hours":
+        income = taskWise.reduce(
+          (sum, t) =>
+            sum + (t.billableMinutes / 60) * (t.ratePerHour || 0),
+          0
+        );
+        break;
+
+      case "Based on Staff Hours":
+        income = userWise.reduce((sum, u) => {
+          const staff = project.users.find(
+            (x: any) => x.userId.toString() === u._id.toString()
+          );
+          return (
+            sum +
+            (u.billableMinutes / 60) * (staff?.ratePerHour || 0)
+          );
+        }, 0);
+        break;
+    }
+
+    /**
+     * -----------------------------------------------------
+     * 7️ FINAL RESPONSE
+     * -----------------------------------------------------
+     */
+    
     return res.status(200).json({
-      data: result[0],
+      project,
+      summary: {
+        income,
+        cost: summary.cost,
+        profit: income - summary.cost,
+        loggedHours: minutesToHHMM(summary.loggedMinutes),
+        billableHours: minutesToHHMM(summary.billableMinutes),
+        billedHours: minutesToHHMM(summary.billedMinutes),
+        unbilledHours: minutesToHHMM(summary.unbilledMinutes),
+      },
+      users: userWise.map((u) => ({
+        userId: u._id,
+        name: u.name,
+        role: u.role,
+        loggedHours: minutesToHHMM(u.loggedMinutes),
+        billableHours: minutesToHHMM(u.billableMinutes),
+        billedHours: minutesToHHMM(u.billedMinutes),
+        unbilledHours: minutesToHHMM(u.unbilledMinutes),
+      })),
+      tasks: taskWise.map((t) => ({
+        taskId: t._id,
+        taskName: t.taskName,
+        type: t.type,
+        loggedHours: minutesToHHMM(t.loggedMinutes),
+        billableHours: minutesToHHMM(t.billableMinutes),
+        billedHours: minutesToHHMM(t.billedMinutes),
+        unbilledHours: minutesToHHMM(t.unbilledMinutes),
+      })),
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 };
 
