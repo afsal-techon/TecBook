@@ -272,7 +272,6 @@ export const updateProject = async (
       revenueBudget,
     } = req.body;
 
-
     const userId = req.user?.id;
 
     if (!userId) {
@@ -417,9 +416,8 @@ export const getOneProject = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-
     //  * 1️ GET PROJECT BASIC INFO
-    
+
     const projectPipeline: any[] = [
       {
         $match: {
@@ -578,14 +576,13 @@ export const getOneProject = async (
       },
     ]);
 
-    const summary =
-      projectSummaryAgg[0] || {
-        loggedMinutes: 0,
-        billableMinutes: 0,
-        billedMinutes: 0,
-        unbilledMinutes: 0,
-        cost: 0,
-      };
+    const summary = projectSummaryAgg[0] || {
+      loggedMinutes: 0,
+      billableMinutes: 0,
+      billedMinutes: 0,
+      unbilledMinutes: 0,
+      cost: 0,
+    };
 
     /**
      * 4️ USER-WISE DATA
@@ -644,44 +641,54 @@ export const getOneProject = async (
      * -----------------------------------------------------
      */
 
-    let income = 0;
+  /**
+ * 6️ INCOME CALCULATION
+ */
 
-    switch (project.billingMethod) {
-      case "Fixed Cost for Project":
-        income = project.projectCost;
-        break;
+const income = project.revenueBudget || 0;
 
-      case "Based on Project Hours":
-        income =
-          (summary.billableMinutes / 60) * (project.ratePerHour || 0);
-        break;
-
-      case "Based on Task Hours":
-        income = taskWise.reduce(
-          (sum, t) =>
-            sum + (t.billableMinutes / 60) * (t.ratePerHour || 0),
-          0
-        );
-        break;
-
-      case "Based on Staff Hours":
-        income = userWise.reduce((sum, u) => {
-          const staff = project.users.find(
-            (x: any) => x.userId.toString() === u._id.toString()
-          );
-          return (
-            sum +
-            (u.billableMinutes / 60) * (staff?.ratePerHour || 0)
-          );
-        }, 0);
-        break;
-    }
 
     /**
-     * -----------------------------------------------------
      * 7️ FINAL RESPONSE
-     * -----------------------------------------------------
      */
+
+    /**
+     *  MERGE ASSIGNED USERS + TIMELOG USERS
+     */
+    const mergedUsers = project.assignedUsers.map((u: any) => {
+      const actual = userWise.find(
+        (x: any) => x._id.toString() === u._id.toString()
+      );
+
+      return {
+        userId: u._id,
+        name: u.username,
+        role: u.role,
+        loggedHours: minutesToHHMM(actual?.loggedMinutes || 0),
+        billableHours: minutesToHHMM(actual?.billableMinutes || 0),
+        billedHours: minutesToHHMM(actual?.billedMinutes || 0),
+        unbilledHours: minutesToHHMM(actual?.unbilledMinutes || 0),
+      };
+    });
+
+    /**
+     * 6 MERGE PROJECT TASKS + TIMELOG TASKS
+     */
+    const mergedTasks = project.tasks.map((t: any) => {
+      const actual = taskWise.find(
+        (x: any) => x._id?.toString() === t._id.toString()
+      );
+
+      return {
+        taskId: t._id,
+        taskName: t.taskName,
+        type: t.billable ? "Billable" : "Non-Billable",
+        loggedHours: minutesToHHMM(actual?.loggedMinutes || 0),
+        billableHours: minutesToHHMM(actual?.billableMinutes || 0),
+        billedHours: minutesToHHMM(actual?.billedMinutes || 0),
+        unbilledHours: minutesToHHMM(actual?.unbilledMinutes || 0),
+      };
+    });
 
     return res.status(200).json({
       project,
@@ -693,37 +700,137 @@ export const getOneProject = async (
         billableHours: minutesToHHMM(summary.billableMinutes),
         billedHours: minutesToHHMM(summary.billedMinutes),
         unbilledHours: minutesToHHMM(summary.unbilledMinutes),
+        expense:12234,
+        manHourCost:232323,
+
       },
-      users: userWise.map((u) => ({
-        userId: u._id,
-        name: u.name,
-        role: u.role,
-        loggedHours: minutesToHHMM(u.loggedMinutes),
-        billableHours: minutesToHHMM(u.billableMinutes),
-        billedHours: minutesToHHMM(u.billedMinutes),
-        unbilledHours: minutesToHHMM(u.unbilledMinutes),
-      })),
-      tasks: taskWise.map((t) => ({
-        taskId: t._id,
-        taskName: t.taskName,
-        type: t.type,
-        loggedHours: minutesToHHMM(t.loggedMinutes),
-        billableHours: minutesToHHMM(t.billableMinutes),
-        billedHours: minutesToHHMM(t.billedMinutes),
-        unbilledHours: minutesToHHMM(t.unbilledMinutes),
-      })),
+      users: mergedUsers,
+      tasks: mergedTasks,
     });
   } catch (error) {
     next(error);
   }
 };
 
+// export const getOneProject = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<Response | void> => {
+//   try {
+//     const userId = req.user?.id;
+//     const { projectId } = req.params;
 
+//     if (!mongoose.Types.ObjectId.isValid(projectId)) {
+//       return res.status(400).json({ message: "Invalid project ID!" });
+//     }
 
+//     // Validate user
+//     const user = await USER.findOne({ _id: userId, isDeleted: false });
+//     if (!user) return res.status(400).json({ message: "User not found!" });
 
+//     // AGGREGATION PIPELINE
+//     const pipeline: any[] = [
+//       {
+//         $match: {
+//           _id: new mongoose.Types.ObjectId(projectId),
+//           isDeleted: false,
+//         },
+//       },
 
-//time sheeet
+//       // Join Customer
+//       {
+//         $lookup: {
+//           from: "customers",
+//           localField: "customerId",
+//           foreignField: "_id",
+//           as: "customer",
+//         },
+//       },
+//       { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
 
+//       // Join Users
+//       {
+//         $lookup: {
+//           from: "users",
+//           let: { ids: "$users.userId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: { $in: ["$_id", "$$ids"] },
+//               },
+//             },
+//             {
+//               $project: {
+//                 _id: 1,
+//                 username: 1,
+//                 email: 1,
+//               },
+//             },
+//           ],
+//           as: "assignedUsers",
+//         },
+//       },
+
+//       // Add taskId for each task object
+//       {
+//         $addFields: {
+//           tasks: {
+//             $map: {
+//               input: "$tasks",
+//               as: "t",
+//               in: {
+//                 taskId: "$$t._id", // duplicate _id as taskId
+//                 taskName: "$$t.taskName",
+//                 description: "$$t.description",
+//                 ratePerHour: "$$t.ratePerHour",
+//                 billable: "$$t.billable",
+//               },
+//             },
+//           },
+//         },
+//       },
+
+//       // Final projection
+//       {
+//         $project: {
+//           branchId: 1,
+//           customerId: 1,
+//           projectName: 1,
+//           projectId: 1,
+//           billingMethod: 1,
+//           description: 1,
+//           projectCost: 1,
+//           ratePerHour: 1,
+//           createdAt: 1,
+//           costBudget: 1,
+//           revenueBudget: 1,
+
+//           tasks: 1,
+
+//           customer: {
+//             name: 1,
+//             email: 1,
+//             phone: 1,
+//           },
+//           assignedUsers: 1,
+//         },
+//       },
+//     ];
+
+//     const result = await PROJECT.aggregate(pipeline);
+
+//     if (!result.length) {
+//       return res.status(404).json({ message: "Project not found!" });
+//     }
+
+//     return res.status(200).json({
+//       data: result[0],
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 export const createLogEntry = async (
   req: Request,
   res: Response,
@@ -1157,7 +1264,6 @@ export const updateLogEntry = async (
   }
 };
 
-
 export const deleteLogEntry = async (
   req: Request,
   res: Response,
@@ -1203,6 +1309,135 @@ export const deleteLogEntry = async (
 
     return res.status(200).json({
       message: "Log entry deleted successfully!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+export const getTimesheetsByDate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    const { date, branchId } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: "Date is required!" });
+    }
+
+    if (!branchId) {
+      return res.status(400).json({ message: "Branch Id is required!" });
+    }
+
+    // Normalize day
+    const startDate = new Date(date as string);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(date as string);
+    endDate.setHours(23, 59, 59, 999);
+
+    // ---------------------------------
+    // AGGREGATION
+    // ---------------------------------
+    const pipeline: any[] = [
+      {
+        $match: {
+          branchId: new mongoose.Types.ObjectId(branchId as string),
+          isDeleted: false,
+          date: { $gte: startDate, $lte: endDate },
+        },
+      },
+
+      // Join PROJECT
+      {
+        $lookup: {
+          from: "projects",
+          localField: "projectId",
+          foreignField: "_id",
+          as: "project",
+        },
+      },
+      { $unwind: "$project" },
+
+      // -----------------------------
+      // Calculate totalTimeSpent per project
+      // -----------------------------
+      {
+        $group: {
+          _id: "$project._id",
+          totalTimeSpent: {
+            $sum: {
+              $cond: [
+                { $ifNull: ["$timeSpent", false] },
+                { $toInt: "$timeSpent" },
+                0,
+              ],
+            },
+          },
+          logs: { $push: "$$ROOT" },
+        },
+      },
+
+      // Flatten back to timesheets
+      { $unwind: "$logs" },
+
+      // -----------------------------
+      // Attach project object
+      // -----------------------------
+      {
+        $addFields: {
+          "logs.project": {
+            _id: "$logs.project._id",
+            projectId: "$logs.project.projectId",
+            projectName: "$logs.project.projectName",
+            totalTimeSpent: "$totalTimeSpent",
+          },
+        },
+      },
+
+      // Replace root
+      { $replaceRoot: { newRoot: "$logs" } },
+
+      // Clean output
+      {
+        $project: {
+          projectId: 0, // avoid duplicate
+          project: 1,
+          date: 1,
+          startTime: 1,
+          endTime: 1,
+          timeSpent: 1,
+          billable: 1,
+          note: 1,
+          userId: 1,
+          taskId: 1,
+          createdAt: 1,
+        },
+      },
+
+      { $sort: { createdAt: -1 } },
+    ];
+
+    const timesheets = await LOGENTRY.aggregate(pipeline);
+
+    return res.status(200).json({
+      date,
+      count: timesheets.length,
+      timesheets,
     });
   } catch (err) {
     next(err);

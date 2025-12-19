@@ -154,7 +154,7 @@ router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','Sal
 
 
 router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
-router.put('/project/:projectId',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
+router.put('/project/:projectIid',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
 router.get('/project/:projectId',verifyUser,checkPermission('admin','Project','can_read'),getOneProject)
 
