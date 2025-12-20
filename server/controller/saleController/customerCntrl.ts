@@ -320,6 +320,31 @@ export const getCustomers = async (
 };
 
 
+export const getCustomersDetails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+
+    const { branchId } = req.params;
+
+    // 🔹 Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    const customers= await CUSTOMER.find({ branchId, isDeleted:false })
+    return res.status(200).json({
+      data: customers,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 export const updateCustomer = async (
   req: Request,

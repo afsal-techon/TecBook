@@ -7,7 +7,7 @@ import { upload } from '../middleware/imgUpload';
 import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, getSingleUserUserGroup, updateUserGroup } from '../controller/UserCntrl/userGroup';
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
-import { createCustomer, deleteCustomer, getCustomers, updateCustomer } from '../controller/saleController/customerCntrl';
+import { createCustomer, deleteCustomer, getCustomers, getCustomersDetails, updateCustomer } from '../controller/saleController/customerCntrl';
 import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
@@ -15,7 +15,7 @@ import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAccep
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
 import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
-import { createLogEntry, createProject, deleteLogEntry, getAllLogEntries, getAllProjects, getOneProject, updateLogEntry, updateProject } from '../controller/projectController/projectCntrl';
+import { createLogEntry, createProject, deleteLogEntry, getAllLogEntries, getAllProjects, getOneProject, getProjects, getTimesheetsByDate, updateLogEntry, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
 const router = express.Router();
 
@@ -84,6 +84,7 @@ router.delete('/account/:accountId',verifyUser,checkPermission('admin','Accounts
 
 router.post('/customer',verifyUser,checkPermission('admin','Customer','can_create'),upload.array('documents',10),createCustomer)
 router.get('/customer',verifyUser,checkPermission('admin','Customer','can_read'),getCustomers)
+router.get('/customers/:branchId',verifyUser,checkPermission('admin','Customer','can_read'),getCustomersDetails)
 router.put('/customer',verifyUser,checkPermission('admin','Customer','can_update'),upload.array('documents',10),updateCustomer)
 router.delete('/customer/:customerId',verifyUser,checkPermission('admin','Customer','can_delete'),deleteCustomer)
 
@@ -157,6 +158,7 @@ router.post('/project',verifyUser,checkPermission('admin','Project','can_create'
 router.put('/project/:projectIid',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
 router.get('/project/:projectId',verifyUser,checkPermission('admin','Project','can_read'),getOneProject)
+router.get('/projects/:branchId',verifyUser,checkPermission('admin','Project','can_read'),getProjects)
 
 router.post('/sales-person',verifyUser,checkPermission('admin','SalesPerson','can_create'),createSalesPerson)
 router.get('/sales-person/:branchId',verifyUser,checkPermission('admin','SalesPerson','can_read'),getSalesPerson)
@@ -176,4 +178,7 @@ router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_crea
 router.get('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_read'),getAllLogEntries)
 router.put('/log-entry/:timeLogId',verifyUser,checkPermission('admin','LogEntry','can_update'),updateLogEntry)
 router.delete('/log-entry/:timeLogId',verifyUser,checkPermission('admin','LogEntry','can_delete'),deleteLogEntry);
+
+
+router.get('/timesheets',verifyUser,checkPermission('admin','LogEntry','can_read'),getTimesheetsByDate)
 export default router;

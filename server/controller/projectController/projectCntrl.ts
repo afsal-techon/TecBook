@@ -475,6 +475,7 @@ export const getOneProject = async (
           tasks: 1,
           createdAt: 1,
           customer: {
+            _id:1,
             name: 1,
             email: 1,
             phone: 1,
@@ -711,6 +712,45 @@ const income = project.revenueBudget || 0;
     next(error);
   }
 };
+
+export const getProjects = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+
+    const { branchId } = req.params;
+    const userId = req.user?.id;
+
+    if(!mongoose.isValidObjectId(userId)) {
+         return res.status(400).json({ message: "User Id not valid!" });
+    }
+
+    
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+
+    const branch = await BRANCH.findById(branchId);
+    if(!branch){
+      return res.status(400).json({ message:'Branch not found!'})
+    }
+
+
+    const projects = await PROJECT.find({ branchId, isDeleted:false });
+    return res.status(200).json({ data: projects})
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
 
 // export const getOneProject = async (
 //   req: Request,
@@ -1343,16 +1383,16 @@ export const getTimesheetsByDate = async (
       return res.status(400).json({ message: "Branch Id is required!" });
     }
 
-    // Normalize day
+    // Normalize date range (full day)
     const startDate = new Date(date as string);
     startDate.setHours(0, 0, 0, 0);
 
     const endDate = new Date(date as string);
     endDate.setHours(23, 59, 59, 999);
 
-    // ---------------------------------
-    // AGGREGATION
-    // ---------------------------------
+    // -------------------------------
+    // MAIN AGGREGATION
+    // -------------------------------
     const pipeline: any[] = [
       {
         $match: {
@@ -1371,64 +1411,62 @@ export const getTimesheetsByDate = async (
           as: "project",
         },
       },
-      { $unwind: "$project" },
+      { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
 
-      // -----------------------------
-      // Calculate totalTimeSpent per project
-      // -----------------------------
-      {
-        $group: {
-          _id: "$project._id",
-          totalTimeSpent: {
-            $sum: {
-              $cond: [
-                { $ifNull: ["$timeSpent", false] },
-                { $toInt: "$timeSpent" },
-                0,
-              ],
-            },
-          },
-          logs: { $push: "$$ROOT" },
-        },
-      },
-
-      // Flatten back to timesheets
-      { $unwind: "$logs" },
-
-      // -----------------------------
-      // Attach project object
-      // -----------------------------
+      // -------------------------------
+      // Extract TASK from project.tasks
+      // -------------------------------
       {
         $addFields: {
-          "logs.project": {
-            _id: "$logs.project._id",
-            projectId: "$logs.project.projectId",
-            projectName: "$logs.project.projectName",
-            totalTimeSpent: "$totalTimeSpent",
+          task: {
+            $cond: [
+              { $and: ["$taskId", "$project.tasks"] },
+              {
+                $first: {
+                  $filter: {
+                    input: "$project.tasks",
+                    as: "t",
+                    cond: { $eq: ["$$t._id", "$taskId"] },
+                  },
+                },
+              },
+              null,
+            ],
           },
         },
       },
 
-      // Replace root
-      { $replaceRoot: { newRoot: "$logs" } },
-
-      // Clean output
+      // -------------------------------
+      // FINAL PROJECTION
+      // -------------------------------
       {
         $project: {
-          projectId: 0, // avoid duplicate
-          project: 1,
+          branchId: 1,
           date: 1,
           startTime: 1,
           endTime: 1,
           timeSpent: 1,
           billable: 1,
           note: 1,
-          userId: 1,
-          taskId: 1,
+          taskId:1,
           createdAt: 1,
+
+          project: {
+            _id: "$project._id",
+            projectId: "$project.projectId",
+            projectName: "$project.projectName",
+            customerId: "$project.customerId",
+          },
+
+          task: {
+            _id: "$task._id",
+            taskName: "$task.taskName",
+            // ratePerHour: "$task.ratePerHour",
+            billable: "$task.billable",
+          },
         },
       },
-
+ 
       { $sort: { createdAt: -1 } },
     ];
 
@@ -1437,9 +1475,10 @@ export const getTimesheetsByDate = async (
     return res.status(200).json({
       date,
       count: timesheets.length,
-      timesheets,
+      data: timesheets,
     });
   } catch (err) {
     next(err);
   }
 };
+
