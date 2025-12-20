@@ -619,6 +619,7 @@ export const getALLInvoices = async (
         dueDate: 1,
         status: 1,
         subTotal: 1,
+         terms:1,
         taxTotal: 1,
         orderNumber: 1,
         subject:1,
