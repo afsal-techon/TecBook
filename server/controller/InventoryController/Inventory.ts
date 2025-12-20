@@ -966,18 +966,51 @@ export const getAllItems = async (
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-    //  Validate branchId
-    if (!branchId) {
-      return res.status(400).json({ message: "Branch Id is required!" });
-    }
+const userRole = user.role;
+    const filterBranchId = req.query.branchId as string;
+    const search = ((req.query.search as string) || "").trim();
 
-    //  Pagination
+    // Pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
 
-    //  Search and filters
-    const search = ((req.query.search as any) || "").trim();
+    // Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res.status(400).json({
+          message: "User is not assigned to any branch!",
+        });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
+
+    // Branch filter (if selected)
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view projects for this branch!",
+        });
+      }
+
+      allowedBranchIds = [filterId];
+    }
+
     const itemType = (req.query.itemType as string)?.trim()?.toLowerCase();
     const salesAccountName = ((req.query.salesAccount as string) || "").trim();
     const purchaseAccountName = (
@@ -988,7 +1021,7 @@ export const getAllItems = async (
 
     //  Base match
     const matchStage: any = {
-      branchId: new mongoose.Types.ObjectId(branchId),
+     branchId: { $in: allowedBranchIds },
       isDeleted: false,
     };
 
