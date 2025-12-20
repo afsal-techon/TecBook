@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCustomer = exports.updateCustomer = exports.getCustomers = exports.createCustomer = void 0;
+exports.deleteCustomer = exports.updateCustomer = exports.getCustomersDetails = exports.getCustomers = exports.createCustomer = void 0;
 const customer_1 = __importDefault(require("../../models/customer"));
 const user_1 = __importDefault(require("../../models/user"));
 const mongoose_1 = require("mongoose");
@@ -265,6 +265,25 @@ const getCustomers = async (req, res, next) => {
     }
 };
 exports.getCustomers = getCustomers;
+const getCustomersDetails = async (req, res, next) => {
+    try {
+        const userId = req.user?.id;
+        const { branchId } = req.params;
+        // 🔹 Validate user
+        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        if (!user) {
+            return res.status(400).json({ message: "User not found!" });
+        }
+        const customers = await customer_1.default.find({ branchId, isDeleted: false });
+        return res.status(200).json({
+            data: customers,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getCustomersDetails = getCustomersDetails;
 const updateCustomer = async (req, res, next) => {
     try {
         const { customerId, branchId, name, phone, openingBalance, taxTreatment, trn, email, note, currency, paymentTerms, placeOfSupplay, existingDocuments } = req.body; // allow partial

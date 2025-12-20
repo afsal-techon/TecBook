@@ -22,6 +22,7 @@ const paymentTerms_1 = require("../controller/commonCntroller/paymentTerms");
 const saleOrderCntls_1 = require("../controller/saleController/saleOrderCntls");
 const projectCntrl_1 = require("../controller/projectController/projectCntrl");
 const salesPerson_1 = require("../controller/commonCntroller/salesPerson");
+const invoiceCntrl_1 = require("../controller/saleController/invoiceCntrl");
 const router = express_1.default.Router();
 router.post('/create-admin', UserAuth_1.createAdmin);
 router.post('/login', UserAuth_1.loginUser);
@@ -69,6 +70,7 @@ router.put('/account', auth_1.verifyUser, (0, checkPermission_1.default)('admin'
 router.delete('/account/:accountId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Accounts', 'can_delete'), accountCntrl_1.deleteAcccount);
 router.post('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_create'), imgUpload_1.upload.array('documents', 10), customerCntrl_1.createCustomer);
 router.get('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_read'), customerCntrl_1.getCustomers);
+router.get('/customers/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_read'), customerCntrl_1.getCustomersDetails);
 router.put('/customer', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_update'), imgUpload_1.upload.array('documents', 10), customerCntrl_1.updateCustomer);
 router.delete('/customer/:customerId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Customer', 'can_delete'), customerCntrl_1.deleteCustomer);
 //inventory
@@ -120,22 +122,24 @@ router.get('/sale-order', auth_1.verifyUser, (0, checkPermission_1.default)('adm
 router.get('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getOneSaleOrder);
 router.delete('/sale-order/:saleOrderId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
 router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_create'), projectCntrl_1.createProject);
-router.put('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
+router.put('/project/:projectIid', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
 router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
 router.get('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getOneProject);
+router.get('/projects/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getProjects);
 router.post('/sales-person', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_create'), salesPerson_1.createSalesPerson);
 router.get('/sales-person/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_read'), salesPerson_1.getSalesPerson);
 router.put('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_update'), salesPerson_1.updateSalesPerson);
 router.delete('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_delete'), salesPerson_1.deleteSalesPerson);
 //invoice 
-router.post('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_create'), imgUpload_1.upload.array('documents', 10), saleOrderCntls_1.createSaleOrder);
-router.put('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_update'), imgUpload_1.upload.array('documents', 10), saleOrderCntls_1.updateSaleOrder);
-router.get('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getAllSaleOrder);
-router.get('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_read'), saleOrderCntls_1.getOneSaleOrder);
-router.delete('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SaleOrder', 'can_delete'), saleOrderCntls_1.deleteSaleOrder);
+router.post('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_create'), imgUpload_1.upload.array('documents', 10), invoiceCntrl_1.createInvoice);
+router.put('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_update'), imgUpload_1.upload.array('documents', 10), invoiceCntrl_1.updateInvoice);
+router.get('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_read'), invoiceCntrl_1.getALLInvoices);
+router.get('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_read'), invoiceCntrl_1.getOneInvoice);
+router.delete('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_delete'), invoiceCntrl_1.deleteInvoice);
 //tune log entry
 router.post('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_create'), projectCntrl_1.createLogEntry);
 router.get('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getAllLogEntries);
 router.put('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_update'), projectCntrl_1.updateLogEntry);
 router.delete('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_delete'), projectCntrl_1.deleteLogEntry);
+router.get('/timesheets', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getTimesheetsByDate);
 exports.default = router;

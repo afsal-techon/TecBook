@@ -766,23 +766,50 @@ const getAllItems = async (req, res, next) => {
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user)
             return res.status(400).json({ message: "User not found!" });
-        //  Validate branchId
-        if (!branchId) {
-            return res.status(400).json({ message: "Branch Id is required!" });
-        }
-        //  Pagination
+        const userRole = user.role;
+        const filterBranchId = req.query.branchId;
+        const search = (req.query.search || "").trim();
+        // Pagination
         const limit = parseInt(req.query.limit) || 20;
         const page = parseInt(req.query.page) || 1;
         const skip = (page - 1) * limit;
-        //  Search and filters
-        const search = (req.query.search || "").trim();
+        // Determine allowed branches
+        let allowedBranchIds = [];
+        if (userRole === "CompanyAdmin") {
+            const branches = await branch_1.default.find({
+                companyAdminId: userId,
+                isDeleted: false,
+            }).select("_id");
+            allowedBranchIds = branches.map((b) => new mongoose_1.default.Types.ObjectId(b._id));
+        }
+        else if (userRole === "User") {
+            if (!user.branchId) {
+                return res.status(400).json({
+                    message: "User is not assigned to any branch!",
+                });
+            }
+            allowedBranchIds = [user.branchId];
+        }
+        else {
+            return res.status(403).json({ message: "Unauthorized role!" });
+        }
+        // Branch filter (if selected)
+        if (filterBranchId) {
+            const filterId = new mongoose_1.default.Types.ObjectId(filterBranchId);
+            if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+                return res.status(403).json({
+                    message: "You are not authorized to view projects for this branch!",
+                });
+            }
+            allowedBranchIds = [filterId];
+        }
         const itemType = req.query.itemType?.trim()?.toLowerCase();
         const salesAccountName = (req.query.salesAccount || "").trim();
         const purchaseAccountName = (req.query.purchaseAccount || "").trim();
         const inventoryOnly = req.query.inventoryOnly === "true" || req.query.inventoryOnly === "1";
         //  Base match
         const matchStage = {
-            branchId: new mongoose_1.default.Types.ObjectId(branchId),
+            branchId: { $in: allowedBranchIds },
             isDeleted: false,
         };
         if (itemType === "sellable")
