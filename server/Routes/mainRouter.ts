@@ -17,6 +17,7 @@ import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntr
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
 import { createLogEntry, createProject, deleteLogEntry, getAllLogEntries, getAllProjects, getOneProject, getProjects, getTimesheetsByDate, updateLogEntry, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
+import { createInvoice, deleteInvoice, getALLInvoices, getOneInvoice, updateInvoice } from '../controller/saleController/invoiceCntrl';
 const router = express.Router();
 
 
@@ -167,11 +168,11 @@ router.delete('/sales-person/:salesPersonId',verifyUser,checkPermission('admin',
 
 
 //invoice 
-router.post('/invoice',verifyUser,checkPermission('admin','SaleOrder','can_create'),upload.array('documents',10),createSaleOrder);
-router.put('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_update'),upload.array('documents',10),updateSaleOrder);
-router.get('/invoice',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
-router.get('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder)
-router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+router.post('/invoice',verifyUser,checkPermission('admin','Invoice','can_create'),upload.array('documents',10),createInvoice);
+router.put('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_update'),upload.array('documents',10),updateInvoice);
+router.get('/invoice',verifyUser,checkPermission('admin','Invoice','can_read'),getALLInvoices)
+router.get('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_read'),getOneInvoice)
+router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_delete'),deleteInvoice);
 
 //tune log entry
 router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_create'),createLogEntry)
