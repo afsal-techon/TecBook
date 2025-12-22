@@ -56,7 +56,7 @@ export class GenericDatabaseService<T> {
    */
   genericFindAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.Model.find();
+      const data = await this.Model.find({ isDeleted: false });
       res.status(HTTP_STATUS.OK).json({
         success: true,
         count: data.length,
@@ -83,7 +83,10 @@ export class GenericDatabaseService<T> {
    */
   genericFindById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.Model.findById(req.params.id);
+      const data = await this.Model.findById({
+        _id: req.params.id,
+        isDeleted: false,
+      });
       if (!data) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
           success: false,
@@ -122,7 +125,10 @@ export class GenericDatabaseService<T> {
     next: NextFunction
   ) => {
     try {
-      const data = await this.Model.findById(req.params.id);
+      const data = await this.Model.findById({
+        _id: req.params.id,
+        isDeleted: false,
+      });
 
       if (!data) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -160,10 +166,11 @@ export class GenericDatabaseService<T> {
     next: NextFunction
   ) => {
     try {
-      const data = await this.Model.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true,
-      });
+      const data = await this.Model.findOneAndUpdate(
+        { _id: req.params.id, isDeleted: false },
+        req.body,
+        { new: true, runValidators: true }
+      );
 
       if (!data) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -201,8 +208,11 @@ export class GenericDatabaseService<T> {
     next: NextFunction
   ) => {
     try {
-      const data = await this.Model.findByIdAndDelete(req.params.id);
-
+      const data = await this.Model.findOneAndUpdate(
+        { _id: req.params.id, isDeleted: false },
+        { isDeleted: true },
+        { new: true }
+      );
       if (!data) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
           success: false,
