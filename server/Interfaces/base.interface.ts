@@ -1,6 +1,6 @@
-import { Document } from "mongoose";
+import { Document, Schema, Types } from "mongoose";
 
 export interface IBaseFIelds extends Document {
   isDeleted: boolean;
-  createdBy: string;
+  createdBy:Types.ObjectId;
 }
