@@ -41,6 +41,11 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       ref: "Project",
       required: false,
     },
+    branchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+    },
   },
   { timestamps: true }
 );
