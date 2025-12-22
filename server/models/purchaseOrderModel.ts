@@ -1,0 +1,49 @@
+import { model, Schema } from "mongoose";
+import { IPurchaseOrder } from "../Interfaces/purchase-order.interface";
+import { BaseSchema } from "./common/BaseSchemaFields";
+import { ItemsBaseSchema } from "./common/ItemsSchemaFields";
+
+const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
+  {
+    vendorId: {
+      type: Schema.Types.ObjectId,
+      ref: "Vendor",
+      default: null,
+    },
+    quoteNumber: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    quoteDate: {
+      type: Date,
+      required: true,
+    },
+
+    expiryDate: {
+      type: Date,
+      required: true,
+    },
+    salesmanId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      required: false,
+    },
+  },
+  { timestamps: true }
+);
+
+PurchaseOrderSchema.add(BaseSchema);
+PurchaseOrderSchema.add(ItemsBaseSchema);
+
+export const PurchaseOrderModel = model<IPurchaseOrder>(
+  "PurchaseOrder",
+  PurchaseOrderSchema
+);
