@@ -37,9 +37,9 @@ vendorSchema.index({ branchId: 1, name: 1 });
 vendorSchema.index({ branchId: 1,phone: 1 });
 vendorSchema.index({ branchId: 1,phone: 1 ,isDeleted:1 });
 
-const employeeModel: Model<IVendor> = mongoose.model<IVendor>(
+const vendorModel: Model<IVendor> = mongoose.model<IVendor>(
   "Vendor",
   vendorSchema
 );
 
-export default employeeModel;
+export default vendorModel;
