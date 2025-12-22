@@ -18,6 +18,8 @@ export const createInvoice = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+
+    console.log(req.body,'body')
     const {
       branchId,
       invoiceId, // may be null/ignored in auto mode
@@ -55,6 +57,10 @@ export const createInvoice = async (
       return res.status(400).json({ message: "Due Date is required!" });
     if (!status)
       return res.status(400).json({ message: "Status is required!" });
+
+    if(!paymentTerms){
+      return res.status(400).json( { message:"Payment Terms is required!"})
+    }
 
     const customer = await CUSTOMER.findOne({
       _id: customerId,

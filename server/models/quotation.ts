@@ -18,9 +18,8 @@ const quotationSchema = new Schema<IQuotes>(
       default: null,
     },
     projectId: {
-      // type: Schema.Types.ObjectId,
-      type:String,
-      // ref: "Project",
+      type: Schema.Types.ObjectId,
+      ref: "Project",
       default: null,
     },
     salesPersonId: {
