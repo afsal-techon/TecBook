@@ -65,14 +65,14 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       }
 
       await this.validateVendor(dto.vendorId);
-      await this.validateSalesman(dto.salesmanId);
+      const validateUser = await this.validateSalesman(dto.salesmanId);
       if (dto.projectId) await this.validateProject(dto.projectId);
 
       const items: IItem[] = this.mapItems(dto.items);
 
       const payload: Partial<IPurchaseOrder> = {
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderNumber: 1, //TODO : move to auto increment
+        purchaseOrderNumber: 2, //TODO : move to auto increment
         quoteNumber: dto.quoteNumber,
         quoteDate,
         expiryDate,
@@ -82,6 +82,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
           : undefined,
         items,
         createdBy: new Types.ObjectId(userId) ?? undefined,
+        branchId: validateUser.branchId ?? undefined,
       };
 
       const purchaseOrder = await this.createOne(payload);
