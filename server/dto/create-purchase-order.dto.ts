@@ -35,6 +35,10 @@ export class CreatePurchaseOrderDto {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items!: ItemDto[];
+
+  @IsMongoId()
+  @IsNotEmpty()
+  branchId!: string;
 }
 
 export class UpdatePurchaseOrderDto {
@@ -67,4 +71,8 @@ export class UpdatePurchaseOrderDto {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items?: ItemDto[];
+
+  @IsMongoId()
+  @IsOptional()
+  branchId!: string;
 }
