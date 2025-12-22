@@ -1,6 +1,6 @@
-import { Schema, Types } from "mongoose";
+import { Schema } from "mongoose";
 
-// Common fields for all schemas
+// Common fields for ROOT schemas
 export const BaseSchemaFields = {
   createdBy: {
     type: Schema.Types.ObjectId,
@@ -13,7 +13,3 @@ export const BaseSchemaFields = {
     default: false,
   },
 };
-
-export const BaseSchema = new Schema(BaseSchemaFields, {
-  _id: false,
-});
