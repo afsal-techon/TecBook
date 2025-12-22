@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTP_STATUS } from "../constants/http-status";
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 
 /**
  * GenericDatabaseService
@@ -10,8 +10,8 @@ import mongoose from "mongoose";
  *
  * @template T - Model document type
  */
-export class GenericDatabaseService<T> {
-  constructor(private readonly Model: any) {}
+export class GenericDatabaseService<T extends Model<any>> {
+  constructor(private readonly Model: T) {}
 
   private isValidMongoId = (id: string) => {
     return mongoose.isValidObjectId(id);
