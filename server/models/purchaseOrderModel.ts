@@ -47,3 +47,5 @@ export const PurchaseOrderModel = model<IPurchaseOrder>(
   "PurchaseOrder",
   PurchaseOrderSchema
 );
+
+export type PurchaseOrderModelDocument = typeof PurchaseOrderModel;
