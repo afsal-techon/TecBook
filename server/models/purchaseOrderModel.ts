@@ -5,6 +5,11 @@ import { ItemsBaseSchema } from "./common/ItemsSchemaFields";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
+    purchaseOrderNumber:{
+        type:Number,
+        default:0,
+        unique:true
+    },
     vendorId: {
       type: Schema.Types.ObjectId,
       ref: "Vendor",
