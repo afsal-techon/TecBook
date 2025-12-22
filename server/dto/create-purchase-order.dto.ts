@@ -36,3 +36,35 @@ export class CreatePurchaseOrderDto {
   @Type(() => ItemDto)
   items!: ItemDto[];
 }
+
+export class UpdatePurchaseOrderDto {
+  @IsMongoId()
+  @IsOptional()
+  vendorId?: string;
+
+  @IsString()
+  @IsOptional()
+  quoteNumber?: string;
+
+  @IsDateString()
+  @IsOptional()
+  quoteDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  expiryDate?: string;
+
+  @IsMongoId()
+  @IsOptional()
+  salesmanId?: string;
+
+  @IsMongoId()
+  @IsOptional()
+  projectId?: string;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ItemDto)
+  items?: ItemDto[];
+}
