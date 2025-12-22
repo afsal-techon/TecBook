@@ -60,3 +60,21 @@ export const PurchaseOrderModel = model<IPurchaseOrder>(
 );
 
 export type PurchaseOrderModelDocument = typeof PurchaseOrderModel;
+
+
+export const PurchaseOrderModelConstants = {
+  purchaseOrderNumber: "purchaseOrderNumber",
+  vendorId: "vendorId",
+  quoteNumber: "quoteNumber",
+  quoteDate: "quoteDate",
+  expiryDate: "expiryDate",
+  salesmanId: "salesmanId",
+  projectId: "projectId",
+  branchId: "branchId",
+  items: "items",
+  createdBy: "createdBy",
+  isDeleted: "isDeleted",
+} as const;
+
+export type PurchaseOrderField =
+  keyof typeof PurchaseOrderModelConstants;
