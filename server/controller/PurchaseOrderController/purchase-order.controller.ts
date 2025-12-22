@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { Types, Model } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import { PurchaseOrderModel } from "../../models/purchaseOrderModel";
-import { CreatePurchaseOrderDto } from "../../dto/create-purchase-order.dto";
+import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from "../../dto/create-purchase-order.dto";
 import vendorModel from "../../models/vendor";
 import userModel from "../../models/user";
 import projectModel from "../../models/project";
@@ -34,12 +34,21 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     req: Request<{}, {}, CreatePurchaseOrderDto>,
     res: Response,
     next: NextFunction
-  )  => {
+  ) => {
     try {
       const dto: CreatePurchaseOrderDto = req.body;
       const userId: string | undefined = req.user?.id;
 
-      console.log('userid', userId)
+
+
+
+      if (!userId) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
 
       const quoteDate: Date = new Date(dto.quoteDate);
       const expiryDate: Date = new Date(dto.expiryDate);
@@ -49,62 +58,13 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
           success: false,
           message: "Expiry date must be greater than quote date",
         });
-        return;
       }
 
-      const validVendor = await this.vendorModel.findOne({
-        _id: dto.vendorId,
-        isDeleted: false,
-      });
+      await this.validateVendor(dto.vendorId);
+      await this.validateSalesman(dto.salesmanId);
+      if (dto.projectId) await this.validateProject(dto.projectId);
 
-      if (!validVendor) {
-        res.status(HTTP_STATUS.NOT_FOUND).json({
-          success: false,
-          message: "Vendor not found",
-        });
-        return;
-      }
-
-      const validUser = await this.userModel.findOne({
-        _id: dto.salesmanId,
-        isDeleted: false,
-      });
-
-      if (!validUser) {
-        res.status(HTTP_STATUS.NOT_FOUND).json({
-          success: false,
-          message: "Salesman not found",
-        });
-        return;
-      }
-
-      if (dto.projectId) {
-        const validProject = await this.projectModel.findOne({
-          _id: dto.projectId,
-          isDeleted: false,
-        });
-
-        if (!validProject) {
-          res.status(HTTP_STATUS.NOT_FOUND).json({
-            success: false,
-            message: "Project not found",
-          });
-          return;
-        }
-      }
-
-
-      const items: IItem[] = dto.items.map((item: ItemDto) => ({
-        itemId: item.itemId ? new Types.ObjectId(item.itemId) : undefined,
-        taxId: item.taxId ? new Types.ObjectId(item.taxId) : undefined,
-        itemName: item.itemName,
-        qty: item.qty,
-        tax: item.tax,
-        rate: item.rate,
-        amount: item.amount,
-        unit: item.unit,
-        discount: item.discount,
-      }));
+      const items: IItem[] = this.mapItems(dto.items);
 
       const payload: Partial<IPurchaseOrder> = {
         vendorId: new Types.ObjectId(dto.vendorId),
@@ -131,8 +91,76 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       next(error);
     }
   };
-}
 
+
+  updatePurchaseOrder = async (
+    req: Request<{ id: string }, {}, UpdatePurchaseOrderDto>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      if (!this.isValidMongoId(req.params.id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid purchase order id",
+        });
+      }
+
+      return this.genericUpdateOneById(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+
+  deletePurchaseOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    return this.genericDeleteOneById(req, res, next);
+  };
+
+
+
+  private async validateVendor(vendorId: string) {
+    const vendor = await this.vendorModel.findOne({
+      _id: vendorId,
+      isDeleted: false,
+    });
+    if (!vendor) throw new Error("Vendor not found");
+  }
+
+  private async validateSalesman(userId: string) {
+    const user = await this.userModel.findOne({
+      _id: userId,
+      isDeleted: false,
+    });
+    if (!user) throw new Error("Salesman not found");
+  }
+
+  private async validateProject(projectId: string) {
+    const project = await this.projectModel.findOne({
+      _id: projectId,
+      isDeleted: false,
+    });
+    if (!project) throw new Error("Project not found");
+  }
+
+  private mapItems(itemsDto: ItemDto[]): IItem[] {
+    return itemsDto.map((item) => ({
+      itemId: item.itemId ? new Types.ObjectId(item.itemId) : undefined,
+      taxId: item.taxId ? new Types.ObjectId(item.taxId) : undefined,
+      itemName: item.itemName,
+      qty: item.qty,
+      tax: item.tax,
+      rate: item.rate,
+      amount: item.amount,
+      unit: item.unit,
+      discount: item.discount,
+    }));
+  }
+}
 export default new PurchaseOrderController(
   vendorModel,
   userModel,
