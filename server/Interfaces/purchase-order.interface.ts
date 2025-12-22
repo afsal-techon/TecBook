@@ -12,7 +12,5 @@ export interface IPurchaseOrder extends IBaseFIelds {
   projectId?: Types.ObjectId;
 
   items: IItem[];
-
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdBy: Types.ObjectId;
 }
