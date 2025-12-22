@@ -3,7 +3,7 @@ import { Schema, Types } from "mongoose";
 // Common fields for all schemas
 export const BaseSchemaFields = {
   createdBy: {
-    type: Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
