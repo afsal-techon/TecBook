@@ -15,3 +15,6 @@ export const ItemsSchemaFields = {
     },
   ],
 };
+export const ItemsBaseSchema = new Schema(ItemsSchemaFields, {
+  _id: false,
+});
