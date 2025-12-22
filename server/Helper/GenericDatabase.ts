@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTP_STATUS } from "../constants/http-status";
-import mongoose, { Model } from "mongoose";
+import mongoose, { Model, Document, Types } from "mongoose";
+import { IBaseFIelds } from "../Interfaces/base.interface";
 
 /**
  * GenericDatabaseService
@@ -10,12 +11,19 @@ import mongoose, { Model } from "mongoose";
  *
  * @template T - Model document type
  */
-export class GenericDatabaseService<T extends Model<any>> {
-  constructor(private readonly Model: T) {}
+export class GenericDatabaseService<T extends IBaseFIelds> {
+  constructor(protected readonly Model: Model<T & Document>) {}
 
-  private isValidMongoId = (id: string) => {
+  protected isValidMongoId = (id: string) => {
     return mongoose.isValidObjectId(id);
   };
+
+  /**
+   * SERVICE METHOD
+   */
+  protected async createOne(data: Partial<T>) {
+    return this.Model.create(data);
+  }
 
   /**
    * Create a new record
