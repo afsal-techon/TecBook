@@ -47,6 +47,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       const dto: CreatePurchaseOrderDto = req.body;
       const userId: string | undefined = req.user?.id;
 
+
       if (!userId) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
@@ -65,14 +66,14 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       }
 
       await this.validateVendor(dto.vendorId);
-      const validateUser = await this.validateSalesman(dto.salesmanId);
+      await this.validateSalesman(dto.salesmanId);
       if (dto.projectId) await this.validateProject(dto.projectId);
 
       const items: IItem[] = this.mapItems(dto.items);
 
       const payload: Partial<IPurchaseOrder> = {
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderNumber: 2, //TODO : move to auto increment
+        purchaseOrderNumber: 5, //TODO : move to auto increment
         quoteNumber: dto.quoteNumber,
         quoteDate,
         expiryDate,
@@ -82,7 +83,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
           : undefined,
         items,
         createdBy: new Types.ObjectId(userId) ?? undefined,
-        branchId: validateUser.branchId ?? undefined,
+        branchId: new Types.ObjectId(dto.branchId),
       };
 
       const purchaseOrder = await this.createOne(payload);
@@ -137,6 +138,8 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
         requestedBranchId: filterBranchId,
       });
 
+      // console.log("allowedBranchIds", allowedBranchIds);
+
       const query: any = {
         isDeleted: false,
         branchId: { $in: allowedBranchIds },
@@ -147,6 +150,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       }
 
       const totalCount = await PurchaseOrderModel.countDocuments(query);
+      // console.log('count', totalCount)
 
       const purchaseOrders = await PurchaseOrderModel.find(query)
         .sort({ createdAt: -1 })
