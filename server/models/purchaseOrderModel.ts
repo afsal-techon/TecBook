@@ -1,7 +1,7 @@
 import { model, Schema } from "mongoose";
 import { IPurchaseOrder } from "../Interfaces/purchase-order.interface";
-import { BaseSchema } from "./common/BaseSchemaFields";
-import { ItemsBaseSchema } from "./common/ItemsSchemaFields";
+import { BaseSchemaFields } from "./common/BaseSchemaFields";
+import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
@@ -45,8 +45,9 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   { timestamps: true }
 );
 
-PurchaseOrderSchema.add(BaseSchema);
-PurchaseOrderSchema.add(ItemsBaseSchema);
+
+PurchaseOrderSchema.add(BaseSchemaFields);
+PurchaseOrderSchema.add(ItemsSchemaFields);
 
 export const PurchaseOrderModel = model<IPurchaseOrder>(
   "PurchaseOrder",
