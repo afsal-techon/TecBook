@@ -753,7 +753,6 @@ export const getOneInvoice = async (
           as: "itemDetails",
         },
       },
-
       {
         $project: {
           _id: 1,
