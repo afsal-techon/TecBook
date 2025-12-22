@@ -10,7 +10,7 @@ export interface IPurchaseOrder extends IBaseFIelds {
   expiryDate: Date;
   salesmanId: Types.ObjectId;
   projectId?: Types.ObjectId;
-
+  branchId: Types.ObjectId;
   items: IItem[];
   createdBy: Types.ObjectId;
 }
