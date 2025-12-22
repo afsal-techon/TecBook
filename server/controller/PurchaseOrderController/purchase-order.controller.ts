@@ -108,7 +108,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
 
       const payload: Partial<IPurchaseOrder> = {
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderNumber: 1,
+        purchaseOrderNumber: 1,  //TODO : move to auto increment
         quoteNumber: dto.quoteNumber,
         quoteDate,
         expiryDate,
