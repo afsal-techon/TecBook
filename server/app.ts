@@ -1,3 +1,4 @@
+import "reflect-metadata";
 console.log("🚀 App starting...");
 import express , { Application, NextFunction, Request,Response } from 'express';
 console.log("✅ Express imported");
@@ -7,6 +8,8 @@ import cookieParser from "cookie-parser";
 import mainRouter from './Routes/mainRouter'
 import connectDB from './config/database';
 import cors from 'cors';
+import purchaseOrderRoutes from './Routes/purchase-order.routes';
+
 
 
 
@@ -43,6 +46,7 @@ app.use(cors({
   await connectDB();
 
   app.use("/api", mainRouter);
+  app.use("/api/purchase-orders", purchaseOrderRoutes);
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
