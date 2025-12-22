@@ -113,15 +113,6 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
   };
 
 
-  deletePurchaseOrder = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    return this.genericDeleteOneById(req, res, next);
-  };
-
-
 
   private async validateVendor(vendorId: string) {
     const vendor = await this.vendorModel.findOne({
