@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTP_STATUS } from "../constants/http-status";
+import mongoose from "mongoose";
 
 /**
  * GenericDatabaseService
@@ -11,6 +12,10 @@ import { HTTP_STATUS } from "../constants/http-status";
  */
 export class GenericDatabaseService<T> {
   constructor(private readonly Model: any) {}
+
+  private isValidMongoId = (id: string) => {
+    return mongoose.isValidObjectId(id);
+  };
 
   /**
    * Create a new record
@@ -83,8 +88,17 @@ export class GenericDatabaseService<T> {
    */
   genericFindById = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid ID format",
+        });
+      }
+
       const data = await this.Model.findById({
-        _id: req.params.id,
+        _id: id,
         isDeleted: false,
       });
       if (!data) {
@@ -125,8 +139,17 @@ export class GenericDatabaseService<T> {
     next: NextFunction
   ) => {
     try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid ID format",
+        });
+      }
+
       const data = await this.Model.findById({
-        _id: req.params.id,
+        _id: id,
         isDeleted: false,
       });
 
@@ -166,8 +189,17 @@ export class GenericDatabaseService<T> {
     next: NextFunction
   ) => {
     try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid ID format",
+        });
+      }
+
       const data = await this.Model.findOneAndUpdate(
-        { _id: req.params.id, isDeleted: false },
+        { _id: id, isDeleted: false },
         req.body,
         { new: true, runValidators: true }
       );
@@ -208,8 +240,17 @@ export class GenericDatabaseService<T> {
     next: NextFunction
   ) => {
     try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid ID format",
+        });
+      }
+
       const data = await this.Model.findOneAndUpdate(
-        { _id: req.params.id, isDeleted: false },
+        { _id: id, isDeleted: false },
         { isDeleted: true },
         { new: true }
       );
