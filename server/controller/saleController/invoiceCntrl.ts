@@ -8,9 +8,8 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import saleNumberSetting from "../../models/numberSetting";
 import PAYMENT_TEMRS from "../../models/paymentTerms";
-import SALSE_PERSON from '../../models/salesPerson'
-import TAX from '../../models/tax'
-
+import SALSE_PERSON from "../../models/salesPerson";
+import TAX from "../../models/tax";
 
 export const createInvoice = async (
   req: Request,
@@ -18,13 +17,13 @@ export const createInvoice = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
-    console.log(req.body,'body')
+    console.log(req.body, "body");
     const {
       branchId,
       invoiceId, // may be null/ignored in auto mode
       customerId,
       salesPersonId,
+      projectId,
       invoiceDate,
       dueDate,
       status,
@@ -58,8 +57,8 @@ export const createInvoice = async (
     if (!status)
       return res.status(400).json({ message: "Status is required!" });
 
-    if(!paymentTerms){
-      return res.status(400).json( { message:"Payment Terms is required!"})
+    if (!paymentTerms) {
+      return res.status(400).json({ message: "Payment Terms is required!" });
     }
 
     const customer = await CUSTOMER.findOne({
@@ -70,11 +69,10 @@ export const createInvoice = async (
       return res.status(400).json({ message: "Customer not found!" });
     }
 
-    
-    if(salesPersonId){
+    if (salesPersonId) {
       const salesPerson = await SALSE_PERSON.findById(salesPersonId);
-      if(!salesPerson){
-        return res.status(400).json({ message:'Sales person not found!'})
+      if (!salesPerson) {
+        return res.status(400).json({ message: "Sales person not found!" });
       }
     }
 
@@ -149,11 +147,7 @@ export const createInvoice = async (
       await setting.save();
     } else {
       // ---------- MANUAL MODE ----------
-      if (
-        !invoiceId ||
-        typeof invoiceId !== "string" ||
-        !invoiceId.trim()
-      ) {
+      if (!invoiceId || typeof invoiceId !== "string" || !invoiceId.trim()) {
         return res
           .status(400)
           .json({ message: "Invoice Id is required in manual mode!" });
@@ -169,7 +163,8 @@ export const createInvoice = async (
       });
       if (exists) {
         return res.status(400).json({
-          message: "This invoice Id already exists. Please enter a different one.",
+          message:
+            "This invoice Id already exists. Please enter a different one.",
         });
       }
     }
@@ -187,12 +182,17 @@ export const createInvoice = async (
       }
     }
 
-     for (let item of parsedItems) {
-      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+    for (let item of parsedItems) {
+      if (
+        !item.itemName ||
+        !item.qty ||
+        !item.rate ||
+        !item.amount ||
+        !item.unit
+      ) {
         return res.status(400).json({ message: "Invalid item data!" });
       }
 
-    
       let taxAmount = 0;
 
       // TAX CALCULATION (Backend Controlled)
@@ -208,7 +208,7 @@ export const createInvoice = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-          const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+        const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -220,7 +220,6 @@ export const createInvoice = async (
         }
       }
 
-
       item.tax = Number(taxAmount.toFixed(2));
     }
 
@@ -228,7 +227,7 @@ export const createInvoice = async (
       branchId: new Types.ObjectId(branchId),
       invoiceId: finalQuoteId, //  always use this
       customerId: new Types.ObjectId(customerId),
-      // projectId: projectId ? new Types.ObjectId(projectId) : null,
+      projectId: projectId ? new Types.ObjectId(projectId) : null,
       salesPersonId: salesPersonId ? new Types.ObjectId(salesPersonId) : null,
       invoiceDate,
       dueDate,
@@ -258,7 +257,6 @@ export const createInvoice = async (
   }
 };
 
-
 export const updateInvoice = async (
   req: Request,
   res: Response,
@@ -270,6 +268,7 @@ export const updateInvoice = async (
     const {
       branchId,
       customerId,
+      projectId,
       salesPersonId,
       invoiceDate,
       dueDate,
@@ -404,8 +403,14 @@ export const updateInvoice = async (
       }
     }
 
-         for (let item of parsedItems) {
-      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+    for (let item of parsedItems) {
+      if (
+        !item.itemName ||
+        !item.qty ||
+        !item.rate ||
+        !item.amount ||
+        !item.unit
+      ) {
         return res.status(400).json({ message: "Invalid item data!" });
       }
 
@@ -424,7 +429,7 @@ export const updateInvoice = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-           const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+        const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -439,9 +444,9 @@ export const updateInvoice = async (
       item.tax = Number(taxAmount.toFixed(2));
     }
 
-
     invoice.branchId = branchId;
     invoice.customerId = customerId;
+    invoice.projectId = projectId;
     invoice.salesPersonId = salesPersonId || null;
     invoice.invoiceDate = invoiceDate;
     invoice.dueDate = dueDate;
@@ -467,7 +472,6 @@ export const updateInvoice = async (
     next(err);
   }
 };
-
 
 export const getALLInvoices = async (
   req: Request,
@@ -625,10 +629,10 @@ export const getALLInvoices = async (
         dueDate: 1,
         status: 1,
         subTotal: 1,
-         terms:1,
+        terms: 1,
         taxTotal: 1,
         orderNumber: 1,
-        subject:1,
+        subject: 1,
         total: 1,
         discount: 1,
         documents: 1,
@@ -641,10 +645,45 @@ export const getALLInvoices = async (
     });
 
     // 🔹 Execute
-    const quotes = await INVOICE.aggregate(pipeline);
+    const invoices = await INVOICE.aggregate(pipeline);
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const invoicesWithOverdue = invoices.map((invoice) => {
+      let overdueDays = 0;
+      let displayStatus = invoice.status;
+
+      if (invoice.dueDate) {
+        const dueDate = new Date(invoice.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+
+        if (
+          invoice.status !== "Paid" &&
+          invoice.status !== "Cancelled" &&
+          today > dueDate
+        ) {
+          overdueDays = Math.floor(
+            (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          displayStatus = `Overdue by ${overdueDays} day${
+            overdueDays > 1 ? "s" : ""
+          }`;
+        }
+      }
+
+      return {
+        ...invoice,
+        overdueDays,
+        isOverdue: overdueDays > 0,
+        displayStatus, // derived field
+      };
+    });
+
+    //  YOU MUST RETURN RESPONSE
     return res.status(200).json({
-      data: quotes,
+      data: invoicesWithOverdue,
       totalCount,
       page,
       limit,
@@ -653,8 +692,6 @@ export const getALLInvoices = async (
     next(err);
   }
 };
-
-
 
 export const getOneInvoice = async (
   req: Request,
@@ -676,8 +713,6 @@ export const getOneInvoice = async (
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
-
-    
 
     // 4) Aggregation pipeline
     const pipeline: any[] = [
@@ -724,6 +759,7 @@ export const getOneInvoice = async (
           _id: 1,
           branchId: 1,
           invoiceId: 1,
+          projectId:1,
           customerId: 1,
           paymentTermsId: 1,
           salesPersonId: 1,
@@ -732,7 +768,7 @@ export const getOneInvoice = async (
           status: 1,
           subTotal: 1,
           orderNumber: 1,
-           subject:1,
+          subject: 1,
           taxTotal: 1,
           total: 1,
           discount: 1,
@@ -749,7 +785,7 @@ export const getOneInvoice = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
-                 taxId : "$$it.taxId",
+                taxId: "$$it.taxId",
                 qty: "$$it.qty",
                 tax: "$$it.tax",
                 rate: "$$it.rate",
@@ -789,7 +825,7 @@ export const getOneInvoice = async (
           },
 
           // sales person fields
-         salesPerson: {
+          salesPerson: {
             _id: "$salesPerson._id",
             name: "$salesPerson.name",
             email: "$salesPerson.email",
@@ -804,15 +840,46 @@ export const getOneInvoice = async (
       return res.status(404).json({ message: "Invoice not found!" });
     }
 
-    // Since we matched by _id, there will be exactly one
+    const invoice = result[0];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let overdueDays = 0;
+    let displayStatus = invoice.status;
+
+    if (invoice.dueDate) {
+      const dueDate = new Date(invoice.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+
+      if (
+        invoice.status !== "Paid" &&
+        invoice.status !== "Cancelled" &&
+        today > dueDate
+      ) {
+        overdueDays = Math.floor(
+          (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        displayStatus = `Overdue by ${overdueDays} day${
+          overdueDays > 1 ? "s" : ""
+        }`;
+      }
+    }
+
+    // Final response
     return res.status(200).json({
-      data: result[0],
+      data: {
+        ...invoice,
+        overdueDays,
+        isOverdue: overdueDays > 0,
+        displayStatus,
+      },
     });
   } catch (err) {
     next(err);
   }
 };
-
 
 export const deleteInvoice = async (
   req: Request,
