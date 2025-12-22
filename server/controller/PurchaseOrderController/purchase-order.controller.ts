@@ -38,6 +38,17 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     this.branchModel = branchModel;
   }
 
+  /**
+   * @summary Creates a new purchase order.
+   * @description This method handles the creation of a new purchase order. It performs several validation checks:
+   * - Ensures a user is authenticated.
+   * - Validates that the expiry date is later than the quote date.
+   * - Confirms the existence of the specified vendor, salesman, and project (if applicable).
+   * It then constructs and saves a new purchase order document to the database.
+   * @param req The Express request object, containing the `CreatePurchaseOrderDto` in the body.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
   createPurchaseOrder = async (
     req: Request<{}, {}, CreatePurchaseOrderDto>,
     res: Response,
@@ -46,7 +57,6 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     try {
       const dto: CreatePurchaseOrderDto = req.body;
       const userId: string | undefined = req.user?.id;
-
 
       if (!userId) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
@@ -98,6 +108,15 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     }
   };
 
+  /**
+   * @summary Updates an existing purchase order.
+   * @description This method handles the update of an existing purchase order. It first validates the provided purchase order ID.
+   * It then validates the associated vendor, salesman, and project (if provided) to ensure their existence. Finally, it updates the purchase order in the database with the new data.
+   * @param req The Express request object, containing the purchase order ID in `req.params.id` and the `UpdatePurchaseOrderDto` in the body.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
+
   updatePurchaseOrder = async (
     req: Request<{ id: string }, {}, UpdatePurchaseOrderDto>,
     res: Response,
@@ -117,6 +136,14 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     }
   };
 
+  /**
+   * @summary Retrieves all purchase orders.
+   * @description This method retrieves all purchase orders from the database, with optional filtering by branch ID and search functionality.
+   * It also handles pagination and populates related fields like vendor, salesman, and project.
+   * @param req The Express request object, which may contain `limit`, `page`, `search`, and `branchId` as query parameters.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
   getAllPurchaseOrders = async (
     req: Request,
     res: Response,
@@ -181,6 +208,14 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     }
   };
 
+  /**
+   * @summary Retrieves a single purchase order by ID.
+   * @description This method retrieves a single purchase order by its ID from the database.
+   * It first validates the purchase order ID, then fetches the purchase order along with its related vendor, salesman, and project details.
+   * @param req The Express request object, containing the purchase order ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
   getPurchaseOrderById = async (
     req: Request<{ id: string }>,
     res: Response,
@@ -223,6 +258,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     }
   };
 
+  // Helper methods for validations
   private async validateVendor(vendorId: string) {
     const vendor = await this.vendorModel.findOne({
       _id: vendorId,
