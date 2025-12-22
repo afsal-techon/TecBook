@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import mongoose, { Types, Model } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
-import { PurchaseOrderModel } from "../../models/purchaseOrderModel";
+import { PurchaseOrderModel, PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
 import {
   CreatePurchaseOrderDto,
   UpdatePurchaseOrderDto,
@@ -181,12 +181,12 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
 
       const purchaseOrders = await PurchaseOrderModel.find(query)
         .sort({ createdAt: -1 })
-        .populate("vendorId")
+        .populate(PurchaseOrderModelConstants.vendorId)
         .populate({
-          path: "salesmanId",
+          path: PurchaseOrderModelConstants.salesmanId,
           select: "username email",
         })
-        .populate("projectId")
+        .populate(PurchaseOrderModelConstants.projectId)
         .skip(skip)
         .limit(limit);
 
@@ -235,12 +235,12 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
         _id: id,
         isDeleted: false,
       })
-        .populate("vendorId")
+        .populate(PurchaseOrderModelConstants.vendorId)
         .populate({
-          path: "salesmanId",
+          path: PurchaseOrderModelConstants.salesmanId,
           select: "username email",
         })
-        .populate("projectId");
+        .populate(PurchaseOrderModelConstants.projectId);
 
       if (!purchaseOrder) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
