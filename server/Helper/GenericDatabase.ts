@@ -36,7 +36,7 @@ export class GenericDatabaseService<T extends Model<any>> {
     next: NextFunction
   ) => {
     try {
-      const data = await this.Model.create(req.body);
+      const data: T | null = await this.Model.create(req.body);
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
         data,
@@ -61,7 +61,7 @@ export class GenericDatabaseService<T extends Model<any>> {
    */
   genericFindAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.Model.find({ isDeleted: false });
+      const data: T[] | null = await this.Model.find({ isDeleted: false });
       res.status(HTTP_STATUS.OK).json({
         success: true,
         count: data.length,
@@ -97,7 +97,7 @@ export class GenericDatabaseService<T extends Model<any>> {
         });
       }
 
-      const data = await this.Model.findById({
+      const data: T | null = await this.Model.findById({
         _id: id,
         isDeleted: false,
       });
@@ -148,7 +148,7 @@ export class GenericDatabaseService<T extends Model<any>> {
         });
       }
 
-      const data = await this.Model.findById({
+      const data: T | null = await this.Model.findById({
         _id: id,
         isDeleted: false,
       });
@@ -198,7 +198,7 @@ export class GenericDatabaseService<T extends Model<any>> {
         });
       }
 
-      const data = await this.Model.findOneAndUpdate(
+      const data: T | null = await this.Model.findOneAndUpdate(
         { _id: id, isDeleted: false },
         req.body,
         { new: true, runValidators: true }
@@ -249,7 +249,7 @@ export class GenericDatabaseService<T extends Model<any>> {
         });
       }
 
-      const data = await this.Model.findOneAndUpdate(
+      const data: T | null = await this.Model.findOneAndUpdate(
         { _id: id, isDeleted: false },
         { isDeleted: true },
         { new: true }
