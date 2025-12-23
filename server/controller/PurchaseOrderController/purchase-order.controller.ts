@@ -99,7 +99,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
         branchId: new Types.ObjectId(dto.branchId),
       };
 
-      const purchaseOrder = await this.createOne(payload);
+      const purchaseOrder = await this.genericCreateOne(payload);
 
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
