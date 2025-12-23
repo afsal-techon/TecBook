@@ -22,6 +22,11 @@ const invoiceSchema = new Schema<IInvoice>(
       ref: "Employee",
       default: null,
     },
+      projectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+    },
     invoiceDate: {
       type: Date,
       default: null,

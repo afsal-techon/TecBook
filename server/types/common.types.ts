@@ -514,6 +514,7 @@ export interface IInvoice extends Document {
   invoiceDate?: Date | null;
   dueDate?:Date | null;
   salesPersonId?: Types.ObjectId | null;
+  projectId?: Types.ObjectId | null;
   paymentTerms?: {
     termName?: string | null;
     days?: number | 0;
