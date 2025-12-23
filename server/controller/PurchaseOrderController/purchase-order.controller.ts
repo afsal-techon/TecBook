@@ -1,7 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import mongoose, { Types, Model } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
-import { PurchaseOrderModel, PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
+import {
+  PurchaseOrderModel,
+  PurchaseOrderModelConstants,
+} from "../../models/purchaseOrderModel";
 import {
   CreatePurchaseOrderDto,
   UpdatePurchaseOrderDto,
@@ -123,6 +126,8 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
     next: NextFunction
   ) => {
     try {
+      const id: string = req.params.id;
+
       if (!this.isValidMongoId(req.params.id)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
@@ -130,7 +135,58 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
         });
       }
 
-      return this.genericUpdateOneById(req, res, next);
+      let quoteDate: Date | undefined;
+      let expiryDate: Date | undefined;
+
+      if (req.body.quoteDate) {
+        quoteDate = new Date(req.body.quoteDate);
+      }
+
+      if (req.body.expiryDate) {
+        expiryDate = new Date(req.body.expiryDate);
+      }
+
+      if (expiryDate && quoteDate && expiryDate <= quoteDate) {
+        res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Expiry date must be greater than quote date",
+        });
+      }
+
+      if (req.body.vendorId) {
+        await this.validateVendor(req.body.vendorId);
+      }
+      if (req.body.salesmanId) {
+        await this.validateSalesman(req.body.salesmanId);
+      }
+      if (req.body.projectId) {
+        await this.validateProject(req.body.projectId);
+      }
+
+      const items: IItem[] = this.mapItems(req.body.items || []);
+      const payload: Partial<IPurchaseOrder> = {
+        vendorId: req.body.vendorId
+          ? new Types.ObjectId(req.body.vendorId)
+          : undefined,
+        quoteNumber: req.body.quoteNumber,
+        quoteDate,
+        expiryDate,
+        salesmanId: req.body.salesmanId
+          ? new Types.ObjectId(req.body.salesmanId)
+          : undefined,
+        projectId: req.body.projectId
+          ? new Types.ObjectId(req.body.projectId)
+          : undefined,
+        items,
+      };
+
+      await this.genericUpdateOneById(id, payload);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Purchase order updated successfully",
+        statusCode: HTTP_STATUS.OK
+      });
     } catch (error) {
       next(error);
     }
