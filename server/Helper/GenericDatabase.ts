@@ -191,42 +191,30 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 404 - Record not found
    * @response 500 - Server error
    */
-  genericUpdateOneById = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const { id } = req.params;
-
-      if (!this.isValidMongoId(id)) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: "Invalid ID format",
-        });
-      }
-
-      const data: T | null = await this.Model.findOneAndUpdate(
-        { _id: id, isDeleted: false },
-        req.body,
-        { new: true, runValidators: true }
-      );
-
-      if (!data) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          success: false,
-          message: "Record not found",
-        });
-      }
-
-      res.status(HTTP_STATUS.OK).json({
-        success: true,
-        data,
+  async genericUpdateOneById(
+    id: string,
+    payload: Partial<T>
+  ): Promise<T | null> {
+    if (!this.isValidMongoId(id)) {
+      throw Object.assign(new Error("Invalid ID format"), {
+        statusCode: HTTP_STATUS.BAD_REQUEST,
       });
-    } catch (error) {
-      next(error);
     }
-  };
+
+    const data = await this.Model.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      payload,
+      { new: true, runValidators: true }
+    );
+
+    if (!data) {
+      throw Object.assign(new Error("Record not found"), {
+        statusCode: HTTP_STATUS.NOT_FOUND,
+      });
+    }
+
+    return data;
+  }
 
   /**
    * Delete a record by ID
