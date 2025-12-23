@@ -39,18 +39,18 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 500 - Server error
    */
   genericCreateOne = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    payload:any,
   ) => {
     try {
-      const data: T | null = await this.Model.create(req.body);
-      res.status(HTTP_STATUS.CREATED).json({
-        success: true,
-        data,
-      });
+      const data: T | null = await this.Model.create(payload);
+      if(!data){
+        throw Object.assign(new Error("Failed to create record"), {
+          statusCode: HTTP_STATUS.BAD_REQUEST,
+        });
+      }
+      return data;
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
