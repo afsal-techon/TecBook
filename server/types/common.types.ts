@@ -566,3 +566,28 @@ export interface ILogEntry extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+
+
+export interface IPayment extends Document {
+  branchId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId | null;
+  paymentId?: string;
+  amount?: number;
+  paymentDate?: Date | null;
+  projectId?: Types.ObjectId | null;
+  paymentMode: Types.ObjectId | null;
+  paymentRecieved?: Date | null;
+  depositTO?: Types.ObjectId | null;
+  reference?: string | null;
+  bankCharges: number  | null;
+  note: string | null;
+  documents?: string[];
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
