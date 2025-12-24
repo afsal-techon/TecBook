@@ -58,20 +58,10 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
    * @response 200 - Records fetched successfully
    * @response 500 - Server error
    */
-  genericFindAll = async (): Promise<{
-    success: boolean;
-    statusCode: number;
-    count: number;
-    data: T[];
-  }> => {
+  genericFindAll = async () => {
     try {
       const data: T[] | null = await this.dbModel.find({ isDeleted: false });
-      return {
-        success: true,
-        statusCode: HTTP_STATUS.OK,
-        count: data.length,
-        data,
-      };
+      return data
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Failed to fetch records", error.message);
@@ -121,8 +111,6 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
       }
 
       return {
-        success: true,
-        statusCode: HTTP_STATUS.OK,
         data,
       };
     } catch (error: unknown) {
@@ -175,8 +163,6 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
       }
 
       return {
-        success: true,
-        statusCode: HTTP_STATUS.OK,
         data,
       };
     } catch (error: unknown) {
@@ -206,12 +192,7 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
   async genericUpdateOneById(
     id: string,
     payload: Partial<any>
-  ): Promise<{
-    success: boolean;
-    statusCode: number;
-    message: string;
-    data?: T;
-  }> {
+  ) {
     try {
       if (!id) {
         throw Object.assign(new Error("ID is required"), {
@@ -241,9 +222,6 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
       }
 
       return {
-        success: true,
-        statusCode: HTTP_STATUS.OK,
-        message: "Record updated successfully",
         data,
       };
     } catch (error: unknown) {
