@@ -205,7 +205,7 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
    */
   async genericUpdateOneById(
     id: string,
-    payload: Partial<T>
+    payload: Partial<any>
   ): Promise<{
     success: boolean;
     statusCode: number;
