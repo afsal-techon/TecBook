@@ -44,9 +44,8 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
   }
 );
 
-BillngRecordSchema.add(BaseSchemaFields)
-BillngRecordSchema.add(ItemsSchemaFields)
-
+BillngRecordSchema.add(BaseSchemaFields);
+BillngRecordSchema.add(ItemsSchemaFields);
 
 export const BillingSchemaModel = model<IBillingRecords>(
   "BillingRecords",
@@ -55,7 +54,7 @@ export const BillingSchemaModel = model<IBillingRecords>(
 
 export type BillingSchemaModelDocument = typeof BillingSchemaModel;
 
-export const BillingSchemaModelConstants = {  
+export const BillingSchemaModelConstants = {
   vendorId: "vendorId",
   billNumber: "billNumber",
   purchaseOrderNumber: "purchaseOrderNumber",
@@ -68,6 +67,4 @@ export const BillingSchemaModelConstants = {
   isDeleted: "isDeleted",
 } as const;
 
-export type BillingRecordsField =
-  keyof typeof BillingSchemaModelConstants;
-  
+export type BillingRecordsField = keyof typeof BillingSchemaModelConstants;
