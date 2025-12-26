@@ -76,6 +76,8 @@ function getDefaultPrefix(docType) {
             return "SO-";
         case "INVOICE":
             return "INV-";
+        case "PAYMENT":
+            return "PAY-";
         default:
             return "DOC-";
     }

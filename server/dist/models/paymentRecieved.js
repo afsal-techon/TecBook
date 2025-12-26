@@ -34,24 +34,24 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const invoiceSchema = new mongoose_1.Schema({
+const paymentRecievedSchema = new mongoose_1.Schema({
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Branch",
         default: null,
     },
-    invoiceId: {
+    paymentId: {
         type: String,
         required: true,
+    },
+    invoiceId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Invoice",
+        default: null,
     },
     customerId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Customer",
-        default: null,
-    },
-    salesPersonId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Employee",
         default: null,
     },
     projectId: {
@@ -59,65 +59,46 @@ const invoiceSchema = new mongoose_1.Schema({
         ref: "Project",
         default: null,
     },
-    invoiceDate: {
+    paymentDate: {
         type: Date,
         default: null,
     },
-    dueDate: {
+    paymentRecieved: {
         type: Date,
         default: null,
+    },
+    amount: {
+        type: Number,
+        default: 0,
     },
     status: {
         type: String,
-        enum: ["Draft", "Closed", "Confirmed", "Paid", "Accepted", "Approved", "Invoiced", "Pending"],
+        enum: ["Paid", "Approved", "Partially Paid", "Draft"],
     },
-    items: [
-        {
-            itemId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Item", default: null },
-            qty: { type: Number, default: 1 },
-            tax: { type: Number, default: 0 },
-            rate: { type: Number, default: 0 },
-            amount: { type: Number, default: 0 },
-            unit: { type: String, default: 0 },
-            discount: { type: Number, default: 0 },
-        },
-    ],
-    subTotal: {
-        type: Number,
-        default: 1,
+    paymentMode: {
+        type: String,
+        required: true,
     },
-    taxTotal: {
-        type: Number,
-        default: 0,
+    accountId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Account",
+        default: null,
     },
-    total: {
-        type: Number,
-        default: 0,
-    },
-    discount: {
-        type: Number,
-        default: 0,
-    },
-    orderNumber: {
+    reference: {
         type: String,
         default: null,
     },
-    subject: {
-        type: String,
-        default: null,
+    bankCharges: {
+        type: Number,
+        default: 0,
     },
     documents: {
         type: [String],
         default: [],
     },
-    paymentTerms: {
-        _id: { type: String, default: null },
-        termName: { type: String, default: null },
-        days: { type: Number, default: 0 },
-    },
-    terms: {
-        type: String,
-        default: false
+    isReversed: {
+        type: Boolean,
+        default: false,
     },
     note: {
         type: String,
@@ -147,15 +128,17 @@ const invoiceSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true } //  automatically manages createdAt & updatedAt
 );
-invoiceSchema.index({
+paymentRecievedSchema.index({
     branchId: 1,
     isDeleted: 1,
     status: 1,
-    invoiceDate: -1,
+    paymentDate: -1,
     createdAt: -1,
 });
-invoiceSchema.index({ customerId: 1, saleOrderDate: -1 });
-invoiceSchema.index({ salesPersonId: 1, dueDate: -1 });
-invoiceSchema.index({ branchId: 1, isDeleted: 1 });
-const invoiceModel = mongoose_1.default.model("Invoice", invoiceSchema);
-exports.default = invoiceModel;
+paymentRecievedSchema.index({ customerId: 1, paymentRecieved: -1 });
+paymentRecievedSchema.index({ branchId: 1, paymentRecieved: -1 });
+paymentRecievedSchema.index({ paymentDate: -1 });
+paymentRecievedSchema.index({ paymentId: 1 });
+paymentRecievedSchema.index({ branchId: 1, isDeleted: 1 });
+const paymentRecievedModel = mongoose_1.default.model("PaymentRecieved", paymentRecievedSchema);
+exports.default = paymentRecievedModel;

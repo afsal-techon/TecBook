@@ -3,10 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllPaymentTerms = exports.upsertPaymentTerms = void 0;
+exports.getAllPaymenModes = exports.upsertPaymentModes = exports.getAllPaymentTerms = exports.upsertPaymentTerms = void 0;
 const paymentTerms_1 = __importDefault(require("../../models/paymentTerms"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const dateCalculation_1 = require("../../Helper/dateCalculation");
+const paymentMode_1 = __importDefault(require("../../models/paymentMode"));
 const upsertPaymentTerms = async (req, res, next) => {
     try {
         const userId = req.user?.id;
@@ -98,3 +99,96 @@ const getAllPaymentTerms = async (req, res, next) => {
     }
 };
 exports.getAllPaymentTerms = getAllPaymentTerms;
+const upsertPaymentModes = async (req, res, next) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        let { branchId, paymentModes } = req.body;
+        if (!branchId) {
+            return res.status(400).json({ message: "branchId is required!" });
+        }
+        if (!mongoose_1.default.Types.ObjectId.isValid(branchId)) {
+            return res.status(400).json({ message: `Invalid branchId: ${branchId}` });
+        }
+        // 1) Check if paymentTerms already exists for this branch
+        const existing = await paymentMode_1.default.findOne({ branchId });
+        // 2) terms must be provided from frontend always in this flow
+        if (!paymentModes || !Array.isArray(paymentModes) || paymentModes.length === 0) {
+            return res.status(400).json({ message: "PaymentModes is required!" });
+        }
+        // 3) Clean / normalize body terms
+        const cleanedBodyTerms = paymentModes.map((t) => ({
+            paymentMode: t.paymentMode?.trim(),
+        }));
+        let termsToSave = cleanedBodyTerms;
+        // 4) If this is the FIRST TIME (no existing doc), prepend default terms
+        //    TODO Add this when adding branch for automatic creation 
+        // if (!existing) {
+        //   const defaultTerms = [
+        //     {
+        //       paymentMode: "Cash",
+        //     },
+        //    {
+        //       paymentMode: "Bank Transfer",
+        //     },
+        //     {
+        //       paymentMode: "Credit Card",
+        //     },
+        //      {
+        //       paymentMode: "Wallet",
+        //     },
+        //      {
+        //       paymentMode: "Cheque",
+        //     }
+        //   ];
+        //   // Combine defaults + body terms
+        //   termsToSave = [...defaultTerms, ...cleanedBodyTerms];
+        // }
+        const updatedDoc = await paymentMode_1.default.findOneAndUpdate({ branchId }, {
+            $set: {
+                branchId,
+                paymentModes: termsToSave,
+                createdById: existing?.createdById || userId, // keep original creator if exists
+                deletedAt: null,
+                deletedById: null,
+                deletedBy: null,
+            },
+        }, {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        });
+        return res.status(200).json({
+            message: existing
+                ? "Payment modes updated successfully"
+                : "Payment modes created successfully with defaults",
+            data: [updatedDoc],
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.upsertPaymentModes = upsertPaymentModes;
+const getAllPaymenModes = async (req, res, next) => {
+    try {
+        const { branchId } = req.params;
+        if (!branchId || !mongoose_1.default.Types.ObjectId.isValid(branchId)) {
+            return res.status(400).json({ message: "Valid branchId is required" });
+        }
+        const paymentTerms = await paymentMode_1.default.findOne({
+            branchId,
+        });
+        // .populate("branchId", "name") // optional: adjust fields
+        // .sort({ createdAt: -1 });     // latest first (optional)
+        return res.status(200).json({
+            data: paymentTerms,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getAllPaymenModes = getAllPaymenModes;

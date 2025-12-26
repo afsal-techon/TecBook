@@ -50,9 +50,8 @@ const quotationSchema = new mongoose_1.Schema({
         default: null,
     },
     projectId: {
-        // type: Schema.Types.ObjectId,
-        type: String,
-        // ref: "Project",
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Project",
         default: null,
     },
     salesPersonId: {

@@ -34,36 +34,40 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const vendorSchema = new mongoose_1.Schema({
-    branchId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Branch", default: null },
-    name: { type: String, default: null },
-    phone: { type: String, default: null },
-    openingBalance: { type: Number, default: 0 },
-    billingInfo: {
-        country: { type: String, default: null },
-        billingAddress: { type: String, default: null },
-        city: { type: String, default: null },
-        zipCode: { type: String, default: null }
+const paymentModeSchema = new mongoose_1.Schema({
+    branchId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Branch",
+        required: true,
+        unique: true, //  one doc per branch
     },
-    shippingInfo: {
-        country: { type: String, default: null },
-        shippingAddress: { type: String, default: null },
-        city: { type: String, default: null },
-        zipCode: { type: String, default: null }
+    paymentModes: [
+        {
+            paymentMode: { type: String, trim: true },
+        },
+    ],
+    isDeleted: {
+        type: Boolean,
+        default: false,
     },
-    taxTreatment: { type: String, default: null },
-    trn: { type: String, default: null },
-    placeOfSupplay: { type: String, default: null },
-    createdById: { type: String, default: null },
-    isDeleted: { type: Boolean, default: false },
-    deletedAt: { type: Date, default: null },
-    deletedById: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", default: null },
-    deletedBy: { type: String, default: null },
-}, {
-    timestamps: true, // Automatically adds createdAt & updatedAt
-});
-vendorSchema.index({ branchId: 1, name: 1 });
-vendorSchema.index({ branchId: 1, phone: 1 });
-vendorSchema.index({ branchId: 1, phone: 1, isDeleted: 1 });
-const vendorModel = mongoose_1.default.model("Vendor", vendorSchema);
-exports.default = vendorModel;
+    createdById: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
+    deletedAt: {
+        type: Date,
+        default: null,
+    },
+    deletedById: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
+    deletedBy: {
+        type: String,
+        default: null,
+    },
+}, { timestamps: true });
+const paymentModel = mongoose_1.default.model("PaymentMode", paymentModeSchema);
+exports.default = paymentModel;

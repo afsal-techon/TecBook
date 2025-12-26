@@ -23,6 +23,7 @@ const saleOrderCntls_1 = require("../controller/saleController/saleOrderCntls");
 const projectCntrl_1 = require("../controller/projectController/projectCntrl");
 const salesPerson_1 = require("../controller/commonCntroller/salesPerson");
 const invoiceCntrl_1 = require("../controller/saleController/invoiceCntrl");
+const paymentCntrl_1 = require("../controller/saleController/paymentCntrl");
 const router = express_1.default.Router();
 router.post('/create-admin', UserAuth_1.createAdmin);
 router.post('/login', UserAuth_1.loginUser);
@@ -142,4 +143,13 @@ router.get('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admi
 router.put('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_update'), projectCntrl_1.updateLogEntry);
 router.delete('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_delete'), projectCntrl_1.deleteLogEntry);
 router.get('/timesheets', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getTimesheetsByDate);
+//payment Recieved
+router.post('/payment-received', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_create'), paymentCntrl_1.createPaymentReceived);
+router.get('/payment-received', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_read'), paymentCntrl_1.getAllPaymentReceived);
+router.get('/payment-received/:paymentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_read'), paymentCntrl_1.getOnePaymentReceived);
+router.put('/payment-received/:paymentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_update'), paymentCntrl_1.updatePaymentReceived);
+// router.delete('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_delete'),deletePaymentReceived)
+//payent modes 
+router.post('/payment-mode', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentMode', 'can_create'), paymentTerms_1.upsertPaymentModes);
+router.get('/payment-mode/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentMode', 'can_read'), paymentTerms_1.getAllPaymenModes);
 exports.default = router;
