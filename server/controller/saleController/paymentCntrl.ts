@@ -2,7 +2,6 @@ import USER from "../../models/user";
 import INVOICE from "../../models/invoice";
 import PAYMENT_RECEIVED from "../../models/paymentRecieved";
 import express, { Request, Response, NextFunction } from "express";
-import CUSTOMER from "../../models/customer";
 import { imagekit } from "../../config/imageKit";
 import { Types } from "mongoose";
 import BRANCH from "../../models/branch";
