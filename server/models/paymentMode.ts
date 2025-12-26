@@ -7,15 +7,14 @@ const paymentModeSchema = new Schema<IPaymentModes>(
       type: Schema.Types.ObjectId,
       ref: "Branch",
       required: true,
-      unique: true, // ✅ one doc per branch
+      unique: true, //  one doc per branch
     },
 
-    paymentMode: {
-      type: [String], // ✅ array of strings
-      default: [],
-      trim: true,
-    },
-
+    paymentModes: [
+      {
+        paymentMode: { type: String,  trim: true },
+      },
+    ],
     isDeleted: {
       type: Boolean,
       default: false,

@@ -10,7 +10,7 @@ const numberSchema = new Schema<INumberSetting>(
     },
        docType: {
       type: String,
-      enum: ["QUOTE", "SALE_ORDER", "INVOICE"], // add more if needed
+      enum: ["QUOTE", "SALE_ORDER", "INVOICE","PAYMENT"], // add more if needed
       required: true,
     },
         prefix: {

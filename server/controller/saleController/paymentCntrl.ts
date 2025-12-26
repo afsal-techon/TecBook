@@ -11,6 +11,8 @@ import QuoteNumberSetting from "../../models/numberSetting";
 import ACCOUNT from "../../models/accounts";
 import { createTransaction } from "../../Helper/transactionHelper";
 import TRANSACTION from "../../models/transactions";
+import PAYMENT_MODE from "../../models/paymentMode";
+import saleNumberSetting from "../../models/numberSetting";
 
 export const createPaymentReceived = async (
   req: Request,
@@ -56,11 +58,11 @@ export const createPaymentReceived = async (
       return res.status(400).json({ message: "Payment Date is required!" });
     }
 
-    if(accountId && !Types.ObjectId.isValid(accountId)){
+    if (accountId && !Types.ObjectId.isValid(accountId)) {
       return res.status(400).json({ message: "Invalid Account Id!" });
     }
 
-    if (!paymentMode || !Types.ObjectId.isValid(paymentMode)) {
+    if (!paymentMode) {
       return res.status(400).json({ message: "Invalid paymentMode!" });
     }
 
@@ -74,6 +76,63 @@ export const createPaymentReceived = async (
 
     if (!status || !["Draft", "Paid"].includes(status)) {
       return res.status(400).json({ message: "Invalid status!" });
+    }
+
+    //  Get quote number setting for this branch
+    let setting = await saleNumberSetting.findOne({
+      branchId: new Types.ObjectId(branchId),
+      docType: "PAYMENT",
+    });
+
+    let finalQuoteId: string;
+
+    if (setting && setting.mode === "Auto") {
+      // ---------- AUTO MODE ----------
+      const raw = setting.nextNumberRaw ?? String(setting.nextNumber ?? 1);
+      const numeric = setting.nextNumber ?? Number(raw) ?? 1;
+      const length = raw.length;
+
+      const padded = String(numeric).padStart(length, "0");
+      finalQuoteId = `${setting.prefix}${padded}`;
+
+      // optionally: ensure uniqueness
+      const exists = await PAYMENT_RECEIVED.findOne({
+        branchId: new Types.ObjectId(branchId),
+        paymentId: finalQuoteId,
+        isDeleted: false,
+      });
+      if (exists) {
+        return res.status(400).json({
+          message: "Generated payment Id already exists. Please try again.",
+        });
+      }
+
+      // increment for next time
+      setting.nextNumber = numeric + 1;
+      setting.nextNumberRaw = String(numeric + 1).padStart(length, "0");
+      await setting.save();
+    } else {
+      // ---------- MANUAL MODE ----------
+      if (!paymentId || typeof paymentId !== "string" || !paymentId.trim()) {
+        return res
+          .status(400)
+          .json({ message: "PaymentId Id is required in manual mode!" });
+      }
+
+      finalQuoteId = paymentId.trim();
+
+      // ensure unique
+      const exists = await PAYMENT_RECEIVED.findOne({
+        branchId: new Types.ObjectId(branchId),
+        paymentId: finalQuoteId,
+        isDeleted: false,
+      });
+      if (exists) {
+        return res.status(400).json({
+          message:
+            "This payment Id already exists. Please enter a different one.",
+        });
+      }
     }
 
     // 2️ Find invoice (optional but validated)
@@ -90,9 +149,9 @@ export const createPaymentReceived = async (
     }
 
     // 3️ Validate payment account (Bank / Cash)
-    const paymentAccount = await ACCOUNT.findOne({
+    const paymentAccount = await PAYMENT_MODE.findOne({
       branchId: new Types.ObjectId(branchId),
-      _id: paymentMode,
+      "paymentModes.paymentMode": paymentMode,
       isDeleted: false,
     });
 
@@ -103,7 +162,7 @@ export const createPaymentReceived = async (
     // 4️ Get Sales account
     const salesAccount = await ACCOUNT.findOne({
       branchId: new Types.ObjectId(branchId),
-       _id: accountId,
+      _id: accountId,
       isDeleted: false,
     });
 
@@ -125,12 +184,12 @@ export const createPaymentReceived = async (
     }
 
     // 5️ Create Payment Received
-   const payment = await PAYMENT_RECEIVED.create({
+    const payment = await PAYMENT_RECEIVED.create({
       branchId: new Types.ObjectId(branchId),
       customerId: new Types.ObjectId(customerId),
       invoiceId: invoiceId || null,
       projectId: invoice?.projectId || null,
-      paymentId,
+      paymentIdl: finalQuoteId,
       paymentDate,
       paymentRecieved: new Date(),
       amount,
@@ -151,24 +210,11 @@ export const createPaymentReceived = async (
       });
     }
 
-    // 7️ Bank / Cash → Debit
-    await createTransaction({
-      branchId: new Types.ObjectId(branchId),
-      paymentId: payment._id as Types.ObjectId,
-      accountId: new Types.ObjectId(paymentMode),
-      transactionType: "Debit",
-      amount: Number(amount),
-      reference: paymentId,
-      transactionDate: new Date(),
-      description: "Payment received",
-      customerId: new Types.ObjectId(customerId),
-      createdById: new Types.ObjectId(userId),
-    });
-
     // 8️ Sales → Credit
     await createTransaction({
       branchId: new Types.ObjectId(branchId),
-       paymentId: payment._id as Types.ObjectId,
+      paymentId: payment._id as Types.ObjectId,
+      paymentMode: paymentMode,
       accountId: salesAccount._id as Types.ObjectId,
       transactionType: "Credit",
       amount: Number(amount),
@@ -286,14 +332,14 @@ export const getAllPaymentReceived = async (
 
     //  Date filter (createdAt)
     if (startDate && endDate) {
-      matchStage.paymentRecieved  = {
+      matchStage.paymentRecieved = {
         $gte: new Date(startDate),
         $lte: new Date(endDate),
       };
     } else if (startDate) {
-      matchStage.paymentRecieved  = { $gte: new Date(startDate) };
+      matchStage.paymentRecieved = { $gte: new Date(startDate) };
     } else if (endDate) {
-      matchStage.paymentRecieved  = { $lte: new Date(endDate) };
+      matchStage.paymentRecieved = { $lte: new Date(endDate) };
     }
 
     if (statusFilter) {
@@ -328,14 +374,6 @@ export const getAllPaymentReceived = async (
 
       // Join Payment Mode (Account)
       {
-        $lookup: {
-          from: "accounts",
-          localField: "paymentMode",
-          foreignField: "_id",
-          as: "paymentAccount",
-        },
-      },
-      {
         $unwind: {
           path: "$paymentAccount",
           preserveNullAndEmptyArrays: true,
@@ -350,6 +388,7 @@ export const getAllPaymentReceived = async (
           $or: [
             { paymentId: { $regex: search, $options: "i" } },
             { reference: { $regex: search, $options: "i" } },
+            { paymentMode: { $regex: search, $options: "i" } },
             { "customer.name": { $regex: search, $options: "i" } },
             { "invoice.invoiceId": { $regex: search, $options: "i" } },
           ],
@@ -363,21 +402,22 @@ export const getAllPaymentReceived = async (
     const totalCount = countResult[0]?.total || 0;
 
     //  Pagination + sorting
-   pipeline.push({ $sort: { paymentRecieved: -1, createdAt: -1 } });
+    pipeline.push({ $sort: { paymentRecieved: -1, createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
     //  Project required fields
     pipeline.push({
       $project: {
+        _id: 1,
         paymentRecieved: 1,
         paymentId: 1,
         reference: 1,
         amount: 1,
+        paymentMode: 1,
         status: 1,
         "customer.name": 1,
         "invoice.invoiceId": 1,
-        paymentModeName: "$paymentAccount.accountName",
       },
     });
 
@@ -386,13 +426,14 @@ export const getAllPaymentReceived = async (
 
     return res.status(200).json({
       data: payments.map((p) => ({
+        _id: p._id,
         paymentRecieved: p.paymentRecieved,
         createdAt: p.createdAt,
         paymentId: p.paymentId,
         reference: p.reference,
         customerName: p.customer?.name || null,
         invoiceId: p.invoice?.invoiceId || null,
-        paymentMode: p.paymentModeName || null,
+        paymentMode: p.paymentMode || null,
         amount: p.amount,
         status: p.status,
       })),
@@ -451,7 +492,7 @@ export const updatePaymentReceived = async (
     // 3️ Reverse old transactions
     await TRANSACTION.updateMany(
       {
-         paymentId: existingPayment._id,
+        paymentId: existingPayment._id,
         isReversed: false,
       },
       {
@@ -462,6 +503,16 @@ export const updatePaymentReceived = async (
         },
       }
     );
+
+    const salesAccount = await ACCOUNT.findOne({
+      branchId: new Types.ObjectId(branchId),
+      _id: accountId,
+      isDeleted: false,
+    });
+
+    if (!salesAccount) {
+      return res.status(400).json({ message: "Account not found!" });
+    }
 
     // 4️ Create new Payment Received
     const newPayment = await PAYMENT_RECEIVED.create({
@@ -491,31 +542,18 @@ export const updatePaymentReceived = async (
     }
 
     const transactionDate =
-    newPayment.paymentRecieved ?? newPayment.paymentDate ?? new Date();
-
-    // 6️ Debit Bank / Cash
-    await createTransaction({
-      branchId: existingPayment.branchId as Types.ObjectId,
-      paymentId: existingPayment._id as Types.ObjectId,
-      accountId: new Types.ObjectId(paymentMode),
-      transactionType: "Debit",
-      amount: Number(amount) - Number(bankCharges),
-      reference: existingPayment.paymentId,
-      transactionDate,
-      description: "Payment received (Updated)",
-      customerId: new Types.ObjectId(customerId),
-      createdById: new Types.ObjectId(userId),
-    });
+      newPayment.paymentRecieved ?? newPayment.paymentDate ?? new Date();
 
     // 7️ Credit Sales
     await createTransaction({
       branchId: existingPayment.branchId as Types.ObjectId,
-       paymentId: existingPayment._id as Types.ObjectId,
-      accountId: accountId as Types.ObjectId,
+      paymentId: existingPayment._id as Types.ObjectId,
+      paymentMode: paymentMode,
+      accountId: salesAccount._id as Types.ObjectId,
       transactionType: "Credit",
       amount: Number(amount),
       reference: existingPayment.paymentId,
-       transactionDate,
+      transactionDate,
       description: "Invoice payment received (Updated)",
       customerId: new Types.ObjectId(customerId),
       createdById: new Types.ObjectId(userId),
@@ -566,7 +604,6 @@ export const updatePaymentReceived = async (
   }
 };
 
-
 export const getOnePaymentReceived = async (
   req: Request,
   res: Response,
@@ -574,13 +611,13 @@ export const getOnePaymentReceived = async (
 ): Promise<Response | void> => {
   try {
     const { paymentId } = req.params;
-     const userId = req.user?.id;
+    const userId = req.user?.id;
 
     if (!mongoose.Types.ObjectId.isValid(paymentId)) {
       return res.status(400).json({ message: "Invalid paymentId" });
     }
 
-     const user = await USER.findOne({ _id: userId, isDeleted: false });
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
@@ -615,16 +652,16 @@ export const getOnePaymentReceived = async (
         },
       },
       { $unwind: { path: "$invoice", preserveNullAndEmptyArrays: true } },
-
-      // 🔹 Payment Mode (Account)
       {
         $lookup: {
-          from: "accounts",
-          localField: "paymentMode",
+          from: "branches",
+          localField: "branchId",
           foreignField: "_id",
-          as: "paymentAccount",
+          as: "branch",
         },
       },
+      { $unwind: { path: "$branch", preserveNullAndEmptyArrays: true } },
+
       {
         $unwind: {
           path: "$paymentAccount",
@@ -643,17 +680,20 @@ export const getOnePaymentReceived = async (
           bankCharges: 1,
           status: 1,
           createdAt: 1,
+          paymentMode: 1,
 
           customer: {
             _id: "$customer._id",
             name: "$customer.name",
           },
-
-          paymentMode: {
-            _id: "$paymentAccount._id",
-            name: "$paymentAccount.accountName",
+          branch: {
+            branchId: "$branch.branchId",
+            branchName: "$branch.branchName",
+            email:"techone@gmail.com",
+            address: "$branch.address",
+            phone: "$branch.phone",
+            city: "$branch.city",
           },
-
           invoice: {
             invoiceId: "$invoice.invoiceId",
             invoiceDate: "$invoice.invoiceDate",

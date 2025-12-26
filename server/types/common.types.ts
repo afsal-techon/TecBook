@@ -372,7 +372,7 @@ export interface ITax extends Document {
 
 export interface INumberSetting extends Document {
   branchId: Types.ObjectId | null;
-  docType: "QUOTE" | "SALE_ORDER" | "INVOICE";
+  docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT";
   prefix: string; // e.g. "QT-"
   nextNumber: number; // e.g. 8  (for 000008)
   nextNumberRaw: string; // e.g. 6  (number of digits)
@@ -521,7 +521,7 @@ export interface IInvoice extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
-
+ 
 
 export interface ILogEntry extends Document {
   branchId?: Types.ObjectId | null;
@@ -553,7 +553,7 @@ export interface IPayment extends Document {
   amount?: number;
   paymentDate?: Date | null;
   projectId?: Types.ObjectId | null;
-  paymentMode: Types.ObjectId | null;
+  paymentMode: string | null;
   paymentRecieved?: Date | null;
   status: string | null;
   accountId?: Types.ObjectId | null;
@@ -573,9 +573,10 @@ export interface IPayment extends Document {
 
 export interface ITransactions extends Document {
   branchId: Types.ObjectId;
-  accountId: Types.ObjectId;
+  accountId: Types.ObjectId | null;
   transactionType: "Debit" | "Credit";
   paymentId?: Types.ObjectId | null;
+  paymentMode?: string | null;
   amount: number;
   reference?: string;
   description?: string;
@@ -597,7 +598,9 @@ export interface ITransactions extends Document {
 
 export interface IPaymentModes extends Document {
   branchId?: Types.ObjectId;
-  paymentMode: string[];
+    paymentModes?: {
+    paymentMode?: string;
+  }[];
   isDeleted?: boolean;
   createdById?: Types.ObjectId | null;
   deletedAt?: Date | null;

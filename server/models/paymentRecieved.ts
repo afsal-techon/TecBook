@@ -14,7 +14,7 @@ const paymentRecievedSchema = new Schema<IPayment>(
     },
     invoiceId: {
       type: String,
-      required: true,
+      default: null,
     },
     customerId: {
       type: Schema.Types.ObjectId,
@@ -43,9 +43,8 @@ const paymentRecievedSchema = new Schema<IPayment>(
       enum: ["Paid", "Approved","Partially Paid","Draft"],
     },
     paymentMode: {
-      type: Schema.Types.ObjectId,
-      ref: "Account",
-      default: null,
+      type: String,
+      required: true,
     },
     accountId: {
       type: Schema.Types.ObjectId,

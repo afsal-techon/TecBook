@@ -8,7 +8,8 @@ interface CreateTransactionParams {
   accountId: Types.ObjectId;
   transactionType: "Debit" | "Credit";
   amount: number;
-  paymentId?: Types.ObjectId;
+   paymentMode: string,
+   paymentId?: Types.ObjectId
   transactionDate?: Date;
   reference?: string;
   description?: string;
@@ -23,8 +24,9 @@ export const createTransaction = async ({
   accountId,
   transactionType,
   amount,
-  paymentId,
+  paymentMode,
   reference,
+  paymentId,
   description,
   customerId,
   transactionDate,
@@ -38,8 +40,9 @@ export const createTransaction = async ({
     accountId,
     transactionType,
     amount,
-    paymentId,
+    paymentMode,
     reference,
+    paymentId,
     transactionDate,
     description,
     customerId: customerId || null,

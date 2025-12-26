@@ -64,10 +64,9 @@ const transactionSchema = new Schema<ITransactions>(
       default: null,
     },
 
-    paymentId: {
-      type: Schema.Types.ObjectId,
-      ref: "PaymentRecieved",
-      default: null,
+    paymentMode: {
+    type: String,
+    required: true,
     },
 
     isDeleted: {
