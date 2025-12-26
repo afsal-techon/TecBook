@@ -72,7 +72,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const quoteDate: Date = new Date(dto.quoteDate);
       const expiryDate: Date = new Date(dto.expiryDate);
 
-      if (expiryDate <= quoteDate) {
+      if (expiryDate < quoteDate) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Expiry date must be greater than quote date",

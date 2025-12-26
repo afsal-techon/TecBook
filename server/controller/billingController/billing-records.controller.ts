@@ -52,6 +52,16 @@ class BillingRecordsController extends GenericDatabaseService<
       await this.validateBranch(dto.branchId);
       await this.validateVendor(dto.vendorId);
 
+      const billDate: Date = new Date(dto.billDate);
+      const dueDate: Date = new Date(dto.dueDate);
+
+      if (dueDate < billDate) {
+        res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Due date must be greater than bill date",
+        });
+      }
+
       const items: IItem[] = this.mapItems(dto.items);
 
       await this.purchaseOrderService.genericFindOneByIdOrNotFound(
