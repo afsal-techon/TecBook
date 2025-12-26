@@ -41,6 +41,22 @@ class BillingRecordsController extends GenericDatabaseService<
     this.branchModel = branchModel;
   }
 
+  /**
+   * Creates a new billing record.
+   *
+   * This handler performs comprehensive validation and creation logic:
+   * - Verifies the authenticated user's ID.
+   * - Validates the existence of the specified Branch and Vendor.
+   * - Enforces that the `dueDate` is greater than or equal to the `billDate`.
+   * - Maps item DTOs to the required schema format.
+   * - Verifies the existence of the linked Purchase Order.
+   * - Creates the billing record with the provided data and calculated fields.
+   *
+   * @param req - The Express Request object. Expects `CreateBillingRecordsDTO` in `req.body` and an authenticated user in `req.user`.
+   * @param res - The Express Response object.
+   * @param next - The Express NextFunction for error handling.
+   * @returns A Promise resolving to the HTTP response (201 Created) containing the newly created billing record.
+   */
   createBillingRecords = async (
     req: Request<{}, {}, CreateBillingRecordsDTO>,
     res: Response,
@@ -105,6 +121,18 @@ class BillingRecordsController extends GenericDatabaseService<
       next(error);
     }
   };
+
+  /**
+   * Updates an existing billing record.
+   * @description This method handles the update of an existing billing record. It performs several validation checks:
+   * - Validates the provided billing record ID.
+   * - Ensures that the `dueDate` is not earlier than the `billDate`.
+   * - Validates the existence of the specified vendor, branch, and purchase order (if provided).
+   * It then constructs and updates the billing record document in the database.
+   * @param req The Express request object, containing the billing record ID in `req.params.id` and the `updateBillingRecordsDTO` in the body.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
   updateBillingRecords = async (
     req: Request<{ id: string }, {}, updateBillingRecordsDTO>,
     res: Response,
@@ -183,6 +211,14 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  /**
+   * Retrieves all billing records.
+   * @description This method retrieves all billing records from the database, with optional filtering by branch ID and search functionality.
+   * It also handles pagination and populates related fields like vendor, salesman, and project.
+   * @param req The Express request object, which may contain `limit`, `page`, `search`, and `branchId` as query parameters.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
   getAllBillingRecords = async (
     req: Request,
     res: Response,
@@ -248,6 +284,14 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  /**
+   * Retrieves a single billing record by ID.
+   * @description This method retrieves a single billing record by its ID from the database.
+   * It first validates the billing record ID, then fetches the billing record along with its related vendor, salesman, and project details.
+   * @param req The Express request object, which contains the billing record ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
   getBillingRecordById = async (
     req: Request<{ id: string }>,
     res: Response,
