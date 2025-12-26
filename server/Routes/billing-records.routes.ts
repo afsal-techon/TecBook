@@ -10,6 +10,9 @@ const router = Router()
 router.post("/", verifyUser,checkPermission('admin','PurchaseOrder','can_create'),validateDto(CreateBillingRecordsDTO),billingRecordsController.createBillingRecords);
 router.put("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_update'), validateDto(updateBillingRecordsDTO), billingRecordsController.updateBillingRecords);
 router.get("/", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,billingRecordsController.getAllBillingRecords);
+router.get("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,billingRecordsController.getBillingRecordById);
+router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , billingRecordsController.genericDeleteOneById);
+
 
 
 export default router;
