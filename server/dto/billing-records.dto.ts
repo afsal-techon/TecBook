@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsMongoId,
   IsNotEmpty,
+  IsOptional,
   IsString,
   ValidateNested,
 } from "class-validator";
@@ -40,4 +41,37 @@ export class CreateBillingRecordsDTO {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items!: ItemDto[];
+}
+
+
+export class updateBillingRecordsDTO {
+  @IsOptional()
+  @IsMongoId()
+  vendorId?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  purchaseOrderNumber?: string;
+
+  @IsOptional()
+  @IsDateString()
+  billDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  branchId?: string;
+
+  @IsOptional()
+  @IsEnum(BillingPaymentStatus)
+  payment?: BillingPaymentStatus;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ItemDto)
+  items?: ItemDto[];
 }
