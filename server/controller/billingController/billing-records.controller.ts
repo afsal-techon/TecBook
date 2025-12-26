@@ -43,7 +43,7 @@ class BillingRecordsController extends GenericDatabaseService<
       const dto: CreateBillingRecordsDTO = req.body;
       const userId = req.user?.id;
       if (!this.isValidMongoId(userId as string)) {
-        res.status(HTTP_STATUS.BAD_REQUEST).json({
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Invalid user id",
         });
@@ -56,7 +56,7 @@ class BillingRecordsController extends GenericDatabaseService<
       const dueDate: Date = new Date(dto.dueDate);
 
       if (dueDate < billDate) {
-        res.status(HTTP_STATUS.BAD_REQUEST).json({
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Due date must be greater than bill date",
         });
