@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import mongoose, { Model, Types } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import { IBillingRecords } from "../../Interfaces/billing-records.interface";
-import { BillingSchemaModel } from "../../models/BillingRecordsModel";
+import {
+  BillingSchemaModel,
+  BillingSchemaModelConstants,
+} from "../../models/BillingRecordsModel";
 import {
   CreateBillingRecordsDTO,
   updateBillingRecordsDTO,
@@ -16,6 +19,8 @@ import userModel from "../../models/user";
 import purchaseOrderController from "../PurchaseOrderController/purchase-order.controller";
 import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
+import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import { PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -174,6 +179,71 @@ class BillingRecordsController extends GenericDatabaseService<
         statusCode: HTTP_STATUS.OK,
       });
     } catch (error) {
+      next(error);
+    }
+  };
+
+  getAllBillingRecords = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit = parseInt(req.query.limit as string) || 20;
+      const page = parseInt(req.query.page as string) || 1;
+      const skip = (page - 1) * limit;
+      const search = (req.query.search as string) || "";
+      const filterBranchId = req.query.branchId as string | undefined;
+
+      const { user, allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: this.userModel,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
+
+      // console.log("allowedBranchIds", allowedBranchIds);
+
+      const query: any = {
+        isDeleted: false,
+        branchId: { $in: allowedBranchIds },
+      };
+
+      if (search) {
+        query.quoteNumber = { $regex: search, $options: "i" };
+      }
+
+      const totalCount = await BillingSchemaModel.countDocuments(query);
+      // console.log('count', totalCount)
+
+      const billingRecords = await BillingSchemaModel.find(query)
+        .sort({ createdAt: -1 })
+        .populate(BillingSchemaModelConstants.vendorId)
+        .populate({
+          path: BillingSchemaModelConstants.purchaseOrderNumber,
+          select: `${PurchaseOrderModelConstants.purchaseOrderNumber}`,
+        })
+        .populate(BillingSchemaModelConstants.branchId)
+        .skip(skip)
+        .limit(limit);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: billingRecords,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: any) {
+      res.status(error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error.message,
+      });
       next(error);
     }
   };
