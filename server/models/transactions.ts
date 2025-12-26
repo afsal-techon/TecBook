@@ -8,88 +8,115 @@ const transactionSchema = new Schema<ITransactions>(
       ref: "Branch",
       default: null,
     },
+
     accountId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Account",
       required: true,
     },
-    purchaseId: {
-      type: Schema.Types.ObjectId,
-      ref: "Purchase",
-      default: null,
+
+    transactionType: {
+      type: String,
+      enum: ["Debit", "Credit"],
+      required: true,
     },
-    expenseId: {
-      type: Schema.Types.ObjectId,
-      ref: "Expense",
-      default: null,
-    },
-    customerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Customer",
-      default: null,
-    },
-    supplierId: {
-      type: Schema.Types.ObjectId,
-      ref: "Supplier",
+
+    transactionDate: {
+      type: Date,
       default: null,
     },
     amount: {
       type: Number,
       required: true,
+      min: 0,
     },
-    type: {
+
+    reference: {
       type: String,
-    },
-    referenceId: {
-      type: String, // e.g., "POS Bill Payment"
-    },
-    referenceType: {
-      type: String,
-    },
-    totalBeforeVAT: {
-      type: Number,
-      default: 0,
-    },
-    vatAmount: {
-      type: Number,
-      default: 0,
-    },
-    paymentType: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Account",
       default: null,
     },
+
+    description: {
+      type: String,
+      default: null,
+    },
+    isReversed: {
+      type: Boolean,
+      default: false,
+    },
+
+    //  Optional relations
+    customerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Customer",
+      default: null,
+    },
+
+    vendorId: {
+      type: Schema.Types.ObjectId,
+      ref: "Vendor",
+      default: null,
+    },
+
+    invoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: "Invoice",
+      default: null,
+    },
+
+    paymentMode: {
+    type: String,
+    required: true,
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
     },
+
+    createdById: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     deletedAt: {
       type: Date,
       default: null,
     },
+
     deletedById: {
       type: Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
+
     deletedBy: {
       type: String,
       default: null,
     },
   },
-  { timestamps: true } //  automatically adds createdAt & updatedAt
+  { timestamps: true }
 );
 
-//  Indexes for faster lookups
-transactionSchema.index({ branchId: 1 });
-transactionSchema.index({ parentAccountId: 1 });
-transactionSchema.index({ accountType: 1 });
-transactionSchema.index({ accountName: 1 });
-transactionSchema.index({ branchId: 1, isDeleted: 1 });
+
+transactionSchema.index({
+  branchId: 1,
+  isDeleted: 1,
+  createdAt: -1,
+});
+
+transactionSchema.index({ paymentId: 1, isReversed: 1 });
+
+transactionSchema.index({ accountId: 1 });
+transactionSchema.index({ customerId: 1 });
+transactionSchema.index({ vendorId: 1 });
+transactionSchema.index({ reference: 1 });
+transactionSchema.index({ invoiceId: 1 });
+transactionSchema.index({ paymentId: 1 });
 
 const transactionModel: Model<ITransactions> = mongoose.model<ITransactions>(
-  "transaction",
+  "Transaction",
   transactionSchema
 );
-
 export default transactionModel;

@@ -13,11 +13,12 @@ import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../control
 import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
 import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAcceptOrReject, updateQuotes } from '../controller/saleController/quotationCntrl';
 import { createTax, deleteTax, getALLTaxes, getTaxes, updateTax } from '../controller/commonCntroller/taxCntrol';
-import { getAllPaymentTerms, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
+import { getAllPaymenModes, getAllPaymentTerms, upsertPaymentModes, upsertPaymentTerms } from '../controller/commonCntroller/paymentTerms';
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
 import { createLogEntry, createProject, deleteLogEntry, getAllLogEntries, getAllProjects, getOneProject, getProjects, getTimesheetsByDate, updateLogEntry, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
 import { createInvoice, deleteInvoice, getALLInvoices, getOneInvoice, updateInvoice } from '../controller/saleController/invoiceCntrl';
+import { createPaymentReceived, getAllPaymentReceived, getOnePaymentReceived, updatePaymentReceived } from '../controller/saleController/paymentCntrl';
 const router = express.Router();
 
 
@@ -182,5 +183,20 @@ router.put('/log-entry/:timeLogId',verifyUser,checkPermission('admin','LogEntry'
 router.delete('/log-entry/:timeLogId',verifyUser,checkPermission('admin','LogEntry','can_delete'),deleteLogEntry);
 
 
-router.get('/timesheets',verifyUser,checkPermission('admin','LogEntry','can_read'),getTimesheetsByDate)
+router.get('/timesheets',verifyUser,checkPermission('admin','LogEntry','can_read'),getTimesheetsByDate);
+
+
+//payment Recieved
+router.post('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_create'),createPaymentReceived)
+router.get('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_read'),getAllPaymentReceived)
+router.get('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_read'),getOnePaymentReceived)
+router.put('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_update'),updatePaymentReceived)
+// router.delete('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_delete'),deletePaymentReceived)
+
+
+//payent modes 
+router.post('/payment-mode',verifyUser,checkPermission('admin','PaymentMode','can_create'),upsertPaymentModes)
+router.get('/payment-mode/:branchId',verifyUser,checkPermission('admin','PaymentMode','can_read'),getAllPaymenModes)
+
+
 export default router;
