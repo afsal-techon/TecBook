@@ -248,6 +248,56 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  getBillingRecordById = async (
+    req: Request<{ id: string }>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid Billing record order id",
+        });
+      }
+
+      const billingRecord = await BillingSchemaModel.findOne({
+        _id: id,
+        isDeleted: false,
+      })
+        .populate(BillingSchemaModelConstants.vendorId)
+        .populate({
+          path: BillingSchemaModelConstants.purchaseOrderNumber,
+          select: `${PurchaseOrderModelConstants.purchaseOrderNumber}`,
+        })
+        .populate(BillingSchemaModelConstants.branchId);
+
+      if (!billingRecord) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Billing record not found",
+        });
+      }
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: billingRecord,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while fetching Billing Record", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while fetching Billing Record", error);
+      next(error);
+    }
+  };
+
   private async validateUser(id: string) {
     const user = await this.userModel.findOne({
       _id: id,
