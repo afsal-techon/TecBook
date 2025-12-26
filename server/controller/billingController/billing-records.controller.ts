@@ -3,14 +3,16 @@ import mongoose, { Model, Types } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import { IBillingRecords } from "../../Interfaces/billing-records.interface";
 import { BillingSchemaModel } from "../../models/BillingRecordsModel";
-import { CreateBillingRecordsDTO } from "../../dto/billing-records.dto";
+import {
+  CreateBillingRecordsDTO,
+  updateBillingRecordsDTO,
+} from "../../dto/billing-records.dto";
 import { HTTP_STATUS } from "../../constants/http-status";
 import vendorModel from "../../models/vendor";
 import branchModel from "../../models/branch";
-import { IBranch, IProject, IVendor } from "../../types/common.types";
+import { IBranch, IVendor } from "../../types/common.types";
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
-import projectModel from "../../models/project";
 import purchaseOrderController from "../PurchaseOrderController/purchase-order.controller";
 import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
@@ -93,6 +95,83 @@ class BillingRecordsController extends GenericDatabaseService<
         success: true,
         message: "Billing record created successfully",
         data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+  updateBillingRecords = async (
+    req: Request<{ id: string }, {}, updateBillingRecordsDTO>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const id = req.params.id;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid billing record id",
+        });
+      }
+
+      const dto: updateBillingRecordsDTO = req.body;
+
+      let billDate: Date | undefined;
+      let dueDate: Date | undefined;
+
+      if (dto.billDate) {
+        billDate = new Date(dto.billDate);
+      }
+
+      if (dto.dueDate) {
+        dueDate = new Date(dto.dueDate);
+      }
+
+      if (billDate && dueDate && dueDate < billDate) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Due date must be greater than bill date",
+        });
+      }
+
+      if (dto.vendorId) {
+        await this.validateVendor(dto.vendorId);
+      }
+
+      if (dto.branchId) {
+        await this.validateBranch(dto.branchId);
+      }
+
+      if (dto.purchaseOrderNumber) {
+        await this.purchaseOrderService.genericFindOneByIdOrNotFound(
+          dto.purchaseOrderNumber
+        );
+      }
+
+      const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
+
+      const payload: Partial<IBillingRecords> = {
+        vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
+
+        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+
+        purchaseOrderNumber: dto.purchaseOrderNumber
+          ? new Types.ObjectId(dto.purchaseOrderNumber)
+          : undefined,
+
+        billDate,
+        dueDate,
+
+        items,
+      };
+
+      await this.genericUpdateOneById(id, payload);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Billing record updated successfully",
+        statusCode: HTTP_STATUS.OK,
       });
     } catch (error) {
       next(error);
