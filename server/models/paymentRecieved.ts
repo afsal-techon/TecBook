@@ -13,7 +13,8 @@ const paymentRecievedSchema = new Schema<IPayment>(
       required: true,
     },
     invoiceId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "Invoice",
       default: null,
     },
     customerId: {
