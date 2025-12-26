@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose, { Model } from "mongoose";
+import mongoose, { Model, Types } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import { IBillingRecords } from "../../Interfaces/billing-records.interface";
 import { BillingSchemaModel } from "../../models/BillingRecordsModel";
@@ -12,6 +12,8 @@ import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import projectModel from "../../models/project";
 import purchaseOrderController from "../PurchaseOrderController/purchase-order.controller";
+import { ItemDto } from "../../dto/item.dto";
+import { IItem } from "../../Interfaces/item.interface";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -50,6 +52,8 @@ class BillingRecordsController extends GenericDatabaseService<
       await this.validateBranch(dto.branchId);
       await this.validateVendor(dto.vendorId);
 
+      const items: IItem[] = this.mapItems(dto.items);
+
       await this.purchaseOrderService.genericFindOneByIdOrNotFound(
         dto.purchaseOrderNumber
       );
@@ -61,13 +65,16 @@ class BillingRecordsController extends GenericDatabaseService<
         });
       }
 
-      const payload: CreateBillingRecordsDTO & {
-        createdBy: string;
-        isDeleted: boolean;
-      } = {
+      const payload: Partial<IBillingRecords> = {
         ...dto,
-        createdBy: userId,
+        createdBy: new Types.ObjectId(userId),
+        items: items,
         isDeleted: false,
+        vendorId: new Types.ObjectId(dto.vendorId),
+        purchaseOrderNumber: new Types.ObjectId(dto.purchaseOrderNumber),
+        branchId: new Types.ObjectId(dto.branchId),
+        billDate: new Date(dto.billDate),
+        dueDate: new Date(dto.dueDate),
       };
 
       const data = await this.genericCreateOne(payload);
@@ -107,6 +114,19 @@ class BillingRecordsController extends GenericDatabaseService<
     });
     if (!vendor) throw new Error("Vendor not found");
     return vendor;
+  }
+  private mapItems(itemsDto: ItemDto[]): IItem[] {
+    return itemsDto.map((item) => ({
+      itemId: item.itemId ? new Types.ObjectId(item.itemId) : undefined,
+      taxId: item.taxId ? new Types.ObjectId(item.taxId) : undefined,
+      itemName: item.itemName,
+      qty: item.qty,
+      tax: item.tax,
+      rate: item.rate,
+      amount: item.amount,
+      unit: item.unit,
+      discount: item.discount,
+    }));
   }
 }
 
