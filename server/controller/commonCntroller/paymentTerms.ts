@@ -5,7 +5,7 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import { Types } from "mongoose";
 import { calculateDaysToEndOfMonth, calculateDaysToEndOfNextMonth } from '../../Helper/dateCalculation';
-
+import PAYMENT_MODE from '../../models/paymentMode';
 
 
 
@@ -130,5 +130,124 @@ export const getAllPaymentTerms = async (
 };
 
 
+export const upsertPaymentModes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { branchId, paymentModes } = req.body;
+
+    // 1️ Validations
+    if (!branchId) {
+      return res.status(400).json({ message: "branchId is required!" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(branchId)) {
+      return res.status(400).json({ message: `Invalid branchId: ${branchId}` });
+    }
+
+    if (!paymentModes || !Array.isArray(paymentModes) || paymentModes.length === 0) {
+      return res.status(400).json({ message: "paymentModes is required!" });
+    }
+
+    // 2️ Check if document already exists
+    const existing = await PAYMENT_MODE.findOne({ branchId });
+
+    // 3️ Clean & normalize payment modes (array of strings)
+    const cleanedPaymentModes = [
+      ...new Set(
+        paymentModes
+          .filter((m) => typeof m === "string" && m.trim())
+          .map((m) => m.trim())
+      ),
+    ];
+
+    if (cleanedPaymentModes.length === 0) {
+      return res.status(400).json({ message: "No valid payment modes provided!" });
+    }
+
+    let modesToSave = cleanedPaymentModes;
+
+    // 4️ Add default payment modes ONLY first time
+    if (!existing) {
+      const defaultPaymentModes = [
+        "Cash",
+        "Credit Card",
+        "Wallet",
+        "Cheque",
+        "Bank Transfer",
+      ];
+
+      modesToSave = [...defaultPaymentModes, ...cleanedPaymentModes];
+    }
+
+    // 5️ Remove duplicates again after merging defaults
+    modesToSave = [...new Set(modesToSave)];
+
+    // 6️ Upsert
+    const updatedDoc = await PAYMENT_MODE.findOneAndUpdate(
+      { branchId },
+      {
+        $set: {
+          branchId,
+          paymentModes: modesToSave,
+          isDeleted: false,
+          deletedAt: null,
+          deletedById: null,
+          deletedBy: null,
+          createdById: existing?.createdById || userId,
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
+    return res.status(200).json({
+      message: existing
+        ? "Payment modes updated successfully"
+        : "Payment modes created successfully with defaults",
+      data: [updatedDoc],
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 
+
+
+
+export const getAllPaymenModes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { branchId } = req.params;
+
+    if (!branchId || !mongoose.Types.ObjectId.isValid(branchId)) {
+      return res.status(400).json({ message: "Valid branchId is required" });
+    }
+
+    const paymentTerms = await PAYMENT_TERMS.findOne({
+      branchId,
+    })
+      // .populate("branchId", "name") // optional: adjust fields
+      // .sort({ createdAt: -1 });     // latest first (optional)
+
+    return res.status(200).json({
+      data: paymentTerms,
+    });
+  } catch (err) {
+         next(err);
+  }
+};

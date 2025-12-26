@@ -166,30 +166,6 @@ export interface IAccounts extends Document {
   updatedAt?: Date;
 }
 
-export interface ITransactions extends Document {
-  branchId?: Types.ObjectId | null;
-  accountId?: Types.ObjectId | null;
-  purchaseId?: Types.ObjectId | null;
-  expenseId?: Types.ObjectId | null;
-  customerId?: Types.ObjectId | null;
-  supplierId?: Types.ObjectId | null;
-  amount: number;
-  type: string;
-  referenceId: string;
-  referenceType: string;
-  description: string;
-  totalBeforeVAT: number;
-  vatAmount: number;
-  paymentType: Types.ObjectId | null;
-  isDeleted?: boolean;
-  parentAccountId?: Types.ObjectId | null;
-  createdById?: Types.ObjectId | null;
-  deletedAt?: Date | null;
-  deletedById?: Types.ObjectId | null;
-  deletedBy?: string | null;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
 
 export interface ICustomer extends Document {
   branchId?: Types.ObjectId | null;
@@ -573,14 +549,17 @@ export interface IPayment extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
   paymentId?: string;
+  invoiceId?: Types.ObjectId | null;
   amount?: number;
   paymentDate?: Date | null;
   projectId?: Types.ObjectId | null;
   paymentMode: Types.ObjectId | null;
   paymentRecieved?: Date | null;
-  depositTO?: Types.ObjectId | null;
+  status: string | null;
+  accountId?: Types.ObjectId | null;
   reference?: string | null;
   bankCharges: number  | null;
+  isReversed?: boolean;
   note: string | null;
   documents?: string[];
   isDeleted?: boolean;
@@ -591,3 +570,40 @@ export interface IPayment extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface ITransactions extends Document {
+  branchId: Types.ObjectId;
+  accountId: Types.ObjectId;
+  transactionType: "Debit" | "Credit";
+  paymentId?: Types.ObjectId | null;
+  amount: number;
+  reference?: string;
+  description?: string;
+  purchaseId?: Types.ObjectId | null;
+  customerId?: Types.ObjectId;
+  transactionDate?: Date | null;
+  vendorId?: Types.ObjectId | null;
+   invoiceId?: Types.ObjectId | null;
+   isReversed?: boolean;
+   isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+
+export interface IPaymentModes extends Document {
+  branchId?: Types.ObjectId;
+  paymentMode: string[];
+  isDeleted?: boolean;
+  createdById?: Types.ObjectId | null;
+  deletedAt?: Date | null;
+  deletedById?: Types.ObjectId | null;
+  deletedBy?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
