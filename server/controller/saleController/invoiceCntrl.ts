@@ -934,3 +934,54 @@ export const deleteInvoice = async (
 };
 
 
+
+export const markAsSent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    let { status, invoiceId } = req.body;
+
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (!invoiceId) {
+      return res.status(400).json({ message: "Invoice Id is required!" });
+    }
+
+    const invoice = await INVOICE.findOne({ _id: invoiceId });
+    if (!invoice) {
+      return res.status(404).json({ message: "invoice not found!" });
+    }
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required!" });
+    }
+
+    // normalize / validate status
+    status = String(status);
+    if ( status !== "Sent") {
+      return res
+        .status(400)
+        .json({ message: "Status must be 'Sent'" });
+    }
+
+    invoice.status = status;
+    await invoice.save(); // <-- important
+
+    return res.status(200).json({
+      message: "Invoice marked as Sent",
+    });
+  } catch (err) {
+    next(err);
+  }
+};

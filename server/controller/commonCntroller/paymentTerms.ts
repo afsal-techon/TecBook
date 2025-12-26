@@ -9,8 +9,6 @@ import PAYMENT_MODE from '../../models/paymentMode';
 
 
 
-
-
 export const upsertPaymentTerms = async (
   req: Request,
   res: Response,

@@ -50,7 +50,7 @@ export const createPaymentReceived = async (
       return res.status(400).json({ message: "Invalid Customer Id!" });
     }
 
-    if (!paymentId || typeof paymentId !== "string") {
+    if (!paymentId) {
       return res.status(400).json({ message: "Payment Id is required!" });
     }
 
@@ -137,11 +137,13 @@ export const createPaymentReceived = async (
 
     // 2️ Find invoice (optional but validated)
     if (invoiceId) {
+      console.log(invoiceId,'invoice')
       invoice = await INVOICE.findOne({
         branchId: new Types.ObjectId(branchId),
-        invoiceId,
+        _id: invoiceId,
         isDeleted: false,
       });
+      
 
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found!" });
@@ -189,7 +191,7 @@ export const createPaymentReceived = async (
       customerId: new Types.ObjectId(customerId),
       invoiceId: invoiceId || null,
       projectId: invoice?.projectId || null,
-      paymentIdl: finalQuoteId,
+      paymentId: finalQuoteId,
       paymentDate,
       paymentRecieved: new Date(),
       amount,
