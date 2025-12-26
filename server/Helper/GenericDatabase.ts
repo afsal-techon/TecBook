@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTP_STATUS } from "../constants/http-status";
-import mongoose, { Model, Document, Types } from "mongoose";
+import mongoose, { Model, Document, Types, HydratedDocument } from "mongoose";
 import { IBaseFIelds } from "../Interfaces/base.interface";
 
 /**
@@ -11,19 +11,12 @@ import { IBaseFIelds } from "../Interfaces/base.interface";
  *
  * @template T - Model document type
  */
-export class GenericDatabaseService<T extends IBaseFIelds> {
-  constructor(protected readonly Model: Model<T & Document>) {}
+export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
+  constructor(protected readonly dbModel: T) {}
 
   protected isValidMongoId = (id: string) => {
     return mongoose.isValidObjectId(id);
   };
-
-  /**
-   * SERVICE METHOD
-   */
-  protected async createOne(data: Partial<T>) {
-    return this.Model.create(data);
-  }
 
   /**
    * Create a new record
@@ -38,12 +31,10 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 201 - Record created successfully
    * @response 500 - Server error
    */
-  genericCreateOne = async (
-    payload:any,
-  ) => {
+  genericCreateOne = async (payload: any) => {
     try {
-      const data: T | null = await this.Model.create(payload);
-      if(!data){
+      const data: T | null = await this.dbModel.create(payload);
+      if (!data) {
         throw Object.assign(new Error("Failed to create record"), {
           statusCode: HTTP_STATUS.BAD_REQUEST,
         });
@@ -67,16 +58,17 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 200 - Records fetched successfully
    * @response 500 - Server error
    */
-  genericFindAll = async (req: Request, res: Response, next: NextFunction) => {
+  genericFindAll = async () => {
     try {
-      const data: T[] | null = await this.Model.find({ isDeleted: false });
-      res.status(HTTP_STATUS.OK).json({
-        success: true,
-        count: data.length,
-        data,
-      });
-    } catch (error) {
-      next(error);
+      const data: T[] | null = await this.dbModel.find({ isDeleted: false });
+      return data
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch records", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to fetch records");
+      throw error;
     }
   };
 
@@ -94,34 +86,39 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 404 - Record not found
    * @response 500 - Server error
    */
-  genericFindById = async (req: Request, res: Response, next: NextFunction) => {
+  genericFindById = async (id: string) => {
     try {
-      const { id } = req.params;
-
-      if (!this.isValidMongoId(id)) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: "Invalid ID format",
+      if (!id) {
+        throw Object.assign(new Error("ID is required"), {
+          statusCode: HTTP_STATUS.BAD_REQUEST,
         });
       }
 
-      const data: T | null = await this.Model.findById({
+      if (!this.isValidMongoId(id)) {
+        throw Object.assign(new Error("Invalid ID format"), {
+          statusCode: HTTP_STATUS.BAD_REQUEST,
+        });
+      }
+
+      const data: T | null = await this.dbModel.findById({
         _id: id,
         isDeleted: false,
       });
       if (!data) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          success: false,
-          message: "Record not found",
+        throw Object.assign(new Error("Record not found"), {
+          statusCode: HTTP_STATUS.NOT_FOUND,
         });
       }
 
-      res.status(HTTP_STATUS.OK).json({
-        success: true,
+      return {
         data,
-      });
-    } catch (error) {
-      next(error);
+      };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to find record by ID", error.message);
+        throw new Error(error.message);
+      }
+      throw error;
     }
   };
 
@@ -141,39 +138,40 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 404 - Record not found
    * @response 500 - Server error
    */
-  genericFindOneByIdOrNotFound = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  genericFindOneByIdOrNotFound = async (id: string) => {
     try {
-      const { id } = req.params;
+      if (!id) {
+        throw new Error("ID is required");
+      }
 
       if (!this.isValidMongoId(id)) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: "Invalid ID format",
+        throw Object.assign(new Error("Invalid ID format"), {
+          statusCode: HTTP_STATUS.BAD_REQUEST,
         });
       }
 
-      const data: T | null = await this.Model.findById({
+      const data: T | null = await this.dbModel.findById({
         _id: id,
         isDeleted: false,
       });
 
       if (!data) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
+        throw Object.assign(new Error("Record not found"), {
           success: false,
-          message: "Record not found",
+          statusCode: HTTP_STATUS.NOT_FOUND,
         });
       }
 
-      res.status(HTTP_STATUS.OK).json({
-        success: true,
+      return {
         data,
-      });
-    } catch (error) {
-      next(error);
+      };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to find record by ID", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to find record by ID");
+      throw error;
     }
   };
 
@@ -193,27 +191,47 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    */
   async genericUpdateOneById(
     id: string,
-    payload: Partial<T>
-  ): Promise<T | null> {
-    if (!this.isValidMongoId(id)) {
-      throw Object.assign(new Error("Invalid ID format"), {
-        statusCode: HTTP_STATUS.BAD_REQUEST,
-      });
+    payload: Partial<any>
+  ) {
+    try {
+      if (!id) {
+        throw Object.assign(new Error("ID is required"), {
+          statusCode: HTTP_STATUS.BAD_REQUEST,
+        });
+      }
+
+      if (!this.isValidMongoId(id)) {
+        throw Object.assign(new Error("Invalid ID format"), {
+          statusCode: HTTP_STATUS.BAD_REQUEST,
+        });
+      }
+
+      const data = await this.dbModel.findOneAndUpdate(
+        { _id: id, isDeleted: false },
+        payload,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      if (!data) {
+        throw Object.assign(new Error("Record not found"), {
+          statusCode: HTTP_STATUS.NOT_FOUND,
+        });
+      }
+
+      return {
+        data,
+      };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to update record", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to update record");
+      throw error;
     }
-
-    const data = await this.Model.findOneAndUpdate(
-      { _id: id, isDeleted: false },
-      payload,
-      { new: true, runValidators: true }
-    );
-
-    if (!data) {
-      throw Object.assign(new Error("Record not found"), {
-        statusCode: HTTP_STATUS.NOT_FOUND,
-      });
-    }
-
-    return data;
   }
 
   /**
@@ -231,38 +249,50 @@ export class GenericDatabaseService<T extends IBaseFIelds> {
    * @response 500 - Server error
    */
   genericDeleteOneById = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+    id: string
+  ): Promise<{
+    success: boolean;
+    statusCode: number;
+    message: string;
+  }> => {
     try {
-      const { id } = req.params;
-
-      if (!this.isValidMongoId(id)) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      if (!id) {
+        throw Object.assign(new Error("ID is required"), {
           success: false,
-          message: "Invalid ID format",
+          statusCode: HTTP_STATUS.BAD_REQUEST,
+        });
+      }
+      if (!this.isValidMongoId(id)) {
+        throw Object.assign(new Error("Invalid ID format"), {
+          success: false,
+          statusCode: HTTP_STATUS.BAD_REQUEST,
         });
       }
 
-      const data: T | null = await this.Model.findOneAndUpdate(
+      const data: T | null = await this.dbModel.findOneAndUpdate(
         { _id: id, isDeleted: false },
         { isDeleted: true },
         { new: true }
       );
       if (!data) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
+        throw Object.assign(new Error("Record not found"), {
           success: false,
-          message: "Record not found",
+          statusCode: HTTP_STATUS.NOT_FOUND,
         });
       }
 
-      res.status(HTTP_STATUS.OK).json({
+      return {
         success: true,
-        message: "Deleted successfully",
-      });
-    } catch (error) {
-      next(error);
+        statusCode: HTTP_STATUS.OK,
+        message: "Record deleted successfully",
+      };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete record", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to delete record");
+      throw error;
     }
   };
 }

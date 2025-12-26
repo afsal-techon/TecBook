@@ -4,6 +4,7 @@ import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   PurchaseOrderModel,
   PurchaseOrderModelConstants,
+  PurchaseOrderModelDocument,
 } from "../../models/purchaseOrderModel";
 import {
   CreatePurchaseOrderDto,
@@ -21,7 +22,7 @@ import { ItemDto } from "../../dto/item.dto";
 import branchModel from "../../models/branch";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 
-class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
+class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
   private readonly userModel: Model<IUser>;
   private readonly projectModel: Model<IProject>;
@@ -71,8 +72,8 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       const quoteDate: Date = new Date(dto.quoteDate);
       const expiryDate: Date = new Date(dto.expiryDate);
 
-      if (expiryDate <= quoteDate) {
-        res.status(HTTP_STATUS.BAD_REQUEST).json({
+      if (expiryDate < quoteDate) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Expiry date must be greater than quote date",
         });
@@ -86,7 +87,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
 
       const payload: Partial<IPurchaseOrder> = {
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderNumber: 5, //TODO : move to auto increment
+        purchaseOrderNumber: 91, //TODO : move to auto increment
         quoteNumber: dto.quoteNumber,
         quoteDate,
         expiryDate,
@@ -185,7 +186,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
       return res.status(HTTP_STATUS.OK).json({
         success: true,
         message: "Purchase order updated successfully",
-        statusCode: HTTP_STATUS.OK
+        statusCode: HTTP_STATUS.OK,
       });
     } catch (error) {
       next(error);
@@ -261,6 +262,7 @@ class PurchaseOrderController extends GenericDatabaseService<IPurchaseOrder> {
         success: false,
         message: error.message,
       });
+      next(error);
     }
   };
 
