@@ -648,7 +648,7 @@ export const getOnePaymentReceived = async (
         $lookup: {
           from: "invoices",
           localField: "invoiceId",
-          foreignField: "invoiceId",
+          foreignField: "_id",
           as: "invoice",
         },
       },
@@ -696,6 +696,7 @@ export const getOnePaymentReceived = async (
             city: "$branch.city",
           },
           invoice: {
+            _id: "$invoice._id",
             invoiceId: "$invoice.invoiceId",
             invoiceDate: "$invoice.invoiceDate",
             dueDate: "$invoice.dueDate",
