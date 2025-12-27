@@ -17,7 +17,7 @@ import { getAllPaymenModes, getAllPaymentTerms, upsertPaymentModes, upsertPaymen
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
 import { createLogEntry, createProject, deleteLogEntry, getAllLogEntries, getAllProjects, getOneProject, getProjects, getTimesheetsByDate, updateLogEntry, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
-import { createInvoice, deleteInvoice, getALLInvoices, getOneInvoice, updateInvoice } from '../controller/saleController/invoiceCntrl';
+import { createInvoice, deleteInvoice, getALLInvoices, getOneInvoice, markAsSent, updateInvoice } from '../controller/saleController/invoiceCntrl';
 import { createPaymentReceived, getAllPaymentReceived, getOnePaymentReceived, updatePaymentReceived } from '../controller/saleController/paymentCntrl';
 const router = express.Router();
 
@@ -175,6 +175,8 @@ router.put('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','c
 router.get('/invoice',verifyUser,checkPermission('admin','Invoice','can_read'),getALLInvoices)
 router.get('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_read'),getOneInvoice)
 router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_delete'),deleteInvoice);
+router.post('/invoice/sent',verifyUser,checkPermission('admin','Invoice','can_create'),markAsSent);
+
 
 //tune log entry
 router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_create'),createLogEntry)
@@ -187,10 +189,10 @@ router.get('/timesheets',verifyUser,checkPermission('admin','LogEntry','can_read
 
 
 //payment Recieved
-router.post('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_create'),createPaymentReceived)
+router.post('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_create'),upload.array('documents',10),createPaymentReceived)
 router.get('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_read'),getAllPaymentReceived)
 router.get('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_read'),getOnePaymentReceived)
-router.put('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_update'),updatePaymentReceived)
+router.put('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_update'),upload.array('documents',10),updatePaymentReceived)
 // router.delete('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_delete'),deletePaymentReceived)
 
 

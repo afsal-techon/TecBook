@@ -17,6 +17,11 @@ const invoiceSchema = new Schema<IInvoice>(
       ref: "Customer",
       default: null,
     },
+      quoteId: {
+      type: Schema.Types.ObjectId,
+      ref: "Quotation",
+      default: null,
+    },
     salesPersonId: {
       type: Schema.Types.ObjectId,
       ref: "Employee",
@@ -37,7 +42,7 @@ const invoiceSchema = new Schema<IInvoice>(
     },
     status: {
       type: String,
-      enum: ["Draft", "Closed","Confirmed","Paid", "Accepted", "Approved", "Invoiced", "Pending"],
+      enum: ["Draft", "Sent","Confirmed","Paid", "Accepted", "Approved", "Invoiced","Partially Paid"],
     },
     items: [
       {

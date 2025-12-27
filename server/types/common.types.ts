@@ -489,6 +489,7 @@ export interface IInvoice extends Document {
   orderNumber?: string;
   invoiceDate?: Date | null;
   dueDate?:Date | null;
+  quoteId?: Types.ObjectId | null;
   salesPersonId?: Types.ObjectId | null;
   projectId?: Types.ObjectId | null;
   paymentTerms?: {

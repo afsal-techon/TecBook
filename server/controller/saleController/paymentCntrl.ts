@@ -30,8 +30,11 @@ export const createPaymentReceived = async (
       bankCharges = 0,
       paymentMode,
       reference,
+      note,
       status,
     } = req.body;
+
+    console.log(status,'states')
 
     const userId = req.user?.id;
     let invoice: any = null;
@@ -198,6 +201,7 @@ export const createPaymentReceived = async (
       accountId: salesAccount._id,
       paymentMode,
       reference,
+      note,
       documents: uploadedFiles,
       status,
       createdById: new Types.ObjectId(userId),
@@ -464,6 +468,7 @@ export const updatePaymentReceived = async (
       bankCharges = 0,
       paymentMode,
       reference,
+      note,
       status,
     } = req.body;
 
@@ -529,6 +534,7 @@ export const updatePaymentReceived = async (
       accountId: accountId || null,
       paymentMode,
       reference,
+      note,
       status,
       isReversed: false,
       createdById: new Types.ObjectId(userId),
@@ -587,10 +593,10 @@ export const updatePaymentReceived = async (
           },
         ]);
 
-        const totalPaid = totalPaidAgg[0]?.totalPaid || 0;
-        const invoiceTotal = Number(invoice.total || 0);
+        // const totalPaid = totalPaidAgg[0]?.totalPaid || 0;
+        // const invoiceTotal = Number(invoice.total || 0);
 
-        invoice.status = totalPaid >= invoiceTotal ? "Paid" : "Partially Paid";
+        // invoice.status = totalPaid >= invoiceTotal ? "Paid" : "Partially Paid";
 
         await invoice.save();
       }
@@ -676,6 +682,9 @@ export const getOnePaymentReceived = async (
           paymentRecieved: 1,
           paymentDate: 1,
           paymentId: 1,
+          branchId:1,
+          accountId:1,
+          note:1,
           reference: 1,
           amount: 1,
           bankCharges: 1,
