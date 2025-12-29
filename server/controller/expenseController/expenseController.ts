@@ -14,22 +14,25 @@ import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import branchModel from "../../models/branch";
 import vendorModel from "../../models/vendor";
-import { IBranch, IVendor } from "../../types/common.types";
+import { IBranch, ICustomer, IVendor } from "../../types/common.types";
 import { HTTP_STATUS } from "../../constants/http-status";
 import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import customerModel from "../../models/customer";
 
 class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   private readonly userModel: Model<IUser>;
   private readonly branchModel: Model<IBranch>;
   private readonly vendorModel: Model<IVendor>;
+  private readonly customerModel: Model<ICustomer>;
 
   constructor() {
     super(ExpenseModel);
     this.userModel = userModel;
     this.branchModel = branchModel;
     this.vendorModel = vendorModel;
+    this.customerModel = customerModel;
   }
 
   createExpense = async (
@@ -56,6 +59,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       await this.validateUser(userId);
       await this.validateVendor(dto.vendorId);
       await this.validateBranch(dto.branchId);
+      await this.validateCustomer(dto.customerId);
 
       const items: IItem[] = this.mapItems(dto.items);
 
@@ -88,6 +92,65 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
+  updateExpense = async (
+    req: Request<{ id: string }, {}, UpdateExpenseDto>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { id } = req.params;
+
+      await this.genericFindOneByIdOrNotFound(id);
+
+      if (req.body.vendorId) {
+        await this.validateVendor(req.body.vendorId);
+      }
+
+      if (req.body.branchId) {
+        await this.validateBranch(req.body.branchId);
+      }
+      if (req.body.customerId) {
+        await this.validateCustomer(req.body.customerId);
+      }
+
+      const items: IItem[] = req.body.items
+        ? this.mapItems(req.body.items)
+        : [];
+
+      const payload = {
+        date: req.body.date ? new Date(req.body.date) : undefined,
+        customerId: req.body.customerId
+          ? new Types.ObjectId(req.body.customerId)
+          : undefined,
+        branchId: req.body.branchId
+          ? new Types.ObjectId(req.body.branchId)
+          : undefined,
+        taxPreference: req.body.taxPreference,
+        paidAccount: req.body.paidAccount
+          ? new Types.ObjectId(req.body.paidAccount)
+          : undefined,
+        vendorId: req.body.vendorId
+          ? new Types.ObjectId(req.body.vendorId)
+          : undefined,
+        items,
+      };
+
+      await this.genericUpdateOneById(id, payload);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Expense updated successfully",
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while updating expense", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Error while updating expense", error);
+      throw new Error("failed to update expense");
+    }
+  };
+
   private async validateBranch(id: string) {
     const branch = await this.branchModel.findOne({
       _id: id,
@@ -112,6 +175,15 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       isDeleted: false,
     });
     if (!vendor) throw new Error("Vendor not found");
+    return vendor;
+  }
+  private async validateCustomer(customerId: string) {
+    const customer = await this.customerModel.findOne({
+      _id: customerId,
+      isDeleted: false,
+    });
+    if (!customer) throw new Error("customer not found");
+    return customer;
   }
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
