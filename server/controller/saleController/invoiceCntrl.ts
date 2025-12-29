@@ -286,6 +286,7 @@ export const updateInvoice = async (
       salesPersonId,
       invoiceDate,
       dueDate,
+      quoteId,
       status,
       items,
       subTotal,
@@ -458,6 +459,14 @@ export const updateInvoice = async (
       item.tax = Number(taxAmount.toFixed(2));
     }
 
+        let quotation;
+    if (quoteId) {
+      quotation = await QUATATION.findById(quoteId);
+      if (!quotation) {
+        return res.status(400).json({ message: "Quotation not found!" });
+      }
+    }
+
     invoice.branchId = branchId;
     invoice.customerId = customerId;
     invoice.projectId = projectId;
@@ -465,6 +474,7 @@ export const updateInvoice = async (
     invoice.invoiceDate = invoiceDate;
     invoice.dueDate = dueDate;
     invoice.status = status;
+    invoice.quoteId = quoteId;
     invoice.items = parsedItems;
     invoice.paymentTerms = parsedTerms; // now always assigned
     invoice.terms = terms;
@@ -478,6 +488,10 @@ export const updateInvoice = async (
     invoice.note = note;
 
     await invoice.save();
+     if (quotation) {
+      quotation.status = "Invoiced";
+      await quotation.save();
+    }
 
     return res.status(200).json({
       message: "Invoice updated successfully.",
