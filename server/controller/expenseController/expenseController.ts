@@ -209,6 +209,49 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       throw new Error("failed to get all expenses");
     }
   };
+
+  getExpenseById = async (
+    req: Request<{ id: string }>,
+    res: Response,
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid expense id",
+        });
+      }
+      await this.genericFindOneByIdOrNotFound(id);
+
+      const expense = await ExpenseModel.findOne({
+        _id: id,
+        isDeleted: false,
+      })
+        .populate(ExpenseModelConstants.vendorId)
+        .populate(ExpenseModelConstants.branchId);
+
+      if (!expense) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Expense not found",
+        });
+      }
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: expense,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while getting expense by id", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Error while getting expense by id", error);
+      throw new Error("failed to get expense by id");
+    }
+  };
   private async validateBranch(id: string) {
     const branch = await this.branchModel.findOne({
       _id: id,
