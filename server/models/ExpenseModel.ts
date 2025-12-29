@@ -49,7 +49,7 @@ ExpenseModelSchema.add(BaseSchemaFields);
 ExpenseModelSchema.add(ItemsSchemaFields);
 
 export const ExpenseModel = model("ExpenseModel", ExpenseModelSchema);
-export const ExpenseModelDocument = typeof ExpenseModel;
+export type ExpenseModelDocument = typeof ExpenseModel;
 
 export const ExpenseModelConstants = {
   date: "date",
@@ -63,4 +63,4 @@ export const ExpenseModelConstants = {
   createdBy: "createdBy",
   isDeleted: "isDeleted",
 };
-export type ExpenseModelField = keyof typeof ExpenseModelConstants;
+// export type ExpenseModelField = keyof typeof ExpenseModelConstants;
