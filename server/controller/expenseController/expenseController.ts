@@ -36,6 +36,23 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     this.customerModel = customerModel;
   }
 
+  /**
+   * Creates a new expense record in the database.
+   *
+   * This method performs the following operations:
+   * 1. Validates the authenticated user's ID from the request.
+   * 2. Validates the existence of the User, Vendor, Branch, and Customer entities.
+   * 3. Maps the expense items from the DTO to the internal item structure.
+   * 4. Persists the new expense entry.
+   *
+   * @param req - The Express Request object. Expects `CreateExpenseDto` in `req.body` and an authenticated user in `req.user`.
+   * @param res - The Express Response object.
+   * @returns A Promise that resolves to void. Sends a JSON response with:
+   *          - HTTP 201 (Created) and the expense data on success.
+   *          - HTTP 401 (Unauthorized) if the user is not authenticated.
+   *          - HTTP 400 (Bad Request) if the user ID is invalid.
+   * @throws {Error} Throws an error if validation of related entities fails or if the database operation encounters an issue.
+   */
   createExpense = async (
     req: Request<{}, {}, CreateExpenseDto>,
     res: Response
@@ -210,10 +227,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
-  getExpenseById = async (
-    req: Request<{ id: string }>,
-    res: Response,
-  ) => {
+  getExpenseById = async (req: Request<{ id: string }>, res: Response) => {
     try {
       const { id } = req.params;
 
