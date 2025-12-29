@@ -54,9 +54,9 @@ customerSchema.index({ branchId: 1, name: 1 });
 customerSchema.index({ branchId: 1,phone: 1 });
 customerSchema.index({ branchId: 1,phone: 1 ,isDeleted:1 });
 
-const employeeModel: Model<ICustomer> = mongoose.model<ICustomer>(
+const customerModel: Model<ICustomer> = mongoose.model<ICustomer>(
   "Customer",
   customerSchema
 );
 
-export default employeeModel;
+export default customerModel;
