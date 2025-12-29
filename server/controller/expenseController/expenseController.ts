@@ -127,8 +127,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
    */
   updateExpense = async (
     req: Request<{ id: string }, {}, UpdateExpenseDto>,
-    res: Response,
-    next: NextFunction
+    res: Response
   ) => {
     try {
       const { id } = req.params;
@@ -184,6 +183,29 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
+  /**
+   * Retrieves a paginated list of expenses based on query filters and user permissions.
+   *
+   * This method performs the following operations:
+   * 1. Resolves the authenticated user's allowed branches to ensure data access security.
+   * 2. Applies filtering based on the `branchId` query parameter (if provided and allowed).
+   * 3. Applies search filtering on `expenseNumber` if a search term is provided.
+   * 4. Supports pagination via `page` and `limit` query parameters.
+   * 5. Retrieves the expense records from the database, populated with Vendor and Branch details.
+   *
+   * @param req - The Express Request object. Expects query parameters:
+   *              - `page` (optional): Page number (default: 1).
+   *              - `limit` (optional): Number of items per page (default: 20).
+   *              - `search` (optional): Search term for expense number.
+   *              - `branchId` (optional): Filter by specific branch ID.
+   * @param res - The Express Response object.
+   * @param next - The Express NextFunction.
+   * @returns A Promise that resolves to void. Sends a JSON response with:
+   *          - `success`: boolean indicating success.
+   *          - `data`: Array of expense objects.
+   *          - `pagination`: Object containing `totalCount`, `page`, `limit`, and `totalPages`.
+   * @throws {Error} Throws an error if the database query fails or permission resolution encounters issues.
+   */
   getAllExpenses = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authUser = req.user as { id: string };
