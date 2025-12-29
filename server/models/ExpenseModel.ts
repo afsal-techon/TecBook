@@ -49,3 +49,18 @@ ExpenseModelSchema.add(BaseSchemaFields);
 ExpenseModelSchema.add(ItemsSchemaFields);
 
 export const ExpenseModel = model("ExpenseModel", ExpenseModelSchema);
+export const ExpenseModelDocument = typeof ExpenseModel;
+
+export const ExpenseModelConstants = {
+  date: "date",
+  expenseNumber: "expenseNumber",
+  customerId: "customerId",
+  branchId: "branchId",
+  taxPreference: "taxPreference",
+  paidAccount: "paidAccount",
+  vendorId: "vendorId",
+  items: "items",
+  createdBy: "createdBy",
+  isDeleted: "isDeleted",
+};
+export type ExpenseModelField = keyof typeof ExpenseModelConstants;
