@@ -261,6 +261,22 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
+  /**
+   * Retrieves a single expense record by its ID.
+   *
+   * This method performs the following operations:
+   * 1. Validates the provided expense ID format.
+   * 2. Checks for the existence of the expense record.
+   * 3. Retrieves the expense details, populating Vendor and Branch information.
+   *
+   * @param req - The Express Request object. Expects the expense ID in `req.params.id`.
+   * @param res - The Express Response object.
+   * @returns A Promise that resolves to void. Sends a JSON response with:
+   *          - HTTP 200 (OK) and the expense object on success.
+   *          - HTTP 400 (Bad Request) if the ID format is invalid.
+   *          - HTTP 404 (Not Found) if the expense does not exist.
+   * @throws {Error} Throws an error if the database query fails.
+   */
   getExpenseById = async (req: Request<{ id: string }>, res: Response) => {
     try {
       const { id } = req.params;
