@@ -14,4 +14,6 @@ router.get("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_read'
 router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , purchaseOrderController.genericDeleteOneById);
 
 
+
+
 export default router;

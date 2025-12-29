@@ -326,7 +326,10 @@ export interface IVendor extends Document {
   branchId?: Types.ObjectId | null;
   name?: string;
   phone?: number;
+  email?: string;
+  currency?: string;
   openingBalance?: number;
+  paymentTerms?: string;
   note?: string;
   billingInfo?: {
     country?: string | null;
@@ -340,6 +343,14 @@ export interface IVendor extends Document {
     city?: Types.ObjectId | null;
     zipCode?: Date | null;
   };
+    documents?: {
+    doc_name: string | null;
+    doc_file: string | null;
+    doc_typeId: Types.ObjectId | null;
+    startDate: Date | null;
+    endDate: Date | null;
+  }[];
+
   taxTreatment?: string | null;
   trn?: string | null;
   placeOfSupplay?: string | null;

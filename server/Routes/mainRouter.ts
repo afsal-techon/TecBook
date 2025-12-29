@@ -8,7 +8,7 @@ import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, 
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 import { createCustomer, deleteCustomer, getCustomers, getCustomersDetails, updateCustomer } from '../controller/saleController/customerCntrl';
-import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
+import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getItemsListPurchase, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
 import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAcceptOrReject, updateQuotes } from '../controller/saleController/quotationCntrl';
@@ -113,11 +113,13 @@ router.get('/item/one/:itemId',verifyUser,checkPermission('admin','Item','can_re
 router.put('/item',verifyUser,checkPermission('admin','Item','can_update'),updateItem)
 router.delete('/item/:itemId',verifyUser,checkPermission('admin','Item','can_delete'),deleteItems)
 
+//purchase items
+router.get('/items/purchase/:branchId',verifyUser,getItemsListPurchase)
 
 //vendor
-router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),CreateVendor)
+router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),upload.array('documents',10),CreateVendor)
 router.get('/vendor',verifyUser,checkPermission('admin','Vendor','can_read'),getVendors)
-router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),updateVendor)
+router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),upload.array('documents',10),updateVendor)
 router.delete('/vendor/:vendorId',verifyUser,checkPermission('admin','Vendor','can_delete'),deleteVendor)
 
 
@@ -155,6 +157,7 @@ router.put('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOr
 router.get('/sale-order',verifyUser,checkPermission('admin','SaleOrder','can_read'),getAllSaleOrder)
 router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_read'),getOneSaleOrder) 
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
+
 
 
 router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
@@ -199,6 +202,8 @@ router.put('/payment-received/:paymentId',verifyUser,checkPermission('admin','Pa
 //payent modes 
 router.post('/payment-mode',verifyUser,checkPermission('admin','PaymentMode','can_create'),upsertPaymentModes)
 router.get('/payment-mode/:branchId',verifyUser,checkPermission('admin','PaymentMode','can_read'),getAllPaymenModes)
+
+
 
 
 export default router;
