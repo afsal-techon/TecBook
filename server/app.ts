@@ -10,6 +10,7 @@ import connectDB from './config/database';
 import cors from 'cors';
 import purchaseOrderRoutes from './Routes/purchase-order.routes';
 import billingRecordsRoutes from './Routes/billing-records.routes';
+import expensesRoutes from './Routes/expense.routes'
 
 
 
@@ -49,6 +50,7 @@ app.use(cors({
   app.use("/api", mainRouter);
   app.use("/api/purchase-orders", purchaseOrderRoutes);
   app.use("/api/billing-records", billingRecordsRoutes);
+  app.use("/api/expenses", expensesRoutes);
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
