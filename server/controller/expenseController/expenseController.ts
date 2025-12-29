@@ -110,6 +110,21 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
+  /**
+   * Updates an existing expense record by ID.
+   *
+   * This method performs the following operations:
+   * 1. Verifies the existence of the expense record using the provided ID.
+   * 2. Validates related entities (Vendor, Branch, Customer) if their IDs are provided in the update payload.
+   * 3. Maps updated items to the internal item structure if provided.
+   * 4. Updates the expense record in the database with the new values.
+   *
+   * @param req - The Express Request object. Expects the expense ID in `req.params.id` and partial expense details in `req.body`.
+   * @param res - The Express Response object.
+   * @param next - The Express NextFunction.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on success.
+   * @throws {Error} Throws an error if validation fails or if the database update operation fails.
+   */
   updateExpense = async (
     req: Request<{ id: string }, {}, UpdateExpenseDto>,
     res: Response,
@@ -169,9 +184,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
-  /* =====================================================
-     GET ALL EXPENSES
-  ====================================================== */
   getAllExpenses = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authUser = req.user as { id: string };
