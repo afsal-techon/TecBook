@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import mongoose, { Types, Model } from "mongoose";
+import mongoose, { Types, Model, FilterQuery } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   ExpenseModel,
@@ -20,6 +20,7 @@ import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import customerModel from "../../models/customer";
+import { IExpenses } from "../../Interfaces/expenses.interface";
 
 class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -151,6 +152,63 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
+  /* =====================================================
+     GET ALL EXPENSES
+  ====================================================== */
+  getAllExpenses = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit: number = parseInt(req.query.limit as string) || 20;
+      const page: number = parseInt(req.query.page as string) || 1;
+      const skip: number = (page - 1) * limit;
+      const search: string = (req.query.search as string) || "";
+      const filterBranchId = req.query.branchId as string | undefined;
+
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: this.userModel,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
+
+      const query: FilterQuery<IExpenses> = {
+        isDeleted: false,
+        branchId: { $in: allowedBranchIds },
+      };
+
+      if (search) {
+        query.expenseNumber = { $regex: search, $options: "i" };
+      }
+
+      const totalCount: number = await ExpenseModel.countDocuments(query);
+
+      const expenses = await ExpenseModel.find(query)
+        .sort({ createdAt: -1 })
+        .populate(ExpenseModelConstants.vendorId)
+        .populate(ExpenseModelConstants.branchId)
+        .skip(skip)
+        .limit(limit);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: expenses,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while getting all expenses", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Error while getting all expenses", error);
+      throw new Error("failed to get all expenses");
+    }
+  };
   private async validateBranch(id: string) {
     const branch = await this.branchModel.findOne({
       _id: id,
