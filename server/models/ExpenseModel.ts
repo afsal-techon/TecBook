@@ -2,8 +2,9 @@ import { model, Schema } from "mongoose";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
 import { TaxPreferences } from "../types/enum.types";
+import { IExpenses } from "../Interfaces/expenses.interface";
 
-const ExpenseModelSchema = new Schema(
+const ExpenseModelSchema = new Schema<IExpenses>(
   {
     date: {
       type: Date,
