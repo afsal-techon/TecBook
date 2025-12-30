@@ -7,9 +7,8 @@ import { PurchaseOrderDiscountType } from "../types/enum.types";
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
     purchaseOrderId:{
-        type:Number,
-        default:0,
-        unique:true
+        type:String,
+        default:'',
     },
     vendorId: {
       type: Schema.Types.ObjectId,
@@ -18,7 +17,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     quote: {
       type: String,
-      required: true,
+      required: false ,
       trim: true,
     },
 
@@ -67,6 +66,32 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     vatValue:{
       type:Number,
       default:0,
+    },
+        status: {
+      type: String,
+      
+      enum: ["Draft", "Sent","Accepted","Approved","Invoiced","Pending","Declined"],
+    },
+        documents: {
+      type: [String],
+      default: [],
+    },
+    subTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    taxTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    total: {
+      type: Number,
+      required: true,
+      default: 0,
     },
   },
   { timestamps: true }

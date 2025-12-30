@@ -13,7 +13,7 @@ import {
 import vendorModel from "../../models/vendor";
 import userModel from "../../models/user";
 import projectModel from "../../models/project";
-import { IVendor, IProject, IBranch } from "../../types/common.types";
+import { IVendor, IProject, IBranch, ISalesPerson } from "../../types/common.types";
 import { IUser } from "../../types/user.types";
 import { HTTP_STATUS } from "../../constants/http-status";
 import { IPurchaseOrder } from "../../Interfaces/purchase-order.interface";
@@ -21,18 +21,22 @@ import { IItem } from "../../Interfaces/item.interface";
 import { ItemDto } from "../../dto/item.dto";
 import branchModel from "../../models/branch";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import { imagekit } from "../../config/imageKit";
+import salesPersonModel from "../../models/salesPerson";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
   private readonly userModel: Model<IUser>;
   private readonly projectModel: Model<IProject>;
   private readonly branchModel: Model<IBranch>;
+  private readonly salesModel:Model<ISalesPerson>
 
   constructor(
     vendorModel: Model<IVendor>,
     userModel: Model<IUser>,
     projectModel: Model<IProject>,
-    branchModel: Model<IBranch>
+    branchModel: Model<IBranch>,
+    salesModel:Model<ISalesPerson>
   ) {
     super(PurchaseOrderModel);
 
@@ -40,6 +44,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     this.userModel = userModel;
     this.projectModel = projectModel;
     this.branchModel = branchModel;
+    this.salesModel = salesPersonModel;
   }
 
   /**
@@ -84,12 +89,24 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       await this.validateSalesman(dto.salesPersonId);
       if (dto.projectId) await this.validateProject(dto.projectId);
 
+          const uploadedFiles: string[] = [];
+          if (req.files && Array.isArray(req.files)) {
+            for (const file of req.files) {
+              const uploadResponse = await imagekit.upload({
+                file: file.buffer.toString("base64"),
+                fileName: file.originalname,
+                folder: "/images",
+              });
+              uploadedFiles.push(uploadResponse.url);
+            }
+          }
+
       const items: IItem[] = this.mapItems(dto.items);
 
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderId: parseInt(dto.purchaseOrderId), 
+        purchaseOrderId: dto.purchaseOrderId, 
         quote: dto.quote,
         purchaseOrderDate: quoteDate,
         expDate: expiryDate,
@@ -100,6 +117,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         items,
         createdBy: new Types.ObjectId(userId) ?? undefined,
         branchId: new Types.ObjectId(dto.branchId),
+        documents:uploadedFiles,
       };
 
       const purchaseOrder = await this.genericCreateOne(payload);
@@ -179,7 +197,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
         purchaseOrderId: dto.purchaseOrderId
-          ? parseInt(dto.purchaseOrderId)
+          ? dto.purchaseOrderId
           : undefined,
         vendorId: req.body.vendorId
           ? new Types.ObjectId(req.body.vendorId)
@@ -348,9 +366,9 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     if (!vendor) throw new Error("Vendor not found");
   }
 
-  private async validateSalesman(userId: string) {
-    const user = await this.userModel.findOne({
-      _id: userId,
+  private async validateSalesman(id: string) {
+    const user = await this.salesModel.findOne({
+      _id: id,
       isDeleted: false,
     });
     if (!user) throw new Error("Salesman not found");
@@ -366,22 +384,28 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
   }
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
-    return itemsDto.map((item) => ({
-      itemId: item.itemId ? new Types.ObjectId(item.itemId) : undefined,
-      taxId: item.taxId ? new Types.ObjectId(item.taxId) : undefined,
-      itemName: item.itemName,
-      qty: item.qty,
-      tax: item.tax,
-      rate: item.rate,
-      amount: item.amount,
-      unit: item.unit,
-      discount: item.discount,
-    }));
-  }
+  return itemsDto.map((item) => ({
+    itemId: new Types.ObjectId(item.itemId),
+    taxId: new Types.ObjectId(item.taxId),
+
+    prevItemId: item.prevItemId
+      ? new Types.ObjectId(item.prevItemId)
+      : undefined,
+
+    itemName: item.itemName,
+    qty: item.qty,
+    rate: item.rate,
+    amount: item.amount,
+    unit: item.unit,
+    discount: item.discount,
+  }));
+}
+
 }
 export default new PurchaseOrderController(
   vendorModel,
   userModel,
   projectModel,
-  branchModel
+  branchModel,
+  salesPersonModel
 );

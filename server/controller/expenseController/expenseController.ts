@@ -353,11 +353,15 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
-      itemId: item.itemId ? new Types.ObjectId(item.itemId) : undefined,
-      taxId: item.taxId ? new Types.ObjectId(item.taxId) : undefined,
+      itemId: new Types.ObjectId(item.itemId),
+      taxId: new Types.ObjectId(item.taxId),
+
+      prevItemId: item.prevItemId
+        ? new Types.ObjectId(item.prevItemId)
+        : undefined,
+
       itemName: item.itemName,
       qty: item.qty,
-      tax: item.tax,
       rate: item.rate,
       amount: item.amount,
       unit: item.unit,

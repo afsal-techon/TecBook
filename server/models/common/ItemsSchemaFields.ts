@@ -3,43 +3,57 @@ import { Schema } from "mongoose";
 export const ItemsSchemaFields = {
   items: [
     {
+      itemId: {
+        type: Schema.Types.ObjectId,
+        ref: "Item",
+        required: true,
+      },
+
       taxId: {
         type: Schema.Types.ObjectId,
         ref: "Tax",
-        default: null,
+        required: true,
       },
-      itemId: {
+
+      prevItemId: {
         type: Schema.Types.ObjectId,
         ref: "Item",
         default: null,
       },
+
       itemName: {
         type: String,
         required: true,
+        trim: true,
       },
+
       qty: {
         type: Number,
-        default: 1,
+        required: true,
+        min: 1,
       },
-      tax: {
-        type: Number,
-        default: 0,
-      },
+
       rate: {
         type: Number,
-        default: 0,
+        required: true,
+        min: 0,
       },
+
       amount: {
         type: Number,
-        default: 0,
+        required: true,
+        min: 0,
       },
+
       unit: {
         type: String,
-        default: "",
+        required: true,
       },
+
       discount: {
         type: Number,
         default: 0,
+        min: 0,
       },
     },
   ],

@@ -8,13 +8,14 @@ import {
 } from "class-validator";
 
 export class ItemDto {
-  @IsOptional()
   @IsMongoId()
-  taxId?: string;
+  itemId!: string;
 
-  @IsOptional()
   @IsMongoId()
-  itemId?: string;
+  taxId!: string;
+
+  @IsMongoId()
+  prevItemId!: string;
 
   @IsString()
   @IsNotEmpty()
@@ -23,10 +24,6 @@ export class ItemDto {
   @IsNumber()
   @Min(1)
   qty!: number;
-
-  @IsNumber()
-  @Min(0)
-  tax!: number;
 
   @IsNumber()
   @Min(0)
