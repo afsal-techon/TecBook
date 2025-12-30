@@ -14,6 +14,10 @@ import { ItemDto } from "./item.dto";
 import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
+  @IsNumber()
+  @IsNotEmpty()
+  purchaseOrderId!: string;
+
   @IsMongoId()
   vendorId!: string;
 
@@ -67,6 +71,10 @@ export class CreatePurchaseOrderDto {
 }
 
 export class UpdatePurchaseOrderDto {
+  @IsNumber()
+  @IsOptional()
+  purchaseOrderId?: string;
+
   @IsMongoId()
   @IsOptional()
   vendorId?: string;
