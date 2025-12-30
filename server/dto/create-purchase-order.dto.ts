@@ -1,14 +1,17 @@
 import {
   IsArray,
   IsDateString,
+  IsEnum,
   IsMongoId,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
+import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
   @IsMongoId()
@@ -16,20 +19,43 @@ export class CreatePurchaseOrderDto {
 
   @IsString()
   @IsNotEmpty()
-  quoteNumber!: string;
+  quote!: string;
 
   @IsDateString()
-  quoteDate!: string;
+  purchaseOrderDate!: string;
 
   @IsDateString()
-  expiryDate!: string;
+  expDate!: string;
 
   @IsMongoId()
-  salesmanId!: string;
+  salesPersonId!: string;
 
   @IsMongoId()
   @IsOptional()
   projectId?: string;
+
+  @IsMongoId()
+  branchId!: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -38,10 +64,6 @@ export class CreatePurchaseOrderDto {
     typeof value === "string" ? JSON.parse(value) : value
   )
   items!: ItemDto[];
-
-  @IsMongoId()
-  @IsNotEmpty()
-  branchId!: string;
 }
 
 export class UpdatePurchaseOrderDto {
@@ -51,23 +73,47 @@ export class UpdatePurchaseOrderDto {
 
   @IsString()
   @IsOptional()
-  quoteNumber?: string;
+  quote?: string;
 
   @IsDateString()
   @IsOptional()
-  quoteDate?: string;
+  purchaseOrderDate?: string;
 
   @IsDateString()
   @IsOptional()
-  expiryDate?: string;
+  expDate?: string;
 
   @IsMongoId()
   @IsOptional()
-  salesmanId?: string;
+  salesPersonId?: string;
 
   @IsMongoId()
   @IsOptional()
   projectId?: string;
+
+  @IsMongoId()
+  @IsOptional()
+  branchId?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
 
   @IsOptional()
   @IsArray()
@@ -76,9 +122,5 @@ export class UpdatePurchaseOrderDto {
   @Transform(({ value }) =>
     typeof value === "string" ? JSON.parse(value) : value
   )
-  items!: ItemDto[];
-
-  @IsMongoId()
-  @IsOptional()
-  branchId!: string;
+  items?: ItemDto[];
 }
