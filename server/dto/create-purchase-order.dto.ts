@@ -7,7 +7,7 @@ import {
   IsString,
   ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
 
 export class CreatePurchaseOrderDto {
@@ -34,6 +34,9 @@ export class CreatePurchaseOrderDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
   items!: ItemDto[];
 
   @IsMongoId()
@@ -66,11 +69,14 @@ export class UpdatePurchaseOrderDto {
   @IsOptional()
   projectId?: string;
 
-  @IsArray()
   @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
-  items?: ItemDto[];
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  items!: ItemDto[];
 
   @IsMongoId()
   @IsOptional()

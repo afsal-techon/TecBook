@@ -60,6 +60,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
   ) => {
     try {
       const dto: CreatePurchaseOrderDto = req.body;
+      console.log(dto,'dto');
+      console.log(req.body,'req.body');
       const userId: string | undefined = req.user?.id;
 
       if (!userId) {
