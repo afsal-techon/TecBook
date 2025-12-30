@@ -295,4 +295,19 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
       throw error;
     }
   };
+
+ 
+    genericFindOne = async (filter:any) => {
+    try {
+      const data: T[] | null = await this.dbModel.find({ isDeleted: false,...filter });
+      return data
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch records", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to fetch records");
+      throw error;
+    }
+  };
 }
