@@ -33,7 +33,7 @@ export const createAccounts = async (
       return res.status(400).json({ message: "Account name is required!" });
     }
 
-    const existing = await ACCOUNTS.findOne({ branchId, accountName });
+    const existing = await ACCOUNTS.findOne({ branchId, accountName, isDeleted:false });
     if (existing) {
       return res.status(400).json({ message: "Account name already exists." });
     }
@@ -45,6 +45,7 @@ export const createAccounts = async (
         return res.status(400).json({ message: "Parent account not found." });
       }
     }
+    
 
     await ACCOUNTS.create({
       branchId,
