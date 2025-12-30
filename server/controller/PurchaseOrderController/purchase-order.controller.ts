@@ -71,8 +71,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         });
       }
 
-      const quoteDate: Date = new Date(dto.quoteDate);
-      const expiryDate: Date = new Date(dto.expiryDate);
+      const quoteDate: Date = new Date(dto.purchaseOrderDate);
+      const expiryDate: Date = new Date(dto.expDate);
 
       if (expiryDate < quoteDate) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -82,18 +82,19 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       }
 
       await this.validateVendor(dto.vendorId);
-      await this.validateSalesman(dto.salesmanId);
+      await this.validateSalesman(dto.salesPersonId);
       if (dto.projectId) await this.validateProject(dto.projectId);
 
       const items: IItem[] = this.mapItems(dto.items);
 
       const payload: Partial<IPurchaseOrder> = {
+        ...dto,
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderNumber: 91, //TODO : move to auto increment
-        quoteNumber: dto.quoteNumber,
-        quoteDate,
-        expiryDate,
-        salesmanId: new Types.ObjectId(dto.salesmanId),
+        purchaseOrderId: parseInt(dto.purchaseOrderId), 
+        quote: dto.quote,
+        purchaseOrderDate: quoteDate,
+        expDate: expiryDate,
+        salesPersonId: new Types.ObjectId(dto.salesPersonId),
         projectId: dto.projectId
           ? new Types.ObjectId(dto.projectId)
           : undefined,
@@ -130,6 +131,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
   ) => {
     try {
       const id: string = req.params.id;
+      const dto: UpdatePurchaseOrderDto = req.body;
+
 
       if (!this.isValidMongoId(req.params.id)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -138,15 +141,18 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         });
       }
 
+      const existingData = await this.genericFindById(id);
+
+
       let quoteDate: Date | undefined;
       let expiryDate: Date | undefined;
 
-      if (req.body.quoteDate) {
-        quoteDate = new Date(req.body.quoteDate);
+      if (req.body.purchaseOrderDate) {
+        quoteDate = new Date(req.body.purchaseOrderDate);
       }
 
-      if (req.body.expiryDate) {
-        expiryDate = new Date(req.body.expiryDate);
+      if (req.body.expDate) {
+        expiryDate = new Date(req.body.expDate);
       }
 
       if (expiryDate && quoteDate && expiryDate <= quoteDate) {
@@ -159,8 +165,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       if (req.body.vendorId) {
         await this.validateVendor(req.body.vendorId);
       }
-      if (req.body.salesmanId) {
-        await this.validateSalesman(req.body.salesmanId);
+      if (req.body.salesPersonId) {
+        await this.validateSalesman(req.body.salesPersonId);
       }
       if (req.body.projectId) {
         await this.validateProject(req.body.projectId);
@@ -168,19 +174,23 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
 
       const items: IItem[] = this.mapItems(req.body.items || []);
       const payload: Partial<IPurchaseOrder> = {
+        ...dto,
         vendorId: req.body.vendorId
           ? new Types.ObjectId(req.body.vendorId)
           : undefined,
-        quoteNumber: req.body.quoteNumber,
-        quoteDate,
-        expiryDate,
-        salesmanId: req.body.salesmanId
-          ? new Types.ObjectId(req.body.salesmanId)
+        quote: req.body.quote,
+        purchaseOrderDate: quoteDate,
+        expDate :expiryDate,
+        salesPersonId: req.body.salesPersonId
+          ? new Types.ObjectId(req.body.salesPersonId)
           : undefined,
         projectId: req.body.projectId
           ? new Types.ObjectId(req.body.projectId)
           : undefined,
         items,
+        branchId: dto.branchId
+          ? new Types.ObjectId(dto.branchId)
+          : undefined,
       };
 
       await this.genericUpdateOneById(id, payload);
