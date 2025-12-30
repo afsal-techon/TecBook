@@ -75,6 +75,14 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         });
       }
 
+      const existingPurchaseNumberCheck = await this.genericFindOne({purchaseOrderId:dto.purchaseOrderId})
+      if (existingPurchaseNumberCheck) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Purchase order ID already exists",
+        });
+      }
+
       const quoteDate: Date = new Date(dto.purchaseOrderDate);
       const expiryDate: Date = new Date(dto.expDate);
 
