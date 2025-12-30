@@ -259,7 +259,7 @@ class BillingRecordsController extends GenericDatabaseService<
         .populate(BillingSchemaModelConstants.vendorId)
         .populate({
           path: BillingSchemaModelConstants.purchaseOrderNumber,
-          select: `${PurchaseOrderModelConstants.purchaseOrderNumber}`,
+          select: `${PurchaseOrderModelConstants.purchaseOrderId}`,
         })
         .populate(BillingSchemaModelConstants.branchId)
         .skip(skip)
@@ -314,7 +314,7 @@ class BillingRecordsController extends GenericDatabaseService<
         .populate(BillingSchemaModelConstants.vendorId)
         .populate({
           path: BillingSchemaModelConstants.purchaseOrderNumber,
-          select: `${PurchaseOrderModelConstants.purchaseOrderNumber}`,
+          select: `${PurchaseOrderModelConstants.purchaseOrderId}`,
         })
         .populate(BillingSchemaModelConstants.branchId);
 
