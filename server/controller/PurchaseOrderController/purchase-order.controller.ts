@@ -277,7 +277,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
 
-      const { user, allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
         userModel: this.userModel,
         branchModel: this.branchModel,

@@ -35,7 +35,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     salesPersonId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "SalesPeople",
       required: true,
     },
 
