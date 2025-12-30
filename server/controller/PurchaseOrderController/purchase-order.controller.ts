@@ -303,7 +303,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         .populate(PurchaseOrderModelConstants.vendorId)
         .populate({
           path: PurchaseOrderModelConstants.salesPersonId,
-          select: "username email",
+          select: "name email",
         })
         .populate(PurchaseOrderModelConstants.projectId)
         .skip(skip)
