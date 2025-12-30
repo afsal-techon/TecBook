@@ -61,7 +61,7 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
   genericFindAll = async () => {
     try {
       const data: T[] | null = await this.dbModel.find({ isDeleted: false });
-      return data
+      return data;
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Failed to fetch records", error.message);
@@ -189,10 +189,7 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
    * @response 404 - Record not found
    * @response 500 - Server error
    */
-  async genericUpdateOneById(
-    id: string,
-    payload: Partial<any>
-  ) {
+  async genericUpdateOneById(id: string, payload: Partial<any>) {
     try {
       if (!id) {
         throw Object.assign(new Error("ID is required"), {
@@ -292,6 +289,28 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
         throw new Error(error.message);
       }
       console.log("Failed to delete record");
+      throw error;
+    }
+  };
+
+  /**
+   * Find one record by filter
+   * -------------------------
+   * @param filter - Mongoose filter object
+   * @returns The found record or null
+   */
+  genericFindOne = async (filter: any) => {
+    try {
+      const data: T | null = await this.dbModel.findOne({
+        isDeleted: false,
+        ...filter,
+      });
+      return data;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch record", error.message);
+        throw error;
+      }
       throw error;
     }
   };

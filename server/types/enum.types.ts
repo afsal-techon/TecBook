@@ -4,11 +4,26 @@ export enum BillingPaymentStatus {
   CASH = "cash",
 }
 
-export enum PurchaseOrderDiscountType{
-    PERCENTAGE = '%',
-    FLAT = 'flat',
+export enum PurchaseOrderDiscountType {
+  PERCENTAGE = "%",
+  FLAT = "flat",
 }
+
 export enum TaxPreferences {
-  VAT ='VAT',
-  NON_VAT ='Non-VAT'
+  VAT = "VAT",
+  NON_VAT = "Non-VAT",
+}
+
+export enum PaymentsMadeStatus {
+  DRAFT = "draft",
+  PAID = "paid",
+  VOID = "void",
+}
+
+export enum PaymentsMode {
+  CASH = "cash",
+  CHEQUE = "cheque",
+  UPI = "upi",
+  CARD = "card",
+  BANK_TRANSFER = "bank transfer",
 }

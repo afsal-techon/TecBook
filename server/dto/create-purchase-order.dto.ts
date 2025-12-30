@@ -14,7 +14,7 @@ import { ItemDto } from "./item.dto";
 import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
   purchaseOrderId!: string;
 
@@ -22,8 +22,8 @@ export class CreatePurchaseOrderDto {
   vendorId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  quote!: string;
+  @IsOptional()
+  quote?: string;
 
   @IsDateString()
   purchaseOrderDate!: string;
@@ -64,14 +64,49 @@ export class CreatePurchaseOrderDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
+  items!: ItemDto[];
+
+  @IsOptional()
+  @IsArray()
   @Transform(({ value }) =>
     typeof value === "string" ? JSON.parse(value) : value
   )
-  items!: ItemDto[];
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum([
+    "Draft",
+    "Sent",
+    "Accepted",
+    "Approved",
+    "Invoiced",
+    "Pending",
+    "Declined",
+  ])
+  status?: string;
+
+  @IsNumber()
+  @IsOptional()
+  subTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  taxTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
 }
 
 export class UpdatePurchaseOrderDto {
-  @IsNumber()
+  @IsString()
   @IsOptional()
   purchaseOrderId?: string;
 
@@ -131,4 +166,42 @@ export class UpdatePurchaseOrderDto {
     typeof value === "string" ? JSON.parse(value) : value
   )
   items?: ItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum([
+    "Draft",
+    "Sent",
+    "Accepted",
+    "Approved",
+    "Invoiced",
+    "Pending",
+    "Declined",
+  ])
+  status?: string;
+
+  @IsNumber()
+  @IsOptional()
+  subTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  taxTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
 }

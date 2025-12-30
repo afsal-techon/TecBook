@@ -6,11 +6,13 @@ import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
-    purchaseOrderId:{
-        type:Number,
-        default:0,
-        unique:true
+    purchaseOrderId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
+
     vendorId: {
       type: Schema.Types.ObjectId,
       ref: "Vendor",
@@ -18,7 +20,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     quote: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
 
@@ -33,7 +35,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     salesPersonId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "SalesPeople",
       required: true,
     },
 
@@ -47,31 +49,64 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       ref: "Branch",
       required: true,
     },
-    note:{
-        type:String,
-        default:null
+    note: {
+      type: String,
+      default: null,
     },
-    terms:{
-        type:String,
-        default:null
+    terms: {
+      type: String,
+      default: null,
     },
-    discountType:{
-      type:String,
-      enum:PurchaseOrderDiscountType,
-      default:PurchaseOrderDiscountType.PERCENTAGE
+    discountType: {
+      type: String,
+      enum: PurchaseOrderDiscountType,
+      default: PurchaseOrderDiscountType.PERCENTAGE,
     },
-    discountValue:{
-      type:Number,
-      default:0,
+    discountValue: {
+      type: Number,
+      default: 0,
     },
-    vatValue:{
-      type:Number,
-      default:0,
+    vatValue: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+
+      enum: [
+        "Draft",
+        "Sent",
+        "Accepted",
+        "Approved",
+        "Invoiced",
+        "Pending",
+        "Declined",
+      ],
+    },
+    documents: {
+      type: [String],
+      default: [],
+    },
+    subTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    taxTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    total: {
+      type: Number,
+      required: true,
+      default: 0,
     },
   },
   { timestamps: true }
 );
-
 
 PurchaseOrderSchema.add(BaseSchemaFields);
 PurchaseOrderSchema.add(ItemsSchemaFields);
@@ -82,7 +117,6 @@ export const PurchaseOrderModel = model<IPurchaseOrder>(
 );
 
 export type PurchaseOrderModelDocument = typeof PurchaseOrderModel;
-
 
 export const PurchaseOrderModelConstants = {
   purchaseOrderId: "purchaseOrderId",
@@ -96,12 +130,11 @@ export const PurchaseOrderModelConstants = {
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
-  note:"note",
-  terms:"terms",
-  discountType:"discountType",
-  discountValue:"discountValue",
-  vatValue:"vatValue",
+  note: "note",
+  terms: "terms",
+  discountType: "discountType",
+  discountValue: "discountValue",
+  vatValue: "vatValue",
 } as const;
 
-export type PurchaseOrderField =
-  keyof typeof PurchaseOrderModelConstants;
+export type PurchaseOrderField = keyof typeof PurchaseOrderModelConstants;

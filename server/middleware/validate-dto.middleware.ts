@@ -5,15 +5,13 @@ import { Request, Response, NextFunction } from "express";
 export const validateDto =
   (DtoClass: any) =>
   async (req: Request, res: Response, next: NextFunction) => {
-
     if (!req.body) {
       return res.status(400).json({
         success: false,
-        message: "Request body is missing. Did you forget multer?",
+        message: "Request body is missing",
       });
     }
 
-    // 🔹 Fix for form-data arrays
     if (typeof req.body.items === "string") {
       try {
         req.body.items = JSON.parse(req.body.items);
@@ -25,7 +23,9 @@ export const validateDto =
       }
     }
 
-    const dtoInstance = plainToInstance(DtoClass, req.body);
+    const dtoInstance = plainToInstance(DtoClass, req.body, {
+      enableImplicitConversion: true,
+    });
 
     const errors = await validate(dtoInstance, {
       whitelist: true,
@@ -35,7 +35,7 @@ export const validateDto =
     if (errors.length > 0) {
       return res.status(400).json({
         success: false,
-        errors: errors.map(err => ({
+        errors: errors.map((err) => ({
           field: err.property,
           constraints: err.constraints,
         })),

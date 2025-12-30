@@ -3,7 +3,7 @@ import { IItem } from "./item.interface";
 import { IBaseFIelds } from "./base.interface";
 
 export interface IPurchaseOrder extends IBaseFIelds {
-  purchaseOrderId: number;
+  purchaseOrderId: string;
   vendorId: Types.ObjectId | null;
   quote: string;
   purchaseOrderDate: Date;
@@ -18,4 +18,9 @@ export interface IPurchaseOrder extends IBaseFIelds {
   discountType:string;
   discountValue:number;
   vatValue:number;
+  status: string;
+  documents: string[];
+  subTotal: number;
+  taxTotal: number;
+  total: number;
 }
