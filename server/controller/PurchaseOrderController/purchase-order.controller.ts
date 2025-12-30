@@ -255,7 +255,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         .sort({ createdAt: -1 })
         .populate(PurchaseOrderModelConstants.vendorId)
         .populate({
-          path: PurchaseOrderModelConstants.salesmanId,
+          path: PurchaseOrderModelConstants.salesPersonId,
           select: "username email",
         })
         .populate(PurchaseOrderModelConstants.projectId)
@@ -310,7 +310,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       })
         .populate(PurchaseOrderModelConstants.vendorId)
         .populate({
-          path: PurchaseOrderModelConstants.salesmanId,
+          path: PurchaseOrderModelConstants.salesPersonId,
           select: "username email",
         })
         .populate(PurchaseOrderModelConstants.projectId);
