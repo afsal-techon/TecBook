@@ -2,10 +2,11 @@ import { model, Schema } from "mongoose";
 import { IPurchaseOrder } from "../Interfaces/purchase-order.interface";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
+import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
-    purchaseOrderNumber:{
+    purchaseOrderId:{
         type:Number,
         default:0,
         unique:true
@@ -15,22 +16,22 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       ref: "Vendor",
       default: null,
     },
-    quoteNumber: {
+    quote: {
       type: String,
       required: true,
       trim: true,
     },
 
-    quoteDate: {
+    purchaseOrderDate: {
       type: Date,
       required: true,
     },
 
-    expiryDate: {
+    expDate: {
       type: Date,
       required: true,
     },
-    salesmanId: {
+    salesPersonId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -45,6 +46,27 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       type: Schema.Types.ObjectId,
       ref: "Branch",
       required: true,
+    },
+    note:{
+        type:String,
+        default:null
+    },
+    terms:{
+        type:String,
+        default:null
+    },
+    discountType:{
+      type:String,
+      enum:PurchaseOrderDiscountType,
+      default:PurchaseOrderDiscountType.PERCENTAGE
+    },
+    discountValue:{
+      type:Number,
+      default:0,
+    },
+    vatValue:{
+      type:Number,
+      default:0,
     },
   },
   { timestamps: true }
@@ -74,6 +96,11 @@ export const PurchaseOrderModelConstants = {
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
+  note:'note',
+  terms:'terms',
+  discountType:'discountType',
+  discountValue:'discountValue',
+  vatValue:'vatValue',
 } as const;
 
 export type PurchaseOrderField =
