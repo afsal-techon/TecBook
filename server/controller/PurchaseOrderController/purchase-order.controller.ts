@@ -175,6 +175,9 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const items: IItem[] = this.mapItems(req.body.items || []);
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
+        purchaseOrderId: dto.purchaseOrderId
+          ? parseInt(dto.purchaseOrderId)
+          : undefined,
         vendorId: req.body.vendorId
           ? new Types.ObjectId(req.body.vendorId)
           : undefined,
