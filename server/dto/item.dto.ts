@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import {
   IsMongoId,
   IsNotEmpty,
@@ -11,8 +12,12 @@ export class ItemDto {
   @IsMongoId()
   itemId!: string;
 
+  @Transform(({ value }) =>
+    value === "no-tax" || value === "" || value === null ? undefined : value
+  )
+  @IsOptional()
   @IsMongoId()
-  taxId!: string;
+  taxId?: string;
 
   @IsMongoId()
   prevItemId!: string;
