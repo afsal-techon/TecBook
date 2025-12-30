@@ -85,22 +85,22 @@ export type PurchaseOrderModelDocument = typeof PurchaseOrderModel;
 
 
 export const PurchaseOrderModelConstants = {
-  purchaseOrderNumber: "purchaseOrderNumber",
+  purchaseOrderId: "purchaseOrderId",
   vendorId: "vendorId",
-  quoteNumber: "quoteNumber",
-  quoteDate: "quoteDate",
-  expiryDate: "expiryDate",
-  salesmanId: "salesmanId",
+  quote: "quote",
+  purchaseOrderDate: "purchaseOrderDate",
+  expDate: "expDate",
+  salesPersonId: "salesPersonId",
   projectId: "projectId",
   branchId: "branchId",
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
-  note:'note',
-  terms:'terms',
-  discountType:'discountType',
-  discountValue:'discountValue',
-  vatValue:'vatValue',
+  note:"note",
+  terms:"terms",
+  discountType:"discountType",
+  discountValue:"discountValue",
+  vatValue:"vatValue",
 } as const;
 
 export type PurchaseOrderField =
