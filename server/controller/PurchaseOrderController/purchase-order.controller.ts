@@ -56,7 +56,6 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
   createPurchaseOrder = async (
     req: Request<{}, {}, CreatePurchaseOrderDto>,
     res: Response,
-    next: NextFunction
   ) => {
     try {
       const dto: CreatePurchaseOrderDto = req.body;
@@ -110,8 +109,13 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         message: "Purchase order created successfully",
         data: purchaseOrder,
       });
-    } catch (error) {
-      next(error);
+    } catch (error:unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to create purchase order", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to create purchase order", error);
+      throw new Error("Failed to create purchase order");
     }
   };
 
@@ -127,7 +131,6 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
   updatePurchaseOrder = async (
     req: Request<{ id: string }, {}, UpdatePurchaseOrderDto>,
     res: Response,
-    next: NextFunction
   ) => {
     try {
       const id: string = req.params.id;
@@ -203,8 +206,13 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         message: "Purchase order updated successfully",
         statusCode: HTTP_STATUS.OK,
       });
-    } catch (error) {
-      next(error);
+    } catch (error:unknown) {
+      if(error instanceof Error){
+        console.log("Failed to update purchase order", error.message);
+        throw new Error(error.message);
+      }
+      console.log("Failed to update purchase order", error);
+      throw new Error("Failed to update purchase order");
     }
   };
 
