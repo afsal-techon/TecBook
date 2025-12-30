@@ -6,10 +6,13 @@ import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
-    purchaseOrderId:{
-        type:String,
-        default:'',
+    purchaseOrderId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
+
     vendorId: {
       type: Schema.Types.ObjectId,
       ref: "Vendor",
@@ -17,7 +20,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     quote: {
       type: String,
-      required: false ,
+      required: false,
       trim: true,
     },
 
@@ -46,33 +49,41 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       ref: "Branch",
       required: true,
     },
-    note:{
-        type:String,
-        default:null
-    },
-    terms:{
-        type:String,
-        default:null
-    },
-    discountType:{
-      type:String,
-      enum:PurchaseOrderDiscountType,
-      default:PurchaseOrderDiscountType.PERCENTAGE
-    },
-    discountValue:{
-      type:Number,
-      default:0,
-    },
-    vatValue:{
-      type:Number,
-      default:0,
-    },
-        status: {
+    note: {
       type: String,
-      
-      enum: ["Draft", "Sent","Accepted","Approved","Invoiced","Pending","Declined"],
+      default: null,
     },
-        documents: {
+    terms: {
+      type: String,
+      default: null,
+    },
+    discountType: {
+      type: String,
+      enum: PurchaseOrderDiscountType,
+      default: PurchaseOrderDiscountType.PERCENTAGE,
+    },
+    discountValue: {
+      type: Number,
+      default: 0,
+    },
+    vatValue: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+
+      enum: [
+        "Draft",
+        "Sent",
+        "Accepted",
+        "Approved",
+        "Invoiced",
+        "Pending",
+        "Declined",
+      ],
+    },
+    documents: {
       type: [String],
       default: [],
     },
@@ -97,7 +108,6 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   { timestamps: true }
 );
 
-
 PurchaseOrderSchema.add(BaseSchemaFields);
 PurchaseOrderSchema.add(ItemsSchemaFields);
 
@@ -107,7 +117,6 @@ export const PurchaseOrderModel = model<IPurchaseOrder>(
 );
 
 export type PurchaseOrderModelDocument = typeof PurchaseOrderModel;
-
 
 export const PurchaseOrderModelConstants = {
   purchaseOrderId: "purchaseOrderId",
@@ -121,12 +130,11 @@ export const PurchaseOrderModelConstants = {
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
-  note:"note",
-  terms:"terms",
-  discountType:"discountType",
-  discountValue:"discountValue",
-  vatValue:"vatValue",
+  note: "note",
+  terms: "terms",
+  discountType: "discountType",
+  discountValue: "discountValue",
+  vatValue: "vatValue",
 } as const;
 
-export type PurchaseOrderField =
-  keyof typeof PurchaseOrderModelConstants;
+export type PurchaseOrderField = keyof typeof PurchaseOrderModelConstants;
