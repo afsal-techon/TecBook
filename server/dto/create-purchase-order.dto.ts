@@ -1,78 +1,134 @@
 import {
   IsArray,
   IsDateString,
+  IsEnum,
   IsMongoId,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
+import { PurchaseOrderDiscountType } from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
+  @IsNumber()
+  @IsNotEmpty()
+  purchaseOrderId!: string;
+
   @IsMongoId()
   vendorId!: string;
 
   @IsString()
   @IsNotEmpty()
-  quoteNumber!: string;
+  quote!: string;
 
   @IsDateString()
-  quoteDate!: string;
+  purchaseOrderDate!: string;
 
   @IsDateString()
-  expiryDate!: string;
+  expDate!: string;
 
   @IsMongoId()
-  salesmanId!: string;
+  salesPersonId!: string;
 
   @IsMongoId()
   @IsOptional()
   projectId?: string;
 
+  @IsMongoId()
+  branchId!: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
   items!: ItemDto[];
-
-  @IsMongoId()
-  @IsNotEmpty()
-  branchId!: string;
 }
 
 export class UpdatePurchaseOrderDto {
+  @IsNumber()
+  @IsOptional()
+  purchaseOrderId?: string;
+
   @IsMongoId()
   @IsOptional()
   vendorId?: string;
 
   @IsString()
   @IsOptional()
-  quoteNumber?: string;
+  quote?: string;
 
   @IsDateString()
   @IsOptional()
-  quoteDate?: string;
+  purchaseOrderDate?: string;
 
   @IsDateString()
   @IsOptional()
-  expiryDate?: string;
+  expDate?: string;
 
   @IsMongoId()
   @IsOptional()
-  salesmanId?: string;
+  salesPersonId?: string;
 
   @IsMongoId()
   @IsOptional()
   projectId?: string;
 
-  @IsArray()
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => ItemDto)
-  items?: ItemDto[];
-
   @IsMongoId()
   @IsOptional()
-  branchId!: string;
+  branchId?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ItemDto)
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  items?: ItemDto[];
 }

@@ -5,6 +5,26 @@ import { Request, Response, NextFunction } from "express";
 export const validateDto =
   (DtoClass: any) =>
   async (req: Request, res: Response, next: NextFunction) => {
+
+    if (!req.body) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is missing. Did you forget multer?",
+      });
+    }
+
+    // 🔹 Fix for form-data arrays
+    if (typeof req.body.items === "string") {
+      try {
+        req.body.items = JSON.parse(req.body.items);
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid items JSON format",
+        });
+      }
+    }
+
     const dtoInstance = plainToInstance(DtoClass, req.body);
 
     const errors = await validate(dtoInstance, {
@@ -22,6 +42,6 @@ export const validateDto =
       });
     }
 
-    req.body = dtoInstance; // transformed & validated
+    req.body = dtoInstance;
     next();
   };

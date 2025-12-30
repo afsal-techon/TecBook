@@ -4,6 +4,9 @@ export enum BillingPaymentStatus {
   CASH = "cash",
 }
 
+export enum PurchaseOrderDiscountType{
+    PERCENTAGE = '%',
+    FLAT = 'flat',
 
 export enum TaxPreferences {
   VAT ='VAT',

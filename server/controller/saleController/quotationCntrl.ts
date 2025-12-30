@@ -267,7 +267,7 @@ export const updateQuotes = async (
 
     const userId = req.user?.id;
 
-    console.log("dat", status);
+    console.log("datadi", status);
 
     //  Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });

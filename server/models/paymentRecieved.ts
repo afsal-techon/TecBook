@@ -70,7 +70,7 @@ const paymentRecievedSchema = new Schema<IPayment>(
     },
     note: {
       type: String,
-      default: "null",
+      default: null,
     },
     isDeleted: {
       type: Boolean,

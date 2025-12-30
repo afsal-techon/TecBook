@@ -3,14 +3,19 @@ import { IItem } from "./item.interface";
 import { IBaseFIelds } from "./base.interface";
 
 export interface IPurchaseOrder extends IBaseFIelds {
-  purchaseOrderNumber: number;
+  purchaseOrderId: number;
   vendorId: Types.ObjectId | null;
-  quoteNumber: string;
-  quoteDate: Date;
-  expiryDate: Date;
-  salesmanId: Types.ObjectId;
+  quote: string;
+  purchaseOrderDate: Date;
+  expDate: Date;
+  salesPersonId: Types.ObjectId;
   projectId?: Types.ObjectId;
   branchId: Types.ObjectId;
   items: IItem[];
   createdBy: Types.ObjectId;
+  note:string;
+  terms:string;
+  discountType:string;
+  discountValue:number;
+  vatValue:number;
 }
