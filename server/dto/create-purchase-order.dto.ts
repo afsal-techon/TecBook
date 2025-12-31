@@ -11,7 +11,7 @@ import {
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
-import { PurchaseOrderDiscountType } from "../types/enum.types";
+import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
   @IsString()
@@ -81,16 +81,8 @@ export class CreatePurchaseOrderDto {
 
   @IsOptional()
   @IsString()
-  @IsEnum([
-    "Draft",
-    "Sent",
-    "Accepted",
-    "Approved",
-    "Invoiced",
-    "Pending",
-    "Declined",
-  ])
-  status?: string;
+  @IsEnum(commonStatus)
+  status?: commonStatus;
 
   @IsNumber()
   @IsOptional()
@@ -182,16 +174,8 @@ export class UpdatePurchaseOrderDto {
 
   @IsOptional()
   @IsString()
-  @IsEnum([
-    "Draft",
-    "Sent",
-    "Accepted",
-    "Approved",
-    "Invoiced",
-    "Pending",
-    "Declined",
-  ])
-  status?: string;
+  @IsEnum(commonStatus)
+  status?: commonStatus;
 
   @IsNumber()
   @IsOptional()

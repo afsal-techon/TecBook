@@ -27,3 +27,13 @@ export enum PaymentsMode {
   CARD = "card",
   BANK_TRANSFER = "bank transfer",
 }
+
+export enum commonStatus {
+  DRAFT = "Draft",
+  SENT = "Sent",
+  ACCEPETED = "Accepted",
+  APPROVED = "Approved",
+  INVOICED = "Invoiced",
+  PENDING = "Pending",
+  DECLINED = "Declined",
+}

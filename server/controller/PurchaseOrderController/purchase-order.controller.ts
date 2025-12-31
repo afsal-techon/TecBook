@@ -430,6 +430,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
+      customerId: item.customerId ? new Types.ObjectId(item.customerId) : undefined,
+      accountId: item.accountId ? new Types.ObjectId(item.accountId) : undefined,
     }));
   }
 }

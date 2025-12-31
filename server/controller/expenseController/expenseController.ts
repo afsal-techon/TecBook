@@ -21,6 +21,7 @@ import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import customerModel from "../../models/customer";
 import { IExpenses } from "../../Interfaces/expenses.interface";
+import { imagekit } from "../../config/imageKit";
 
 class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -81,9 +82,22 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
 
       const items: IItem[] = this.mapItems(dto.items);
 
-      const payload = {
+      const uploadedFiles: string[] = [];
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploadResponse = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          uploadedFiles.push(uploadResponse.url);
+        }
+      }
+
+      const payload : Partial<IExpenses> = {
+        ...dto,
         date: dto.date ? new Date(dto.date) : new Date(),
-        expenseNumber: dto.expenseNumber, // TODO: auto increment
+        expenseNumber: dto.expenseNumber, 
         customerId: new Types.ObjectId(dto.customerId),
         branchId: new Types.ObjectId(dto.branchId),
         taxPreference: dto.taxPreference,
@@ -91,6 +105,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         vendorId: new Types.ObjectId(dto.vendorId),
         items,
         createdBy: new Types.ObjectId(userId),
+        documents: uploadedFiles,
       };
 
       const expense = await this.genericCreateOne(payload);
@@ -103,10 +118,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while creating expense", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
       }
       console.log("Error while creating expense", error);
-      throw new Error("failed to create expense");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to create expense",
+      });
     }
   };
 
@@ -131,6 +152,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   ) => {
     try {
       const { id } = req.params;
+      const dto : UpdateExpenseDto = req.body;
 
       await this.genericFindOneByIdOrNotFound(id);
 
@@ -149,7 +171,8 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         ? this.mapItems(req.body.items)
         : [];
 
-      const payload = {
+      const payload : Partial<IExpenses> = {
+        ...dto,
         date: req.body.date ? new Date(req.body.date) : undefined,
         customerId: req.body.customerId
           ? new Types.ObjectId(req.body.customerId)
@@ -176,10 +199,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while updating expense", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
       }
       console.log("Error while updating expense", error);
-      throw new Error("failed to update expense");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to update expense",
+      });
     }
   };
 
@@ -254,10 +283,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while getting all expenses", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
       }
       console.log("Error while getting all expenses", error);
-      throw new Error("failed to get all expenses");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to get all expenses",
+      });
     }
   };
 
@@ -310,10 +345,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while getting expense by id", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
       }
       console.log("Error while getting expense by id", error);
-      throw new Error("failed to get expense by id");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to get expense by id",
+      });
     }
   };
   private async validateBranch(id: string) {
@@ -366,6 +407,12 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
+      customerId: item.customerId
+        ? new Types.ObjectId(item.customerId)
+        : undefined,
+      accountId: item.accountId
+        ? new Types.ObjectId(item.accountId)
+        : undefined,
     }));
   }
 }
