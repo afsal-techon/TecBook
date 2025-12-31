@@ -209,6 +209,7 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
         {
           new: true,
           runValidators: true,
+          upsert: true,
         }
       );
 

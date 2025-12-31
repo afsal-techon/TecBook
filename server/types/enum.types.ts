@@ -14,19 +14,6 @@ export enum TaxPreferences {
   NON_VAT = "Non-VAT",
 }
 
-export enum PaymentsMadeStatus {
-  DRAFT = "draft",
-  PAID = "paid",
-  VOID = "void",
-}
-
-export enum PaymentsMode {
-  CASH = "cash",
-  CHEQUE = "cheque",
-  UPI = "upi",
-  CARD = "card",
-  BANK_TRANSFER = "bank transfer",
-}
 
 export enum commonStatus {
   DRAFT = "Draft",

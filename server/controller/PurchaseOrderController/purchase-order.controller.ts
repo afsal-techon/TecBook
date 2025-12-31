@@ -18,6 +18,7 @@ import {
   IProject,
   IBranch,
   ISalesPerson,
+  IPaymentTerms,
 } from "../../types/common.types";
 import { IUser } from "../../types/user.types";
 import { HTTP_STATUS } from "../../constants/http-status";
@@ -28,6 +29,8 @@ import branchModel from "../../models/branch";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { imagekit } from "../../config/imageKit";
 import salesPersonModel from "../../models/salesPerson";
+import paymentTermModel from "../../models/paymentTerms";
+import { stat } from "fs";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -35,13 +38,15 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
   private readonly projectModel: Model<IProject>;
   private readonly branchModel: Model<IBranch>;
   private readonly salesModel: Model<ISalesPerson>;
+  private readonly paymentTermsModel: Model<IPaymentTerms>;
 
   constructor(
     vendorModel: Model<IVendor>,
     userModel: Model<IUser>,
     projectModel: Model<IProject>,
     branchModel: Model<IBranch>,
-    salesModel: Model<ISalesPerson>
+    salesModel: Model<ISalesPerson>,
+    paymentTermsModel: Model<IPaymentTerms>
   ) {
     super(PurchaseOrderModel);
 
@@ -50,6 +55,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     this.projectModel = projectModel;
     this.branchModel = branchModel;
     this.salesModel = salesPersonModel;
+    this.paymentTermsModel = paymentTermsModel;
   }
 
   /**
@@ -103,6 +109,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       await this.validateVendor(dto.vendorId);
       await this.validateSalesman(dto.salesPersonId);
       if (dto.projectId) await this.validateProject(dto.projectId);
+      if (dto.paymentTermsId)
+        await this.validatePaymenetTerms(dto.paymentTermsId);
 
       const uploadedFiles: string[] = [];
       if (req.files && Array.isArray(req.files)) {
@@ -133,6 +141,9 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         createdBy: new Types.ObjectId(userId) ?? undefined,
         branchId: new Types.ObjectId(dto.branchId),
         documents: uploadedFiles,
+        paymentTermsId: dto.paymentTermsId
+          ? new Types.ObjectId(dto.paymentTermsId)
+          : undefined,
       };
 
       const purchaseOrder = await this.genericCreateOne(payload);
@@ -175,6 +186,9 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const id: string = req.params.id;
       const dto: UpdatePurchaseOrderDto = req.body;
 
+      console.log(dto, "dto");
+      console.log(req.body, "req.body");
+
       if (!this.isValidMongoId(req.params.id)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
@@ -211,6 +225,9 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       if (req.body.projectId) {
         await this.validateProject(req.body.projectId);
       }
+      if (dto.paymentTermsId) {
+        await this.validatePaymenetTerms(dto.paymentTermsId);
+      }
 
       const items: IItem[] = this.mapItems(req.body.items || []);
       const payload: Partial<IPurchaseOrder> = {
@@ -230,6 +247,9 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           : undefined,
         items,
         branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        paymentTermsId: req.body.paymentTermsId
+          ? new Types.ObjectId(req.body.paymentTermsId)
+          : undefined,
       };
 
       await this.genericUpdateOneById(id, payload);
@@ -338,8 +358,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
    */
   getPurchaseOrderById = async (
     req: Request<{ id: string }>,
-    res: Response,
-    next: NextFunction
+    res: Response
   ) => {
     try {
       const { id } = req.params;
@@ -360,7 +379,11 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           path: PurchaseOrderModelConstants.salesPersonId,
           select: "username email",
         })
-        .populate(PurchaseOrderModelConstants.projectId);
+        .populate(PurchaseOrderModelConstants.projectId)
+        .populate({
+          path: PurchaseOrderModelConstants.branchId,
+          select: "branchName city email phone",
+        });
 
       if (!purchaseOrder) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -369,25 +392,75 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         });
       }
 
-      res.status(HTTP_STATUS.OK).json({
+      let paymentTerm: any = null;
+
+      if (
+        purchaseOrder.paymentTermsId &&
+        mongoose.Types.ObjectId.isValid(purchaseOrder.paymentTermsId.toString())
+      ) {
+        const paymentTermsDoc = await this.paymentTermsModel.findOne(
+          {
+            "terms._id": purchaseOrder.paymentTermsId,
+          },
+          {
+            "terms.$": 1,
+          }
+        );
+
+        paymentTerm = paymentTermsDoc?.terms?.[0] || null;
+      }
+
+      return res.status(HTTP_STATUS.OK).json({
         success: true,
-        data: purchaseOrder,
+        data: {
+          ...purchaseOrder.toObject(),
+          paymentTerm,
+        },
       });
     } catch (error: unknown) {
+      console.error("Failed to get purchase order", error);
+
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to get purchase order",
+      });
+    }
+  };
+
+
+  deletePurchaseOrder = async(
+    req: Request<{ id: string }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await this.genericDeleteOneById(id);
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+        statusCode: HTTP_STATUS.NO_CONTENT
+      });
+
+    } catch (error:unknown) {
       if (error instanceof Error) {
-        console.log("Failed to get purchase order", error.message);
+        console.error("Failed to delete purchase order", error.message);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
           message: error.message,
         });
       }
-      console.log("Failed to get purchase order", error);
+      console.log("Failed to delete purchase order", error);
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
-        message: "Failed to get purchase order",
+        message: "Failed to delete purchase order",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR
       });
+      
     }
-  };
+  }
 
   // Helper methods for validations
   private async validateVendor(vendorId: string) {
@@ -415,6 +488,15 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     if (!project) throw new Error("Project not found");
   }
 
+  private async validatePaymenetTerms(paymentTermsId: string) {
+    if (!this.isValidMongoId(paymentTermsId))
+      throw new Error("Invalid payment terms id");
+    const paymentTerms = await this.paymentTermsModel.findOne({
+      "terms._id": new mongoose.Types.ObjectId(paymentTermsId),
+    });
+    if (!paymentTerms) throw new Error("Payment terms not found");
+  }
+
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
       itemId: new Types.ObjectId(item.itemId),
@@ -430,8 +512,12 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId ? new Types.ObjectId(item.customerId) : undefined,
-      accountId: item.accountId ? new Types.ObjectId(item.accountId) : undefined,
+      customerId: item.customerId
+        ? new Types.ObjectId(item.customerId)
+        : undefined,
+      accountId: item.accountId
+        ? new Types.ObjectId(item.accountId)
+        : undefined,
     }));
   }
 }
@@ -440,5 +526,6 @@ export default new PurchaseOrderController(
   userModel,
   projectModel,
   branchModel,
-  salesPersonModel
+  salesPersonModel,
+  paymentTermModel
 );

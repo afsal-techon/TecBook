@@ -95,6 +95,11 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       required: true,
       default: 0,
     },
+    paymentTermsId: {
+      type: Schema.Types.ObjectId,
+      ref: "PaymentTerm",
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -126,6 +131,12 @@ export const PurchaseOrderModelConstants = {
   discountType: "discountType",
   discountValue: "discountValue",
   vatValue: "vatValue",
+  status: "status",
+  documents: "documents",
+  subTotal: "subTotal",
+  taxTotal: "taxTotal",
+  total: "total",
+  paymentTermsId: "paymentTermsId",
 } as const;
 
 export type PurchaseOrderField = keyof typeof PurchaseOrderModelConstants;
