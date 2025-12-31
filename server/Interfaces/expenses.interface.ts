@@ -12,4 +12,14 @@ export interface IExpenses extends IBaseFIelds {
   vendorId: Schema.Types.ObjectId;
   branchId: Schema.Types.ObjectId;
   items: IItem[];
+  note: string;
+  terms: string;
+  discountType: string;
+  discountValue: number;
+  vatValue: number;
+  status: string;
+  documents: string[];
+  subTotal: number;
+  taxTotal: number;
+  total: number;
 }
