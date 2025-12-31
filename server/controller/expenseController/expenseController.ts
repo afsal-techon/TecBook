@@ -103,10 +103,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while creating expense", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
       }
       console.log("Error while creating expense", error);
-      throw new Error("failed to create expense");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to create expense",
+      });
     }
   };
 
@@ -176,10 +182,17 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while updating expense", error.message);
-        throw new Error(error.message);
+       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      
       }
       console.log("Error while updating expense", error);
-      throw new Error("failed to update expense");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to update expense",
+      });
     }
   };
 
@@ -254,10 +267,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while getting all expenses", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        })
       }
       console.log("Error while getting all expenses", error);
-      throw new Error("failed to get all expenses");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success:false,
+        message:"failed to get all expenses"
+      })
     }
   };
 
@@ -310,10 +329,16 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.log("Error while getting expense by id", error.message);
-        throw new Error(error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
       }
       console.log("Error while getting expense by id", error);
-      throw new Error("failed to get expense by id");
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "failed to get expense by id",
+      });
     }
   };
   private async validateBranch(id: string) {
