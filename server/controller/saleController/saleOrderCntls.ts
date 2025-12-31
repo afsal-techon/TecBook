@@ -10,6 +10,7 @@ import saleNumberSetting from "../../models/numberSetting";
 import PAYMENT_TEMRS from "../../models/paymentTerms";
 import SALSE_PERSON from '../../models/salesPerson'
 import TAX from '../../models/tax'
+import { escapeRegex } from "../../Helper/searchHelper";
 
 export const createSaleOrder = async (
   req: Request,
@@ -479,7 +480,8 @@ export const getAllSaleOrder = async (
 
     const userRole = user.role; // "CompanyAdmin" or "User"
     const filterBranchId = req.query.branchId as string;
-    const search = ((req.query.search as string) || "").trim();
+    let search = ((req.query.search as string) || "").trim();
+    search = escapeRegex(search)
 
     // Date filters
     const startDate = req.query.startDate as string;
@@ -586,6 +588,7 @@ export const getAllSaleOrder = async (
 
     // 🔹 Search
     if (search.length > 0) {
+    
       pipeline.push({
         $match: {
           $or: [
