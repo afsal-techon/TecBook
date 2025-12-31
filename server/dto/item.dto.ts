@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import {
   IsMongoId,
   IsNotEmpty,
@@ -8,25 +9,30 @@ import {
 } from "class-validator";
 
 export class ItemDto {
+  @IsMongoId()
+  itemId!: string;
+
+  @Transform(({ value }) =>
+    value === "no-tax" || value === "" || value === null ? undefined : value
+  )
   @IsOptional()
   @IsMongoId()
   taxId?: string;
 
-  @IsOptional()
   @IsMongoId()
-  itemId?: string;
+  @IsOptional()
+
+  prevItemId!: string;
 
   @IsString()
   @IsNotEmpty()
-  itemName!: string;
+  @IsOptional()
+  itemName?: string;
 
   @IsNumber()
   @Min(1)
-  qty!: number;
-
-  @IsNumber()
-  @Min(0)
-  tax!: number;
+  @IsOptional()
+  qty?: number;
 
   @IsNumber()
   @Min(0)
@@ -34,13 +40,25 @@ export class ItemDto {
 
   @IsNumber()
   @Min(0)
-  amount!: number;
+  @IsOptional()
+  amount?: number;
 
   @IsString()
   @IsNotEmpty()
-  unit!: string;
+  @IsOptional()
+  unit?: string;
 
   @IsNumber()
   @Min(0)
-  discount!: number;
+  @IsOptional()
+  discount?: number;
+
+  @IsOptional()
+  @IsMongoId()
+  customerId?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  accountId?: string;
+
 }

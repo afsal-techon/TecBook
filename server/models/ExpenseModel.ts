@@ -1,35 +1,24 @@
 import { model, Schema } from "mongoose";
-import {
-  BillingPaymentStatus,
-  commonStatus,
-  PurchaseOrderDiscountType,
-} from "../types/enum.types";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
-import { IBillingRecords } from "../Interfaces/billing-records.interface";
+import { commonStatus, PurchaseOrderDiscountType, TaxPreferences } from "../types/enum.types";
+import { IExpenses } from "../Interfaces/expenses.interface";
 
-const BillngRecordSchema = new Schema<IBillingRecords>(
+const ExpenseModelSchema = new Schema<IExpenses>(
   {
-    vendorId: {
-      type: Schema.Types.ObjectId,
-      ref: "Vendor",
+    date: {
+      type: Date,
       required: true,
+      default: Date.now(),
     },
-    billNumber: {
+    expenseNumber: {
       type: String,
+      required: true,
       unique: true,
     },
-    purchaseOrderNumber: {
+    customerId: {
       type: Schema.Types.ObjectId,
-      ref: "PurchaseOrder",
-      required: true,
-    },
-    billDate: {
-      type: Date,
-      required: true,
-    },
-    dueDate: {
-      type: Date,
+      ref: "Customer",
       required: true,
     },
     branchId: {
@@ -37,9 +26,19 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       ref: "Branch",
       required: true,
     },
-    payment: {
+    taxPreference: {
       type: String,
-      enum: BillingPaymentStatus,
+      enum: TaxPreferences,
+      required: true,
+    },
+    paidAccount: {
+      type: Schema.Types.ObjectId,
+      ref: "Account",
+      required: true,
+    },
+    vendorId: {
+      type: Schema.Types.ObjectId,
+      ref: "Vendor",
       required: true,
     },
     note: {
@@ -93,25 +92,20 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
     timestamps: true,
   }
 );
+ExpenseModelSchema.add(BaseSchemaFields);
+ExpenseModelSchema.add(ItemsSchemaFields);
 
-BillngRecordSchema.add(BaseSchemaFields);
-BillngRecordSchema.add(ItemsSchemaFields);
+export const ExpenseModel = model("ExpenseModel", ExpenseModelSchema);
+export type ExpenseModelDocument = typeof ExpenseModel;
 
-export const BillingSchemaModel = model<IBillingRecords>(
-  "BillingRecords",
-  BillngRecordSchema
-);
-
-export type BillingSchemaModelDocument = typeof BillingSchemaModel;
-
-export const BillingSchemaModelConstants = {
-  vendorId: "vendorId",
-  billNumber: "billNumber",
-  purchaseOrderNumber: "purchaseOrderNumber",
-  billDate: "billDate",
-  dueDate: "dueDate",
+export const ExpenseModelConstants = {
+  date: "date",
+  expenseNumber: "expenseNumber",
+  customerId: "customerId",
   branchId: "branchId",
-  payment: "payment",
+  taxPreference: "taxPreference",
+  paidAccount: "paidAccount",
+  vendorId: "vendorId",
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
@@ -125,6 +119,5 @@ export const BillingSchemaModelConstants = {
   subTotal: "subTotal",
   taxTotal: "taxTotal",
   total: "total",
-} as const;
-
-export type BillingRecordsField = keyof typeof BillingSchemaModelConstants;
+};
+// export type ExpenseModelField = keyof typeof ExpenseModelConstants;

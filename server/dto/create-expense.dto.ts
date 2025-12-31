@@ -9,37 +9,47 @@ import {
   IsString,
   ValidateNested,
 } from "class-validator";
+import {
+  commonStatus,
+  PurchaseOrderDiscountType,
+  TaxPreferences,
+} from "../types/enum.types";
 import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
-import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
 
-export class CreatePurchaseOrderDto {
+export class CreateExpenseDto {
+  @IsDateString()
+  @IsNotEmpty()
+  date!: string;
+
   @IsString()
   @IsNotEmpty()
-  purchaseOrderId!: string;
+  expenseNumber!: string;
 
   @IsMongoId()
+  @IsNotEmpty()
+  customerId!: string;
+
+  @IsMongoId()
+  @IsNotEmpty()
+  branchId!: string;
+
+  @IsEnum(TaxPreferences)
+  @IsNotEmpty()
+  taxPreference!: TaxPreferences;
+
+  @IsMongoId()
+  @IsNotEmpty()
+  paidAccount!: string;
+
+  @IsMongoId()
+  @IsNotEmpty()
   vendorId!: string;
 
-  @IsString()
-  @IsOptional()
-  quote?: string;
-
-  @IsDateString()
-  purchaseOrderDate!: string;
-
-  @IsDateString()
-  expDate!: string;
-
-  @IsMongoId()
-  salesPersonId!: string;
-
-  @IsMongoId()
-  @IsOptional()
-  projectId?: string;
-
-  @IsMongoId()
-  branchId!: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ItemDto)
+  items!: ItemDto[];
 
   @IsOptional()
   @IsString()
@@ -60,11 +70,6 @@ export class CreatePurchaseOrderDto {
   @IsNumber()
   @IsOptional()
   vatValue?: number;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ItemDto)
-  items!: ItemDto[];
 
   @IsOptional()
   @IsArray()
@@ -97,39 +102,40 @@ export class CreatePurchaseOrderDto {
   total?: number;
 }
 
-export class UpdatePurchaseOrderDto {
-  @IsString()
+export class UpdateExpenseDto {
   @IsOptional()
-  purchaseOrderId?: string;
-
-  @IsMongoId()
-  @IsOptional()
-  vendorId?: string;
-
-  @IsString()
-  @IsOptional()
-  quote?: string;
-
   @IsDateString()
-  @IsOptional()
-  purchaseOrderDate?: string;
+  date?: string;
 
-  @IsDateString()
   @IsOptional()
-  expDate?: string;
+  @IsString()
+  expenseNumber?: string;
 
+  @IsOptional()
   @IsMongoId()
-  @IsOptional()
-  salesPersonId?: string;
+  customerId?: string;
 
-  @IsMongoId()
   @IsOptional()
-  projectId?: string;
-
   @IsMongoId()
-  @IsOptional()
   branchId?: string;
 
+  @IsOptional()
+  @IsEnum(TaxPreferences)
+  taxPreference?: TaxPreferences;
+
+  @IsOptional()
+  @IsMongoId()
+  paidAccount?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  vendorId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ItemDto)
+  items?: ItemDto[];
   @IsOptional()
   @IsString()
   note?: string;
@@ -149,15 +155,6 @@ export class UpdatePurchaseOrderDto {
   @IsNumber()
   @IsOptional()
   vatValue?: number;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ItemDto)
-  @Transform(({ value }) =>
-    typeof value === "string" ? JSON.parse(value) : value
-  )
-  items?: ItemDto[];
 
   @IsOptional()
   @IsArray()
