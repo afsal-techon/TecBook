@@ -360,7 +360,11 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           path: PurchaseOrderModelConstants.salesPersonId,
           select: "username email",
         })
-        .populate(PurchaseOrderModelConstants.projectId);
+        .populate(PurchaseOrderModelConstants.projectId)
+        .populate({
+          path: PurchaseOrderModelConstants.branchId,
+          select: "branchName city email phone",
+        });
 
       if (!purchaseOrder) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
