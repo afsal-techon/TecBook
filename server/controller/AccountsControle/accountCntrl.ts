@@ -3,6 +3,8 @@ import express, { Response, Request, NextFunction } from "express";
 import USER from "../../models/user";
 import TRANSACTION from '../../models/transactions'
 import { Types } from "mongoose";
+import mongoose from "mongoose";
+import BRANCH from '../../models/branch';
 
 
 export const createAccounts = async (
@@ -78,25 +80,53 @@ export const getAccounts = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-        const branchId = req.query.branchId as string;
+    const userRole = user.role; // "CompanyAdmin" or "User"
+    const filterBranchId = req.query.branchId as string; // optional
+    const search = ((req.query.search as string) || "").trim();
 
-          if (!branchId) {
-      return res
-        .status(400)
-        .json({ message: "Branch Id is required!" });
-    }
-
-    // pagination
+    // Pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
 
-    // search term
-    const search = ((req.query.search as string) || "").trim();
+    // 🔹 Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res
+          .status(400)
+          .json({ message: "User is not assigned to any branch!" });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
+
+    // 🔹 Apply branch filter if passed
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view customers for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
+
 
     const match: any = {
+     branchId: { $in: allowedBranchIds },
       isDeleted: false,
-        branchId: new Types.ObjectId(branchId),
     };
 
     // only add search filter when search has value
@@ -144,7 +174,7 @@ export const getAccounts = async (
     pipeline.push({
       $project: {
         _id:1,
-        branchId,
+        branchId:1,
         accountName: 1,
         accountType: 1,
         description: 1,
