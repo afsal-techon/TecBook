@@ -10,4 +10,6 @@ export interface IItem {
   amount: number;
   unit: string;
   discount: number;
+  customerId?: Types.ObjectId | null;
+  accountId?: Types.ObjectId | null;
 }
