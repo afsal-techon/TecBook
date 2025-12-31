@@ -117,8 +117,19 @@ class BillingRecordsController extends GenericDatabaseService<
         message: "Billing record created successfully",
         data,
       });
-    } catch (error) {
-      next(error);
+    } catch (error:unknown) {
+      if (error instanceof Error){
+        console.log("Error while creating billing record", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while creating billing record", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Error while creating billing record",
+      });
     }
   };
 
@@ -206,8 +217,19 @@ class BillingRecordsController extends GenericDatabaseService<
         message: "Billing record updated successfully",
         statusCode: HTTP_STATUS.OK,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while updating billing record", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while updating billing record", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to update billing record",
+      })
     }
   };
 
