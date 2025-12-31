@@ -441,7 +441,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       return res.status(result.statusCode).json({
         success: result.success,
         message: result.message,
-        statusCode: HTTP_STATUS.NO_CONTENT
+        statusCode: result.statusCode,
       });
 
     } catch (error:unknown) {
