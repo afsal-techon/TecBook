@@ -17,7 +17,7 @@ export interface IBillingRecords extends IBaseFIelds {
   discountType:string;
   discountValue:number;
   vatValue:number;
-  status:keyof typeof commonStatus;
+  status:commonStatus;
   documents: string[];
   subTotal: number;
   taxTotal: number;

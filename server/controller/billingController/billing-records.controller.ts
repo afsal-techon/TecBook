@@ -21,6 +21,7 @@ import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
+import { imagekit } from "../../config/imageKit";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -60,7 +61,6 @@ class BillingRecordsController extends GenericDatabaseService<
   createBillingRecords = async (
     req: Request<{}, {}, CreateBillingRecordsDTO>,
     res: Response,
-    next: NextFunction
   ) => {
     try {
       const dto: CreateBillingRecordsDTO = req.body;
@@ -98,6 +98,18 @@ class BillingRecordsController extends GenericDatabaseService<
         });
       }
 
+      const uploadedFiles: string[] = [];
+            if (req.files && Array.isArray(req.files)) {
+              for (const file of req.files) {
+                const uploadResponse = await imagekit.upload({
+                  file: file.buffer.toString("base64"),
+                  fileName: file.originalname,
+                  folder: "/images",
+                });
+                uploadedFiles.push(uploadResponse.url);
+              }
+            }
+
       const payload: Partial<IBillingRecords> = {
         ...dto,
         createdBy: new Types.ObjectId(userId),
@@ -108,6 +120,7 @@ class BillingRecordsController extends GenericDatabaseService<
         branchId: new Types.ObjectId(dto.branchId),
         billDate: new Date(dto.billDate),
         dueDate: new Date(dto.dueDate),
+        documents: uploadedFiles,
       };
 
       const data = await this.genericCreateOne(payload);
@@ -147,7 +160,6 @@ class BillingRecordsController extends GenericDatabaseService<
   updateBillingRecords = async (
     req: Request<{ id: string }, {}, updateBillingRecordsDTO>,
     res: Response,
-    next: NextFunction
   ) => {
     try {
       const id = req.params.id;
@@ -208,6 +220,7 @@ class BillingRecordsController extends GenericDatabaseService<
         dueDate,
 
         items,
+        documents: dto.existingDocuments ?? [],
       };
 
       await this.genericUpdateOneById(id, payload);
