@@ -24,4 +24,5 @@ export interface IPurchaseOrder extends IBaseFIelds {
   subTotal: number;
   taxTotal: number;
   total: number;
+  paymentTermsId?: Types.ObjectId;
 }
