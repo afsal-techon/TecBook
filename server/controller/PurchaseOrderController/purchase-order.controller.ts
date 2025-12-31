@@ -30,6 +30,7 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import { imagekit } from "../../config/imageKit";
 import salesPersonModel from "../../models/salesPerson";
 import paymentTermModel from "../../models/paymentTerms";
+import { stat } from "fs";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -428,6 +429,38 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       });
     }
   };
+
+
+  deletePurchaseOrder = async(
+    req: Request<{ id: string }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await this.genericDeleteOneById(id);
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+        statusCode: HTTP_STATUS.NO_CONTENT
+      });
+
+    } catch (error:unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete purchase order", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to delete purchase order", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to delete purchase order",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      });
+      
+    }
+  }
 
   // Helper methods for validations
   private async validateVendor(vendorId: string) {

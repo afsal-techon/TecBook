@@ -13,7 +13,7 @@ router.post("/", verifyUser,checkPermission('admin','PurchaseOrder','can_create'
 router.put("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_update'),upload.array('documents',10), validateDto(UpdatePurchaseOrderDto),purchaseOrderController.updatePurchaseOrder);
 router.get("/", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,purchaseOrderController.getAllPurchaseOrders);
 router.get("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,purchaseOrderController.getPurchaseOrderById);
-router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , purchaseOrderController.genericDeleteOneById);
+router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , purchaseOrderController.deletePurchaseOrder);
 
 
 
