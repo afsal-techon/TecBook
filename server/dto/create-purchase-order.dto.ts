@@ -95,6 +95,10 @@ export class CreatePurchaseOrderDto {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+  @IsOptional()
+  @IsMongoId()
+  paymentTermsId?: string;
 }
 
 export class UpdatePurchaseOrderDto {
@@ -188,4 +192,8 @@ export class UpdatePurchaseOrderDto {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+  @IsOptional()
+  @IsMongoId()
+  paymentTermsId?: string;
 }
