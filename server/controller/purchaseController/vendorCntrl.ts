@@ -1,9 +1,11 @@
-import VENDOR from '../../models/vendor'
-import express , {Request,Response,NextFunction} from 'express'
-import { IVendor } from '../../types/common.types';
-import USER from '../../models/user'
+import VENDOR from "../../models/vendor";
+import express, { Request, Response, NextFunction } from "express";
+import { IVendor } from "../../types/common.types";
+import USER from "../../models/user";
 import { Types } from "mongoose";
-
+import mongoose from "mongoose";
+import BRANCH from "../../models/branch";
+import { imagekit } from "../../config/imageKit";
 
 
 export const CreateVendor = async (
@@ -18,13 +20,13 @@ export const CreateVendor = async (
       phone,
       note,
       openingBalance,
-      billingInfo,
-      shippingInfo,
+      email,
+      currency,
+      paymentTerms,
       taxTreatment,
       trn,
       placeOfSupplay,
-
-    } = req.body as IVendor
+    } = req.body as IVendor;
 
     const userId = req.user?.id;
 
@@ -42,44 +44,85 @@ export const CreateVendor = async (
     if (!phone) {
       return res.status(400).json({ message: "Phone number is required!" });
     }
-    if (!billingInfo) {
-      return res.status(400).json({ message: "Billing address is required!" });
+    if (typeof req.body.billingInfo === "string") {
+      req.body.billingInfo = JSON.parse(req.body.billingInfo);
     }
 
-    if (!shippingInfo) {
-      return res.status(400).json({ message: "Shipping address is required!" });
+    if (typeof req.body.shippingInfo === "string") {
+      req.body.shippingInfo = JSON.parse(req.body.shippingInfo);
     }
     if (!taxTreatment) {
       return res.status(400).json({ message: "Tax treatment is required!" });
     }
 
-    // if (!trn) {
-    //   return res.status(400).json({ message: "trn is required!" });
-    // }
-    
-    // if (!placeOfSupplay) {
-    //   return res.status(400).json({ message: "Place of supplay required!" });
-    // }
-
-    const existContact = await VENDOR.findOne({ phone , branchId ,isDeleted:false });
+    const existContact = await VENDOR.findOne({
+      phone,
+      branchId,
+      isDeleted: false,
+    });
     if (existContact)
       return res
         .status(400)
         .json({ message: "Phone number is already exists!" });
 
+    const existEmail = await VENDOR.findOne({
+      email,
+      branchId,
+      isDeleted: false,
+    });
+    if (existEmail)
+      return res.status(400).json({ message: "Email is already exists!" });
+
+    let uploadedDocuments: Array<{
+      doc_name: string;
+      doc_file: string;
+      doc_typeId: Types.ObjectId | null;
+      startDate: Date | null;
+      endDate: Date | null;
+    }> = [];
+    const documentsMetadata = req.body.metadata
+      ? JSON.parse(req.body.metadata)
+      : [];
+
+    if (req.files && Array.isArray(req.files)) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        const meta = documentsMetadata[i] || {}; // fallback in case metadata missing
+
+        const uploadResponse = await imagekit.upload({
+          file: file.buffer.toString("base64"),
+          fileName: file.originalname,
+          folder: "/images",
+        });
+
+        uploadedDocuments.push({
+          doc_name: meta.doc_name || file.originalname,
+          doc_file: uploadResponse.url,
+          doc_typeId: meta.doc_typeId
+            ? new Types.ObjectId(meta.doc_typeId)
+            : null,
+          startDate: meta.startDate,
+          endDate: meta.endDate,
+        });
+      }
+    }
 
     await VENDOR.create({
-        branchId,
-        name,
-        phone,
-        openingBalance,
-        billingInfo,
-        shippingInfo,
-        taxTreatment,
-        trn,
-        note,
-        placeOfSupplay,
-        createdById:user._id
+      branchId,
+      name,
+      phone,
+      openingBalance,
+      billingInfo: req.body.billingInfo,
+      shippingInfo: req.body.shippingInfo,
+      taxTreatment,
+      trn,
+      email,
+      currency,
+      paymentTerms,
+      note,
+      placeOfSupplay,
+      documents: uploadedDocuments,
+      createdById: user._id,
     });
 
     return res.status(200).json({ message: "Vendor created successfully" });
@@ -96,42 +139,71 @@ export const getVendors = async (
   try {
     const userId = req.user?.id;
 
-    // Validate user
+    // 🔹 Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
 
-    // Branch Id required
-    const branchId = req.query.branchId as string;
-    if (!branchId) {
-      return res.status(400).json({ message: "Branch ID is required!" });
-    }
-
-    // Pagination
-    const limit = parseInt(req.query.limit as string) || 20;
-    const page = parseInt(req.query.page as string) || 1;
-    const skip = (page - 1) * limit;
-
-    // Search filter
+    const userRole = user.role; // "CompanyAdmin" | "User"
+    const filterBranchId = req.query.branchId as string;
     const search = ((req.query.search as string) || "").trim();
 
-    const match: any = {
+    // 🔹 Pagination
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
+
+    // 🔹 Determine allowed branches
+    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+
+    if (userRole === "CompanyAdmin") {
+      const branches = await BRANCH.find({
+        companyAdminId: userId,
+        isDeleted: false,
+      }).select("_id");
+      allowedBranchIds = branches.map(
+        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+      );
+    } else if (userRole === "User") {
+      if (!user.branchId) {
+        return res
+          .status(400)
+          .json({ message: "User is not assigned to any branch!" });
+      }
+      allowedBranchIds = [user.branchId];
+    } else {
+      return res.status(403).json({ message: "Unauthorized role!" });
+    }
+
+    // 🔹 Apply branch filter if passed
+    if (filterBranchId) {
+      const filterId = new mongoose.Types.ObjectId(filterBranchId);
+      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        return res.status(403).json({
+          message: "You are not authorized to view quotations for this branch!",
+        });
+      }
+      allowedBranchIds = [filterId];
+    }
+
+    // 🔹 Match stage
+    const matchStage: any = {
+      branchId: { $in: allowedBranchIds },
       isDeleted: false,
-      branchId: new Types.ObjectId(branchId),
     };
 
-    // Add search conditions
-    if (search.length > 0) {
-      match.$or = [
+    // 🔹 Search condition
+    if (search) {
+      matchStage.$or = [
         { name: { $regex: search, $options: "i" } },
         { phone: { $regex: search, $options: "i" } },
       ];
     }
 
-    // Pipeline
+    // 🔹 Aggregation pipeline
     const pipeline: any[] = [
-      { $match: match },
+      { $match: matchStage },
 
       {
         $project: {
@@ -139,6 +211,9 @@ export const getVendors = async (
           branchId: 1,
           name: 1,
           phone: 1,
+          email:1,
+          currency: 1,
+          paymentTerms: 1,
           openingBalance: 1,
           billingInfo: 1,
           shippingInfo: 1,
@@ -146,7 +221,7 @@ export const getVendors = async (
           trn: 1,
           placeOfSupplay: 1,
           createdAt: 1,
-          updatedAt:1,
+          updatedAt: 1,
         },
       },
 
@@ -157,8 +232,8 @@ export const getVendors = async (
 
     const vendors = await VENDOR.aggregate(pipeline);
 
-    // Total count for pagination
-    const totalCount = await VENDOR.countDocuments(match);
+    //  Total count for pagination
+    const totalCount = await VENDOR.countDocuments(matchStage);
 
     return res.status(200).json({
       data: vendors,
@@ -166,7 +241,6 @@ export const getVendors = async (
       page,
       limit,
     });
-
   } catch (err) {
     next(err);
   }
@@ -179,18 +253,20 @@ export const updateVendor = async (
 ): Promise<Response | void> => {
   try {
     const {
-     vendorId,
+      vendorId,
       branchId,
       name,
       phone,
+      email,
+      currency,
+      paymentTerms,
       openingBalance,
-      billingInfo,
-      shippingInfo,
       taxTreatment,
       trn,
       note,
       placeOfSupplay,
-    } = req.body // allow partial
+      existingDocuments,
+    } = req.body; // allow partial
 
     const userId = req.user?.id;
 
@@ -202,6 +278,13 @@ export const updateVendor = async (
 
     if (!vendorId) {
       return res.status(400).json({ message: "Vendor ID is required!" });
+    }
+    if (typeof req.body.billingInfo === "string") {
+      req.body.billingInfo = JSON.parse(req.body.billingInfo);
+    }
+
+    if (typeof req.body.shippingInfo === "string") {
+      req.body.shippingInfo = JSON.parse(req.body.shippingInfo);
     }
 
     // Check if customer exists
@@ -225,21 +308,92 @@ export const updateVendor = async (
       }
     }
 
+
+        if (email && email !== vendor.email) {
+      const existPhone = await VENDOR.findOne({
+        email,
+        branchId: branchId || vendor.branchId,
+        _id: { $ne: vendorId },
+      });
+
+      if (existPhone) {
+        return res.status(400).json({
+          message: "Phone number already exists for another vendor!",
+        });
+      }
+    }
+
+    let finalDocuments: Array<{
+      doc_name: string;
+      doc_file: string;
+      doc_typeId: Types.ObjectId | null;
+      startDate: Date | null;
+      endDate: Date | null;
+    }> = [];
+
+    if (existingDocuments) {
+      // front-end sends existingDocuments as JSON string
+      const parsedExistingDocs = Array.isArray(existingDocuments)
+        ? existingDocuments
+        : JSON.parse(existingDocuments);
+
+      finalDocuments = parsedExistingDocs.map((doc: any) => ({
+        doc_name: doc.doc_name,
+        doc_file: doc.doc_file,
+        doc_typeId: doc.doc_typeId ? new Types.ObjectId(doc.doc_typeId) : null,
+        startDate: doc.startDate,
+        endDate: doc.endDate,
+      }));
+    }
+
+    const documentsMetadata = req.body.metadata
+      ? JSON.parse(req.body.metadata)
+      : [];
+
+    if (req.files && Array.isArray(req.files)) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        const meta = documentsMetadata[i] || {};
+
+        const uploadResponse = await imagekit.upload({
+          file: file.buffer.toString("base64"),
+          fileName: file.originalname,
+          folder: "/images",
+        });
+
+        finalDocuments.push({
+          doc_name: meta.doc_name || file.originalname || "",
+          doc_file: uploadResponse.url || "",
+          doc_typeId: meta.doc_typeId
+            ? new Types.ObjectId(meta.doc_typeId)
+            : null,
+          startDate: meta.startDate,
+          endDate: meta.endDate,
+        });
+      }
+    }
+
     // Build update object — take new values if given, else keep old
     const updateData = {
       branchId: branchId ?? vendor.branchId,
       name: name ?? vendor.name,
       phone: phone ?? vendor.phone,
       openingBalance: openingBalance ?? vendor.openingBalance,
-      billingInfo: billingInfo ?? vendor.billingInfo,
-      shippingInfo: shippingInfo ?? vendor.shippingInfo,
+      billingInfo: req.body.billingInfo ?? vendor.billingInfo,
+      shippingInfo: req.body.shippingInfo ?? vendor.shippingInfo,
       taxTreatment: taxTreatment ?? vendor.taxTreatment,
       trn: trn ?? vendor.trn,
-      note:note ?? vendor.note,
+      currency: currency ?? vendor.currency,
+      paymentTerms: paymentTerms ?? vendor.paymentTerms,
+      email: email ?? vendor.email,
+      note: note ?? vendor.note,
       placeOfSupplay: placeOfSupplay ?? vendor.placeOfSupplay,
     };
 
     await VENDOR.findByIdAndUpdate(vendorId, updateData, { new: true });
+
+    vendor.documents = finalDocuments;
+    await vendor.save();
 
     return res.status(200).json({
       message: "Vendor updated successfully!",
@@ -249,7 +403,6 @@ export const updateVendor = async (
   }
 };
 
-
 export const deleteVendor = async (
   req: Request,
   res: Response,
@@ -258,13 +411,13 @@ export const deleteVendor = async (
   try {
     const userId = req.user?.id;
 
-    const { vendorId }  =req.params;
+    const { vendorId } = req.params;
 
     // Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-     if (!vendorId) {
+    if (!vendorId) {
       return res.status(400).json({ message: "Vendor Id is required!" });
     }
 
@@ -272,7 +425,6 @@ export const deleteVendor = async (
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found!" });
     }
-  
 
     await VENDOR.findByIdAndUpdate(vendorId, {
       isDeleted: true,
@@ -284,9 +436,9 @@ export const deleteVendor = async (
     return res.status(200).json({
       message: "Vendor deleted successfully!",
     });
-    
-
   } catch (err) {
     next(err);
   }
 };
+
+

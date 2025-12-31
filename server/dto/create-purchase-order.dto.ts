@@ -1,78 +1,191 @@
 import {
   IsArray,
   IsDateString,
+  IsEnum,
   IsMongoId,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
+import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
+  @IsString()
+  @IsNotEmpty()
+  purchaseOrderId!: string;
+
   @IsMongoId()
   vendorId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  quoteNumber!: string;
+  @IsOptional()
+  quote?: string;
 
   @IsDateString()
-  quoteDate!: string;
+  purchaseOrderDate!: string;
 
   @IsDateString()
-  expiryDate!: string;
+  expDate!: string;
 
   @IsMongoId()
-  salesmanId!: string;
+  salesPersonId!: string;
 
   @IsMongoId()
   @IsOptional()
   projectId?: string;
+
+  @IsMongoId()
+  branchId!: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items!: ItemDto[];
 
-  @IsMongoId()
-  @IsNotEmpty()
-  branchId!: string;
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(commonStatus)
+  status?: commonStatus;
+
+  @IsNumber()
+  @IsOptional()
+  subTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  taxTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
 }
 
 export class UpdatePurchaseOrderDto {
+  @IsString()
+  @IsOptional()
+  purchaseOrderId?: string;
+
   @IsMongoId()
   @IsOptional()
   vendorId?: string;
 
   @IsString()
   @IsOptional()
-  quoteNumber?: string;
+  quote?: string;
 
   @IsDateString()
   @IsOptional()
-  quoteDate?: string;
+  purchaseOrderDate?: string;
 
   @IsDateString()
   @IsOptional()
-  expiryDate?: string;
+  expDate?: string;
 
   @IsMongoId()
   @IsOptional()
-  salesmanId?: string;
+  salesPersonId?: string;
 
   @IsMongoId()
   @IsOptional()
   projectId?: string;
 
-  @IsArray()
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => ItemDto)
-  items?: ItemDto[];
-
   @IsMongoId()
   @IsOptional()
-  branchId!: string;
+  branchId?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ItemDto)
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  items?: ItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(commonStatus)
+  status?: commonStatus;
+
+  @IsNumber()
+  @IsOptional()
+  subTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  taxTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
 }

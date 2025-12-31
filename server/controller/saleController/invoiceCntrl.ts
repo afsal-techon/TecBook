@@ -10,6 +10,7 @@ import saleNumberSetting from "../../models/numberSetting";
 import PAYMENT_TEMRS from "../../models/paymentTerms";
 import SALSE_PERSON from "../../models/salesPerson";
 import TAX from "../../models/tax";
+import QUATATION from "../../models/quotation";
 
 export const createInvoice = async (
   req: Request,
@@ -17,7 +18,6 @@ export const createInvoice = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    console.log(req.body, "body");
     const {
       branchId,
       invoiceId, // may be null/ignored in auto mode
@@ -25,6 +25,7 @@ export const createInvoice = async (
       salesPersonId,
       projectId,
       invoiceDate,
+      quoteId,
       dueDate,
       status,
       orderNumber,
@@ -223,6 +224,14 @@ export const createInvoice = async (
       item.tax = Number(taxAmount.toFixed(2));
     }
 
+    let quotation;
+    if (quoteId) {
+      quotation = await QUATATION.findById(quoteId);
+      if (!quotation) {
+        return res.status(400).json({ message: "Quotation not found!" });
+      }
+    }
+
     const invoice = new INVOICE({
       branchId: new Types.ObjectId(branchId),
       invoiceId: finalQuoteId, //  always use this
@@ -231,6 +240,7 @@ export const createInvoice = async (
       salesPersonId: salesPersonId ? new Types.ObjectId(salesPersonId) : null,
       invoiceDate,
       dueDate,
+      quoteId: quoteId ? new Types.ObjectId(quoteId) : null,
       status,
       items: parsedItems,
       paymentTerms: parsedTerms,
@@ -247,6 +257,10 @@ export const createInvoice = async (
     });
 
     await invoice.save();
+    if (quotation) {
+      quotation.status = "Invoiced";
+      await quotation.save();
+    }
 
     return res.status(201).json({
       message: `Invoice created successfully.`,
@@ -272,6 +286,7 @@ export const updateInvoice = async (
       salesPersonId,
       invoiceDate,
       dueDate,
+      quoteId,
       status,
       items,
       subTotal,
@@ -444,6 +459,14 @@ export const updateInvoice = async (
       item.tax = Number(taxAmount.toFixed(2));
     }
 
+        let quotation;
+    if (quoteId) {
+      quotation = await QUATATION.findById(quoteId);
+      if (!quotation) {
+        return res.status(400).json({ message: "Quotation not found!" });
+      }
+    }
+
     invoice.branchId = branchId;
     invoice.customerId = customerId;
     invoice.projectId = projectId;
@@ -451,6 +474,7 @@ export const updateInvoice = async (
     invoice.invoiceDate = invoiceDate;
     invoice.dueDate = dueDate;
     invoice.status = status;
+    invoice.quoteId = quoteId;
     invoice.items = parsedItems;
     invoice.paymentTerms = parsedTerms; // now always assigned
     invoice.terms = terms;
@@ -464,6 +488,10 @@ export const updateInvoice = async (
     invoice.note = note;
 
     await invoice.save();
+     if (quotation) {
+      quotation.status = "Invoiced";
+      await quotation.save();
+    }
 
     return res.status(200).json({
       message: "Invoice updated successfully.",
@@ -472,8 +500,6 @@ export const updateInvoice = async (
     next(err);
   }
 };
-
-
 
 export const getALLInvoices = async (
   req: Request,
@@ -652,6 +678,8 @@ export const getALLInvoices = async (
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const overdueEligibleStatuses = ["Sent", "Invoiced"];
+
     const invoicesWithOverdue = invoices.map((invoice) => {
       let overdueDays = 0;
       let displayStatus = invoice.status;
@@ -661,8 +689,7 @@ export const getALLInvoices = async (
         dueDate.setHours(0, 0, 0, 0);
 
         if (
-          invoice.status !== "Paid" &&
-          invoice.status !== "Cancelled" &&
+          overdueEligibleStatuses.includes(invoice.status) &&
           today > dueDate
         ) {
           overdueDays = Math.floor(
@@ -679,7 +706,7 @@ export const getALLInvoices = async (
         ...invoice,
         overdueDays,
         isOverdue: overdueDays > 0,
-        displayStatus, // derived field
+        displayStatus,
       };
     });
 
@@ -760,7 +787,7 @@ export const getOneInvoice = async (
           _id: 1,
           branchId: 1,
           invoiceId: 1,
-          projectId:1,
+          projectId: 1,
           customerId: 1,
           paymentTermsId: 1,
           salesPersonId: 1,
@@ -933,15 +960,13 @@ export const deleteInvoice = async (
   }
 };
 
-
-
 export const markAsSent = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    let { status, invoiceId } = req.body;
+    let { invoiceId, status } = req.body;
 
     const userId = req.user?.id;
 
@@ -969,10 +994,8 @@ export const markAsSent = async (
 
     // normalize / validate status
     status = String(status);
-    if ( status !== "Sent") {
-      return res
-        .status(400)
-        .json({ message: "Status must be 'Sent'" });
+    if (status !== "Sent") {
+      return res.status(400).json({ message: "Status must be 'Sent'" });
     }
 
     invoice.status = status;

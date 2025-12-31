@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import { Schema, Types } from "mongoose";
 import { IBaseFIelds } from "./base.interface";
 import { IItem } from "./item.interface";
 import { TaxPreferences } from "../types/enum.types";
@@ -6,10 +6,20 @@ import { TaxPreferences } from "../types/enum.types";
 export interface IExpenses extends IBaseFIelds {
   date: Date;
   expenseNumber: string;
-  customerId: Schema.Types.ObjectId;
+  customerId: Types.ObjectId;
   taxPreference: TaxPreferences;
-  paidAccount: Schema.Types.ObjectId;
-  vendorId: Schema.Types.ObjectId;
-  branchId: Schema.Types.ObjectId;
+  paidAccount: Types.ObjectId;
+  vendorId: Types.ObjectId;
+  branchId: Types.ObjectId;
   items: IItem[];
+  note: string;
+  terms: string;
+  discountType: string;
+  discountValue: number;
+  vatValue: number;
+  status: string;
+  documents: string[];
+  subTotal: number;
+  taxTotal: number;
+  total: number;
 }

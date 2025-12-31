@@ -4,11 +4,12 @@ import checkPermission from "../middleware/checkPermission";
 import { validateDto } from "../middleware/validate-dto.middleware";
 import { CreateBillingRecordsDTO, updateBillingRecordsDTO } from "../dto/billing-records.dto";
 import billingRecordsController from "../controller/billingController/billing-records.controller";
+import { upload } from "../middleware/imgUpload";
 
 const router = Router()
 
-router.post("/", verifyUser,checkPermission('admin','PurchaseOrder','can_create'),validateDto(CreateBillingRecordsDTO),billingRecordsController.createBillingRecords);
-router.put("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_update'), validateDto(updateBillingRecordsDTO), billingRecordsController.updateBillingRecords);
+router.post("/", verifyUser,checkPermission('admin','PurchaseOrder','can_create'),upload.array('documents',10),validateDto(CreateBillingRecordsDTO),billingRecordsController.createBillingRecords);
+router.put("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_update'),upload.array('documents',10), validateDto(updateBillingRecordsDTO), billingRecordsController.updateBillingRecords);
 router.get("/", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,billingRecordsController.getAllBillingRecords);
 router.get("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,billingRecordsController.getBillingRecordById);
 router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , billingRecordsController.genericDeleteOneById);

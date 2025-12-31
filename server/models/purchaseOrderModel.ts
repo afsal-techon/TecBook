@@ -2,37 +2,40 @@ import { model, Schema } from "mongoose";
 import { IPurchaseOrder } from "../Interfaces/purchase-order.interface";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
+import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
-    purchaseOrderNumber:{
-        type:Number,
-        default:0,
-        unique:true
+    purchaseOrderId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
+
     vendorId: {
       type: Schema.Types.ObjectId,
       ref: "Vendor",
       default: null,
     },
-    quoteNumber: {
+    quote: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
 
-    quoteDate: {
+    purchaseOrderDate: {
       type: Date,
       required: true,
     },
 
-    expiryDate: {
+    expDate: {
       type: Date,
       required: true,
     },
-    salesmanId: {
+    salesPersonId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "SalesPeople",
       required: true,
     },
 
@@ -46,10 +49,55 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       ref: "Branch",
       required: true,
     },
+    note: {
+      type: String,
+      default: null,
+    },
+    terms: {
+      type: String,
+      default: null,
+    },
+    discountType: {
+      type: String,
+      enum: PurchaseOrderDiscountType,
+      default: PurchaseOrderDiscountType.PERCENTAGE,
+    },
+    discountValue: {
+      type: Number,
+      default: 0,
+    },
+    vatValue: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      enum: commonStatus
+    },
+    documents: {
+      type: [String],
+      default: [],
+    },
+    subTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    taxTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    total: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
-
 
 PurchaseOrderSchema.add(BaseSchemaFields);
 PurchaseOrderSchema.add(ItemsSchemaFields);
@@ -61,20 +109,23 @@ export const PurchaseOrderModel = model<IPurchaseOrder>(
 
 export type PurchaseOrderModelDocument = typeof PurchaseOrderModel;
 
-
 export const PurchaseOrderModelConstants = {
-  purchaseOrderNumber: "purchaseOrderNumber",
+  purchaseOrderId: "purchaseOrderId",
   vendorId: "vendorId",
-  quoteNumber: "quoteNumber",
-  quoteDate: "quoteDate",
-  expiryDate: "expiryDate",
-  salesmanId: "salesmanId",
+  quote: "quote",
+  purchaseOrderDate: "purchaseOrderDate",
+  expDate: "expDate",
+  salesPersonId: "salesPersonId",
   projectId: "projectId",
   branchId: "branchId",
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
+  note: "note",
+  terms: "terms",
+  discountType: "discountType",
+  discountValue: "discountValue",
+  vatValue: "vatValue",
 } as const;
 
-export type PurchaseOrderField =
-  keyof typeof PurchaseOrderModelConstants;
+export type PurchaseOrderField = keyof typeof PurchaseOrderModelConstants;

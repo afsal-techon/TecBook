@@ -1,10 +1,23 @@
-import { IsArray, IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
-import { TaxPreferences } from "../types/enum.types";
-import { Type } from "class-transformer";
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+import {
+  commonStatus,
+  PurchaseOrderDiscountType,
+  TaxPreferences,
+} from "../types/enum.types";
+import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
 
 export class CreateExpenseDto {
-    
   @IsDateString()
   @IsNotEmpty()
   date!: string;
@@ -37,6 +50,56 @@ export class CreateExpenseDto {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items!: ItemDto[];
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(commonStatus)
+  status?: commonStatus;
+
+  @IsNumber()
+  @IsOptional()
+  subTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  taxTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
 }
 
 export class UpdateExpenseDto {
@@ -73,4 +136,53 @@ export class UpdateExpenseDto {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items?: ItemDto[];
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  terms?: string;
+
+  @IsEnum(PurchaseOrderDiscountType)
+  @IsOptional()
+  discountType?: PurchaseOrderDiscountType;
+
+  @IsNumber()
+  @IsOptional()
+  discountValue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatValue?: number;
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(commonStatus)
+  status?: commonStatus;
+
+  @IsNumber()
+  @IsOptional()
+  subTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  taxTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  total?: number;
 }

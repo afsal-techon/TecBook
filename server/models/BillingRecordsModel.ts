@@ -1,5 +1,9 @@
 import { model, Schema } from "mongoose";
-import { BillingPaymentStatus } from "../types/enum.types";
+import {
+  BillingPaymentStatus,
+  commonStatus,
+  PurchaseOrderDiscountType,
+} from "../types/enum.types";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
 import { IBillingRecords } from "../Interfaces/billing-records.interface";
@@ -38,6 +42,52 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       enum: BillingPaymentStatus,
       required: true,
     },
+    note: {
+      type: String,
+      default: null,
+    },
+    terms: {
+      type: String,
+      default: null,
+    },
+    discountType: {
+      type: String,
+      enum: PurchaseOrderDiscountType,
+      default: PurchaseOrderDiscountType.PERCENTAGE,
+    },
+    discountValue: {
+      type: Number,
+      default: 0,
+    },
+    vatValue: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      enum: commonStatus,
+    },
+    documents: {
+      type: [String],
+      default: [],
+    },
+    subTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    taxTotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    total: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -65,6 +115,16 @@ export const BillingSchemaModelConstants = {
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
+  note: "note",
+  terms: "terms",
+  discountType: "discountType",
+  discountValue: "discountValue",
+  vatValue: "vatValue",
+  status: "status",
+  documents: "documents",
+  subTotal: "subTotal",
+  taxTotal: "taxTotal",
+  total: "total",
 } as const;
 
 export type BillingRecordsField = keyof typeof BillingSchemaModelConstants;
