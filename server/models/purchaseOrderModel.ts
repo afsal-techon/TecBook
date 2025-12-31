@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import { IPurchaseOrder } from "../Interfaces/purchase-order.interface";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
-import { PurchaseOrderDiscountType } from "../types/enum.types";
+import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
@@ -72,16 +72,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     status: {
       type: String,
-
-      enum: [
-        "Draft",
-        "Sent",
-        "Accepted",
-        "Approved",
-        "Invoiced",
-        "Pending",
-        "Declined",
-      ],
+      enum: commonStatus
     },
     documents: {
       type: [String],
