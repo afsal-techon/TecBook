@@ -6,13 +6,11 @@ export const ItemsSchemaFields = {
       itemId: {
         type: Schema.Types.ObjectId,
         ref: "Item",
-        required: true,
       },
 
       taxId: {
         type: Schema.Types.ObjectId,
         ref: "Tax",
-        required: true,
       },
 
       prevItemId: {
@@ -23,31 +21,26 @@ export const ItemsSchemaFields = {
 
       itemName: {
         type: String,
-        required: true,
         trim: true,
       },
 
       qty: {
         type: Number,
-        required: true,
         min: 1,
       },
 
       rate: {
         type: Number,
-        required: true,
         min: 0,
       },
 
       amount: {
         type: Number,
-        required: true,
         min: 0,
       },
 
       unit: {
         type: String,
-        required: true,
       },
 
       discount: {
@@ -55,6 +48,16 @@ export const ItemsSchemaFields = {
         default: 0,
         min: 0,
       },
+      customerId:{
+        type: Schema.Types.ObjectId,
+        ref: "Customer",
+        default: null,
+      },
+      accountId:{
+        type: Schema.Types.ObjectId,
+        ref: "Account",
+        default: null,
+      }
     },
   ],
 };
