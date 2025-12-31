@@ -14,6 +14,7 @@ const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
+const searchHelper_1 = require("../../Helper/searchHelper");
 const createSaleOrder = async (req, res, next) => {
     try {
         const { branchId, saleOrderId, // may be null/ignored in auto mode
@@ -360,7 +361,8 @@ const getAllSaleOrder = async (req, res, next) => {
             return res.status(400).json({ message: "User not found!" });
         const userRole = user.role; // "CompanyAdmin" or "User"
         const filterBranchId = req.query.branchId;
-        const search = (req.query.search || "").trim();
+        let search = (req.query.search || "").trim();
+        search = (0, searchHelper_1.escapeRegex)(search);
         // Date filters
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;

@@ -102,7 +102,7 @@ const paymentRecievedSchema = new mongoose_1.Schema({
     },
     note: {
         type: String,
-        default: "null",
+        default: null,
     },
     isDeleted: {
         type: Boolean,

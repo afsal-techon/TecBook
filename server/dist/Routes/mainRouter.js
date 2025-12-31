@@ -92,10 +92,12 @@ router.get('/items/sale/:branchId', auth_1.verifyUser, Inventory_1.getItemsList)
 router.get('/item/one/:itemId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_read'), Inventory_1.getOneItem);
 router.put('/item', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_update'), Inventory_1.updateItem);
 router.delete('/item/:itemId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Item', 'can_delete'), Inventory_1.deleteItems);
+//purchase items
+router.get('/items/purchase/:branchId', auth_1.verifyUser, Inventory_1.getItemsListPurchase);
 //vendor
-router.post('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_create'), vendorCntrl_1.CreateVendor);
+router.post('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_create'), imgUpload_1.upload.array('documents', 10), vendorCntrl_1.CreateVendor);
 router.get('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_read'), vendorCntrl_1.getVendors);
-router.put('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_update'), vendorCntrl_1.updateVendor);
+router.put('/vendor', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_update'), imgUpload_1.upload.array('documents', 10), vendorCntrl_1.updateVendor);
 router.delete('/vendor/:vendorId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Vendor', 'can_delete'), vendorCntrl_1.deleteVendor);
 //create quotesetting number
 router.post('/number-setting', auth_1.verifyUser, quoteStting_1.upsertDocumentNumberSetting);
@@ -137,6 +139,7 @@ router.put('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.defau
 router.get('/invoice', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_read'), invoiceCntrl_1.getALLInvoices);
 router.get('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_read'), invoiceCntrl_1.getOneInvoice);
 router.delete('/invoice/:invoiceId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_delete'), invoiceCntrl_1.deleteInvoice);
+router.post('/invoice/sent', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Invoice', 'can_create'), invoiceCntrl_1.markAsSent);
 //tune log entry
 router.post('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_create'), projectCntrl_1.createLogEntry);
 router.get('/log-entry', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getAllLogEntries);
@@ -144,10 +147,10 @@ router.put('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.def
 router.delete('/log-entry/:timeLogId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_delete'), projectCntrl_1.deleteLogEntry);
 router.get('/timesheets', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'LogEntry', 'can_read'), projectCntrl_1.getTimesheetsByDate);
 //payment Recieved
-router.post('/payment-received', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_create'), paymentCntrl_1.createPaymentReceived);
+router.post('/payment-received', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_create'), imgUpload_1.upload.array('documents', 10), paymentCntrl_1.createPaymentReceived);
 router.get('/payment-received', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_read'), paymentCntrl_1.getAllPaymentReceived);
 router.get('/payment-received/:paymentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_read'), paymentCntrl_1.getOnePaymentReceived);
-router.put('/payment-received/:paymentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_update'), paymentCntrl_1.updatePaymentReceived);
+router.put('/payment-received/:paymentId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentReceived', 'can_update'), imgUpload_1.upload.array('documents', 10), paymentCntrl_1.updatePaymentReceived);
 // router.delete('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_delete'),deletePaymentReceived)
 //payent modes 
 router.post('/payment-mode', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PaymentMode', 'can_create'), paymentTerms_1.upsertPaymentModes);

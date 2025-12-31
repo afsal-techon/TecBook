@@ -54,6 +54,64 @@ __decorate([
     (0, class_transformer_1.Type)(() => item_dto_1.ItemDto),
     __metadata("design:type", Array)
 ], CreateBillingRecordsDTO.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateBillingRecordsDTO.prototype, "note", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateBillingRecordsDTO.prototype, "terms", void 0);
+__decorate([
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderDiscountType),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateBillingRecordsDTO.prototype, "discountType", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateBillingRecordsDTO.prototype, "discountValue", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateBillingRecordsDTO.prototype, "vatValue", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
+    __metadata("design:type", Array)
+], CreateBillingRecordsDTO.prototype, "documents", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
+    __metadata("design:type", Array)
+], CreateBillingRecordsDTO.prototype, "existingDocuments", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
+    __metadata("design:type", String)
+], CreateBillingRecordsDTO.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateBillingRecordsDTO.prototype, "subTotal", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateBillingRecordsDTO.prototype, "taxTotal", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateBillingRecordsDTO.prototype, "total", void 0);
 class updateBillingRecordsDTO {
 }
 exports.updateBillingRecordsDTO = updateBillingRecordsDTO;
@@ -94,3 +152,61 @@ __decorate([
     (0, class_transformer_1.Type)(() => item_dto_1.ItemDto),
     __metadata("design:type", Array)
 ], updateBillingRecordsDTO.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], updateBillingRecordsDTO.prototype, "note", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], updateBillingRecordsDTO.prototype, "terms", void 0);
+__decorate([
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderDiscountType),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], updateBillingRecordsDTO.prototype, "discountType", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], updateBillingRecordsDTO.prototype, "discountValue", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], updateBillingRecordsDTO.prototype, "vatValue", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
+    __metadata("design:type", Array)
+], updateBillingRecordsDTO.prototype, "documents", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
+    __metadata("design:type", Array)
+], updateBillingRecordsDTO.prototype, "existingDocuments", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
+    __metadata("design:type", String)
+], updateBillingRecordsDTO.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], updateBillingRecordsDTO.prototype, "subTotal", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], updateBillingRecordsDTO.prototype, "taxTotal", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], updateBillingRecordsDTO.prototype, "total", void 0);

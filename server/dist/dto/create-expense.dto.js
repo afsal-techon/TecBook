@@ -9,219 +9,213 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdatePurchaseOrderDto = exports.CreatePurchaseOrderDto = void 0;
+exports.UpdateExpenseDto = exports.CreateExpenseDto = void 0;
 const class_validator_1 = require("class-validator");
+const enum_types_1 = require("../types/enum.types");
 const class_transformer_1 = require("class-transformer");
 const item_dto_1 = require("./item.dto");
-const enum_types_1 = require("../types/enum.types");
-class CreatePurchaseOrderDto {
+class CreateExpenseDto {
 }
-exports.CreatePurchaseOrderDto = CreatePurchaseOrderDto;
+exports.CreateExpenseDto = CreateExpenseDto;
+__decorate([
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateExpenseDto.prototype, "date", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "purchaseOrderId", void 0);
+], CreateExpenseDto.prototype, "expenseNumber", void 0);
 __decorate([
     (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "vendorId", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "quote", void 0);
-__decorate([
-    (0, class_validator_1.IsDateString)(),
-    __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "purchaseOrderDate", void 0);
-__decorate([
-    (0, class_validator_1.IsDateString)(),
-    __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "expDate", void 0);
+], CreateExpenseDto.prototype, "customerId", void 0);
 __decorate([
     (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "salesPersonId", void 0);
+], CreateExpenseDto.prototype, "branchId", void 0);
+__decorate([
+    (0, class_validator_1.IsEnum)(enum_types_1.TaxPreferences),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateExpenseDto.prototype, "taxPreference", void 0);
 __decorate([
     (0, class_validator_1.IsMongoId)(),
-    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "projectId", void 0);
+], CreateExpenseDto.prototype, "paidAccount", void 0);
 __decorate([
     (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "branchId", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "note", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "terms", void 0);
-__decorate([
-    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderDiscountType),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "discountType", void 0);
-__decorate([
-    (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], CreatePurchaseOrderDto.prototype, "discountValue", void 0);
-__decorate([
-    (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], CreatePurchaseOrderDto.prototype, "vatValue", void 0);
+], CreateExpenseDto.prototype, "vendorId", void 0);
 __decorate([
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.ValidateNested)({ each: true }),
     (0, class_transformer_1.Type)(() => item_dto_1.ItemDto),
     __metadata("design:type", Array)
-], CreatePurchaseOrderDto.prototype, "items", void 0);
+], CreateExpenseDto.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateExpenseDto.prototype, "note", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateExpenseDto.prototype, "terms", void 0);
+__decorate([
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderDiscountType),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateExpenseDto.prototype, "discountType", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateExpenseDto.prototype, "discountValue", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateExpenseDto.prototype, "vatValue", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
     __metadata("design:type", Array)
-], CreatePurchaseOrderDto.prototype, "documents", void 0);
+], CreateExpenseDto.prototype, "documents", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
     __metadata("design:type", Array)
-], CreatePurchaseOrderDto.prototype, "existingDocuments", void 0);
+], CreateExpenseDto.prototype, "existingDocuments", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
     __metadata("design:type", String)
-], CreatePurchaseOrderDto.prototype, "status", void 0);
+], CreateExpenseDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
-], CreatePurchaseOrderDto.prototype, "subTotal", void 0);
+], CreateExpenseDto.prototype, "subTotal", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
-], CreatePurchaseOrderDto.prototype, "taxTotal", void 0);
+], CreateExpenseDto.prototype, "taxTotal", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
-], CreatePurchaseOrderDto.prototype, "total", void 0);
-class UpdatePurchaseOrderDto {
+], CreateExpenseDto.prototype, "total", void 0);
+class UpdateExpenseDto {
 }
-exports.UpdatePurchaseOrderDto = UpdatePurchaseOrderDto;
+exports.UpdateExpenseDto = UpdateExpenseDto;
 __decorate([
-    (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "purchaseOrderId", void 0);
-__decorate([
-    (0, class_validator_1.IsMongoId)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "vendorId", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "quote", void 0);
-__decorate([
     (0, class_validator_1.IsDateString)(),
-    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "purchaseOrderDate", void 0);
-__decorate([
-    (0, class_validator_1.IsDateString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "expDate", void 0);
-__decorate([
-    (0, class_validator_1.IsMongoId)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "salesPersonId", void 0);
-__decorate([
-    (0, class_validator_1.IsMongoId)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "projectId", void 0);
-__decorate([
-    (0, class_validator_1.IsMongoId)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "branchId", void 0);
+], UpdateExpenseDto.prototype, "date", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "note", void 0);
+], UpdateExpenseDto.prototype, "expenseNumber", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "terms", void 0);
+], UpdateExpenseDto.prototype, "customerId", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderDiscountType),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "discountType", void 0);
+], UpdateExpenseDto.prototype, "branchId", void 0);
 __decorate([
-    (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], UpdatePurchaseOrderDto.prototype, "discountValue", void 0);
+    (0, class_validator_1.IsEnum)(enum_types_1.TaxPreferences),
+    __metadata("design:type", String)
+], UpdateExpenseDto.prototype, "taxPreference", void 0);
 __decorate([
-    (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], UpdatePurchaseOrderDto.prototype, "vatValue", void 0);
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], UpdateExpenseDto.prototype, "paidAccount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], UpdateExpenseDto.prototype, "vendorId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.ValidateNested)({ each: true }),
     (0, class_transformer_1.Type)(() => item_dto_1.ItemDto),
-    (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
     __metadata("design:type", Array)
-], UpdatePurchaseOrderDto.prototype, "items", void 0);
+], UpdateExpenseDto.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateExpenseDto.prototype, "note", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateExpenseDto.prototype, "terms", void 0);
+__decorate([
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderDiscountType),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateExpenseDto.prototype, "discountType", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateExpenseDto.prototype, "discountValue", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateExpenseDto.prototype, "vatValue", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
     __metadata("design:type", Array)
-], UpdatePurchaseOrderDto.prototype, "documents", void 0);
+], UpdateExpenseDto.prototype, "documents", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_transformer_1.Transform)(({ value }) => typeof value === "string" ? JSON.parse(value) : value),
     __metadata("design:type", Array)
-], UpdatePurchaseOrderDto.prototype, "existingDocuments", void 0);
+], UpdateExpenseDto.prototype, "existingDocuments", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
     __metadata("design:type", String)
-], UpdatePurchaseOrderDto.prototype, "status", void 0);
+], UpdateExpenseDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
-], UpdatePurchaseOrderDto.prototype, "subTotal", void 0);
+], UpdateExpenseDto.prototype, "subTotal", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
-], UpdatePurchaseOrderDto.prototype, "taxTotal", void 0);
+], UpdateExpenseDto.prototype, "taxTotal", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
-], UpdatePurchaseOrderDto.prototype, "total", void 0);
+], UpdateExpenseDto.prototype, "total", void 0);

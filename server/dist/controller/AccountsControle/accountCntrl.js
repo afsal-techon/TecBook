@@ -6,7 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAcccount = exports.updateAccount = exports.getAccounts = exports.createAccounts = void 0;
 const accounts_1 = __importDefault(require("../../models/accounts"));
 const user_1 = __importDefault(require("../../models/user"));
-const mongoose_1 = require("mongoose");
+const mongoose_1 = __importDefault(require("mongoose"));
+const branch_1 = __importDefault(require("../../models/branch"));
 const createAccounts = async (req, res, next) => {
     try {
         const { branchId, accountName, accountType, description, parentAccountId } = req.body;
@@ -24,7 +25,7 @@ const createAccounts = async (req, res, next) => {
         if (!accountName) {
             return res.status(400).json({ message: "Account name is required!" });
         }
-        const existing = await accounts_1.default.findOne({ branchId, accountName });
+        const existing = await accounts_1.default.findOne({ branchId, accountName, isDeleted: false });
         if (existing) {
             return res.status(400).json({ message: "Account name already exists." });
         }
@@ -61,21 +62,50 @@ const getAccounts = async (req, res, next) => {
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
         }
+        const userRole = user.role; // "CompanyAdmin" or "User"
+        const filterBranchId = req.query.branchId; // optional
+        const search = (req.query.search || "").trim();
         const branchId = req.query.branchId;
         if (!branchId) {
-            return res
-                .status(400)
-                .json({ message: "Branch Id is required!" });
+            return res.status(400).json({ message: "Branch Id is required!" });
         }
-        // pagination
+        // Pagination
         const limit = parseInt(req.query.limit) || 20;
         const page = parseInt(req.query.page) || 1;
         const skip = (page - 1) * limit;
-        // search term
-        const search = (req.query.search || "").trim();
+        // 🔹 Determine allowed branches
+        let allowedBranchIds = [];
+        if (userRole === "CompanyAdmin") {
+            const branches = await branch_1.default.find({
+                companyAdminId: userId,
+                isDeleted: false,
+            }).select("_id");
+            allowedBranchIds = branches.map((b) => new mongoose_1.default.Types.ObjectId(b._id));
+        }
+        else if (userRole === "User") {
+            if (!user.branchId) {
+                return res
+                    .status(400)
+                    .json({ message: "User is not assigned to any branch!" });
+            }
+            allowedBranchIds = [user.branchId];
+        }
+        else {
+            return res.status(403).json({ message: "Unauthorized role!" });
+        }
+        // 🔹 Apply branch filter if passed
+        if (filterBranchId) {
+            const filterId = new mongoose_1.default.Types.ObjectId(filterBranchId);
+            if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+                return res.status(403).json({
+                    message: "You are not authorized to view customers for this branch!",
+                });
+            }
+            allowedBranchIds = [filterId];
+        }
         const match = {
+            branchId: { $in: allowedBranchIds },
             isDeleted: false,
-            branchId: new mongoose_1.Types.ObjectId(branchId),
         };
         // only add search filter when search has value
         if (search.length > 0) {
@@ -118,7 +148,7 @@ const getAccounts = async (req, res, next) => {
         pipeline.push({
             $project: {
                 _id: 1,
-                branchId,
+                branchId: 1,
                 accountName: 1,
                 accountType: 1,
                 description: 1,
@@ -147,7 +177,7 @@ const getAccounts = async (req, res, next) => {
 exports.getAccounts = getAccounts;
 const updateAccount = async (req, res, next) => {
     try {
-        const { accountId, branchId, accountName, accountType, description, parentAccountId } = req.body;
+        const { accountId, branchId, accountName, accountType, description, parentAccountId, } = req.body;
         const userId = req.user?.id;
         // validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
@@ -158,7 +188,10 @@ const updateAccount = async (req, res, next) => {
             return res.status(400).json({ message: "Account ID is required!" });
         }
         // fetch existing
-        const account = await accounts_1.default.findOne({ _id: accountId, isDeleted: false });
+        const account = await accounts_1.default.findOne({
+            _id: accountId,
+            isDeleted: false,
+        });
         if (!account) {
             return res.status(404).json({ message: "Account not found!" });
         }
