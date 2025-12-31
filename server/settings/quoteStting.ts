@@ -21,7 +21,7 @@ export const upsertDocumentNumberSetting  = async (
     }: {
       branchId: string;
       prefix?: string;
-      docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT";
+      docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT"  ;
       nextNumber?: string;
       mode: string;
     } = req.body;
