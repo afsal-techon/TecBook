@@ -106,6 +106,18 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     }
   };
 
+  
+  /**
+   * Updates an existing payment made record.
+   * @description This method handles updating an existing payment made record by its ID. It performs several validation checks:
+   * - Validates the existence of the specified payment made record.
+   * - Ensures a user is authenticated.
+   * - Validates the existence of the specified Vendor, Branch, Payment Mode, and Account if they are provided in the update DTO.   * - Constructs and updates the payment made document in the database.
+   * @param req The Express request object, containing the payment made ID in `req.params.id` and the `UpdatePaymentMadeDto` in the body.
+   * @param res The Express response object used to send back the result.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on successful update.
+   * @throws {Error} Throws an error if validation fails or if the database operation fails.
+   */
   updatePaymentMadeByID = async (
     req: Request<{ id: string }, {}, UpdatePaymentMadeDto>,
     res: Response
