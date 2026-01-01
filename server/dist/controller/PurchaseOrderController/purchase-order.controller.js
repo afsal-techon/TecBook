@@ -12,8 +12,10 @@ const project_1 = __importDefault(require("../../models/project"));
 const http_status_1 = require("../../constants/http-status");
 const branch_1 = __importDefault(require("../../models/branch"));
 const branch_access_helper_1 = require("../../Helper/branch-access.helper");
+const imageKit_1 = require("../../config/imageKit");
+const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
-    constructor(vendorModel, userModel, projectModel, branchModel) {
+    constructor(vendorModel, userModel, projectModel, branchModel, salesModel) {
         super(purchaseOrderModel_1.PurchaseOrderModel);
         /**
          * @summary Creates a new purchase order.
@@ -26,9 +28,11 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
          * @param res The Express response object used to send back the result.
          * @param next The Express next function to pass control to the next middleware.
          */
-        this.createPurchaseOrder = async (req, res, next) => {
+        this.createPurchaseOrder = async (req, res) => {
             try {
                 const dto = req.body;
+                console.log(dto, "dto");
+                console.log(req.body, "req.body");
                 const userId = req.user?.id;
                 if (!userId) {
                     return res.status(http_status_1.HTTP_STATUS.UNAUTHORIZED).json({
@@ -36,8 +40,17 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         message: "Unauthorized",
                     });
                 }
-                const quoteDate = new Date(dto.quoteDate);
-                const expiryDate = new Date(dto.expiryDate);
+                const existingPurchaseNumberCheck = await this.genericFindOne({
+                    purchaseOrderId: dto.purchaseOrderId,
+                });
+                if (existingPurchaseNumberCheck) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Purchase order ID already exists",
+                    });
+                }
+                const quoteDate = new Date(dto.purchaseOrderDate);
+                const expiryDate = new Date(dto.expDate);
                 if (expiryDate < quoteDate) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
                         success: false,
@@ -45,23 +58,36 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     });
                 }
                 await this.validateVendor(dto.vendorId);
-                await this.validateSalesman(dto.salesmanId);
+                await this.validateSalesman(dto.salesPersonId);
                 if (dto.projectId)
                     await this.validateProject(dto.projectId);
+                const uploadedFiles = [];
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploadResponse = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        uploadedFiles.push(uploadResponse.url);
+                    }
+                }
                 const items = this.mapItems(dto.items);
                 const payload = {
+                    ...dto,
                     vendorId: new mongoose_1.Types.ObjectId(dto.vendorId),
-                    purchaseOrderNumber: 91, //TODO : move to auto increment
-                    quoteNumber: dto.quoteNumber,
-                    quoteDate,
-                    expiryDate,
-                    salesmanId: new mongoose_1.Types.ObjectId(dto.salesmanId),
+                    purchaseOrderId: dto.purchaseOrderId,
+                    quote: dto.quote,
+                    purchaseOrderDate: quoteDate,
+                    expDate: expiryDate,
+                    salesPersonId: new mongoose_1.Types.ObjectId(dto.salesPersonId),
                     projectId: dto.projectId
                         ? new mongoose_1.Types.ObjectId(dto.projectId)
                         : undefined,
                     items,
                     createdBy: new mongoose_1.Types.ObjectId(userId) ?? undefined,
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
+                    documents: uploadedFiles,
                 };
                 const purchaseOrder = await this.genericCreateOne(payload);
                 res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -71,7 +97,18 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 });
             }
             catch (error) {
-                next(error);
+                if (error instanceof Error) {
+                    console.error("Failed to create purchase order", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Failed to create purchase order", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to create purchase order",
+                });
             }
         };
         /**
@@ -82,22 +119,24 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
          * @param res The Express response object used to send back the result.
          * @param next The Express next function to pass control to the next middleware.
          */
-        this.updatePurchaseOrder = async (req, res, next) => {
+        this.updatePurchaseOrder = async (req, res) => {
             try {
                 const id = req.params.id;
+                const dto = req.body;
                 if (!this.isValidMongoId(req.params.id)) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
                         success: false,
                         message: "Invalid purchase order id",
                     });
                 }
+                const existingData = await this.genericFindById(id);
                 let quoteDate;
                 let expiryDate;
-                if (req.body.quoteDate) {
-                    quoteDate = new Date(req.body.quoteDate);
+                if (req.body.purchaseOrderDate) {
+                    quoteDate = new Date(req.body.purchaseOrderDate);
                 }
-                if (req.body.expiryDate) {
-                    expiryDate = new Date(req.body.expiryDate);
+                if (req.body.expDate) {
+                    expiryDate = new Date(req.body.expDate);
                 }
                 if (expiryDate && quoteDate && expiryDate <= quoteDate) {
                     res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
@@ -108,27 +147,30 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 if (req.body.vendorId) {
                     await this.validateVendor(req.body.vendorId);
                 }
-                if (req.body.salesmanId) {
-                    await this.validateSalesman(req.body.salesmanId);
+                if (req.body.salesPersonId) {
+                    await this.validateSalesman(req.body.salesPersonId);
                 }
                 if (req.body.projectId) {
                     await this.validateProject(req.body.projectId);
                 }
                 const items = this.mapItems(req.body.items || []);
                 const payload = {
+                    ...dto,
+                    purchaseOrderId: dto.purchaseOrderId ? dto.purchaseOrderId : undefined,
                     vendorId: req.body.vendorId
                         ? new mongoose_1.Types.ObjectId(req.body.vendorId)
                         : undefined,
-                    quoteNumber: req.body.quoteNumber,
-                    quoteDate,
-                    expiryDate,
-                    salesmanId: req.body.salesmanId
-                        ? new mongoose_1.Types.ObjectId(req.body.salesmanId)
+                    quote: req.body.quote,
+                    purchaseOrderDate: quoteDate,
+                    expDate: expiryDate,
+                    salesPersonId: req.body.salesPersonId
+                        ? new mongoose_1.Types.ObjectId(req.body.salesPersonId)
                         : undefined,
                     projectId: req.body.projectId
                         ? new mongoose_1.Types.ObjectId(req.body.projectId)
                         : undefined,
                     items,
+                    branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
                 };
                 await this.genericUpdateOneById(id, payload);
                 return res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -138,7 +180,18 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 });
             }
             catch (error) {
-                next(error);
+                if (error instanceof Error) {
+                    console.log("Failed to update purchase order", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Failed to update purchase order", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to update purchase order",
+                });
             }
         };
         /**
@@ -157,7 +210,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 const skip = (page - 1) * limit;
                 const search = req.query.search || "";
                 const filterBranchId = req.query.branchId;
-                const { user, allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
+                const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
                     userId: authUser.id,
                     userModel: this.userModel,
                     branchModel: this.branchModel,
@@ -177,8 +230,8 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     .sort({ createdAt: -1 })
                     .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.vendorId)
                     .populate({
-                    path: purchaseOrderModel_1.PurchaseOrderModelConstants.salesmanId,
-                    select: "username email",
+                    path: purchaseOrderModel_1.PurchaseOrderModelConstants.salesPersonId,
+                    select: "name email",
                 })
                     .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.projectId)
                     .skip(skip)
@@ -225,7 +278,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 })
                     .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.vendorId)
                     .populate({
-                    path: purchaseOrderModel_1.PurchaseOrderModelConstants.salesmanId,
+                    path: purchaseOrderModel_1.PurchaseOrderModelConstants.salesPersonId,
                     select: "username email",
                 })
                     .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.projectId);
@@ -241,13 +294,25 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 });
             }
             catch (error) {
-                next(error);
+                if (error instanceof Error) {
+                    console.log("Failed to get purchase order", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Failed to get purchase order", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to get purchase order",
+                });
             }
         };
         this.vendorModel = vendorModel;
         this.userModel = userModel;
         this.projectModel = projectModel;
         this.branchModel = branchModel;
+        this.salesModel = salesPerson_1.default;
     }
     // Helper methods for validations
     async validateVendor(vendorId) {
@@ -258,9 +323,9 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
         if (!vendor)
             throw new Error("Vendor not found");
     }
-    async validateSalesman(userId) {
-        const user = await this.userModel.findOne({
-            _id: userId,
+    async validateSalesman(id) {
+        const user = await this.salesModel.findOne({
+            _id: id,
             isDeleted: false,
         });
         if (!user)
@@ -277,16 +342,20 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
     }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
-            itemId: item.itemId ? new mongoose_1.Types.ObjectId(item.itemId) : undefined,
-            taxId: item.taxId ? new mongoose_1.Types.ObjectId(item.taxId) : undefined,
+            itemId: new mongoose_1.Types.ObjectId(item.itemId),
+            taxId: new mongoose_1.Types.ObjectId(item.taxId),
+            prevItemId: item.prevItemId
+                ? new mongoose_1.Types.ObjectId(item.prevItemId)
+                : undefined,
             itemName: item.itemName,
             qty: item.qty,
-            tax: item.tax,
             rate: item.rate,
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
+            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : undefined,
+            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : undefined,
         }));
     }
 }
-exports.default = new PurchaseOrderController(vendor_1.default, user_1.default, project_1.default, branch_1.default);
+exports.default = new PurchaseOrderController(vendor_1.default, user_1.default, project_1.default, branch_1.default, salesPerson_1.default);

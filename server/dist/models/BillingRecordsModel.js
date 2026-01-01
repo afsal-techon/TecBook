@@ -38,6 +38,50 @@ const BillngRecordSchema = new mongoose_1.Schema({
         enum: enum_types_1.BillingPaymentStatus,
         required: true,
     },
+    note: {
+        type: String,
+        default: null,
+    },
+    terms: {
+        type: String,
+        default: null,
+    },
+    discountType: {
+        type: String,
+        enum: enum_types_1.PurchaseOrderDiscountType,
+        default: enum_types_1.PurchaseOrderDiscountType.PERCENTAGE,
+    },
+    discountValue: {
+        type: Number,
+        default: 0,
+    },
+    vatValue: {
+        type: Number,
+        default: 0,
+    },
+    status: {
+        type: String,
+        enum: enum_types_1.commonStatus,
+    },
+    documents: {
+        type: [String],
+        default: [],
+    },
+    subTotal: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    taxTotal: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    total: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
 }, {
     timestamps: true,
 });
@@ -55,4 +99,14 @@ exports.BillingSchemaModelConstants = {
     items: "items",
     createdBy: "createdBy",
     isDeleted: "isDeleted",
+    note: "note",
+    terms: "terms",
+    discountType: "discountType",
+    discountValue: "discountValue",
+    vatValue: "vatValue",
+    status: "status",
+    documents: "documents",
+    subTotal: "subTotal",
+    taxTotal: "taxTotal",
+    total: "total",
 };

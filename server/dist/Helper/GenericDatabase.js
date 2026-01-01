@@ -220,6 +220,28 @@ class GenericDatabaseService {
                 throw error;
             }
         };
+        /**
+         * Find one record by filter
+         * -------------------------
+         * @param filter - Mongoose filter object
+         * @returns The found record or null
+         */
+        this.genericFindOne = async (filter) => {
+            try {
+                const data = await this.dbModel.findOne({
+                    isDeleted: false,
+                    ...filter,
+                });
+                return data;
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.error("Failed to fetch record", error.message);
+                    throw error;
+                }
+                throw error;
+            }
+        };
     }
     /**
      * Update a record by ID

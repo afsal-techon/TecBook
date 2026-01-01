@@ -49,6 +49,11 @@ const invoiceSchema = new mongoose_1.Schema({
         ref: "Customer",
         default: null,
     },
+    quoteId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Quotation",
+        default: null,
+    },
     salesPersonId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Employee",
@@ -69,7 +74,7 @@ const invoiceSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ["Draft", "Closed", "Confirmed", "Paid", "Accepted", "Approved", "Invoiced", "Pending"],
+        enum: ["Draft", "Sent", "Confirmed", "Paid", "Accepted", "Approved", "Invoiced", "Partially Paid"],
     },
     items: [
         {

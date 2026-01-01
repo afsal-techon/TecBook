@@ -13,6 +13,7 @@ const user_1 = __importDefault(require("../../models/user"));
 const purchase_order_controller_1 = __importDefault(require("../PurchaseOrderController/purchase-order.controller"));
 const branch_access_helper_1 = require("../../Helper/branch-access.helper");
 const purchaseOrderModel_1 = require("../../models/purchaseOrderModel");
+const imageKit_1 = require("../../config/imageKit");
 class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService {
     constructor(dbModel, vendorModel, userModel, branchModel, purchaseOrderService = purchase_order_controller_1.default) {
         super(dbModel);
@@ -33,7 +34,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
          * @param next - The Express NextFunction for error handling.
          * @returns A Promise resolving to the HTTP response (201 Created) containing the newly created billing record.
          */
-        this.createBillingRecords = async (req, res, next) => {
+        this.createBillingRecords = async (req, res) => {
             try {
                 const dto = req.body;
                 const userId = req.user?.id;
@@ -62,6 +63,17 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                         message: "Unauthorized",
                     });
                 }
+                const uploadedFiles = [];
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploadResponse = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        uploadedFiles.push(uploadResponse.url);
+                    }
+                }
                 const payload = {
                     ...dto,
                     createdBy: new mongoose_1.Types.ObjectId(userId),
@@ -72,6 +84,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
                     billDate: new Date(dto.billDate),
                     dueDate: new Date(dto.dueDate),
+                    documents: uploadedFiles,
                 };
                 const data = await this.genericCreateOne(payload);
                 return res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -81,7 +94,18 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 });
             }
             catch (error) {
-                next(error);
+                if (error instanceof Error) {
+                    console.log("Error while creating billing record", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Error while creating billing record", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Error while creating billing record",
+                });
             }
         };
         /**
@@ -95,7 +119,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
          * @param res The Express response object used to send back the result.
          * @param next The Express next function to pass control to the next middleware.
          */
-        this.updateBillingRecords = async (req, res, next) => {
+        this.updateBillingRecords = async (req, res) => {
             try {
                 const id = req.params.id;
                 if (!this.isValidMongoId(id)) {
@@ -138,6 +162,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     billDate,
                     dueDate,
                     items,
+                    documents: dto.existingDocuments ?? [],
                 };
                 await this.genericUpdateOneById(id, payload);
                 return res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -147,7 +172,18 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 });
             }
             catch (error) {
-                next(error);
+                if (error instanceof Error) {
+                    console.log("Error while updating billing record", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Error while updating billing record", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to update billing record",
+                });
             }
         };
         /**
@@ -187,7 +223,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     .populate(BillingRecordsModel_1.BillingSchemaModelConstants.vendorId)
                     .populate({
                     path: BillingRecordsModel_1.BillingSchemaModelConstants.purchaseOrderNumber,
-                    select: `${purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderNumber}`,
+                    select: `${purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderId}`,
                 })
                     .populate(BillingRecordsModel_1.BillingSchemaModelConstants.branchId)
                     .skip(skip)
@@ -235,7 +271,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     .populate(BillingRecordsModel_1.BillingSchemaModelConstants.vendorId)
                     .populate({
                     path: BillingRecordsModel_1.BillingSchemaModelConstants.purchaseOrderNumber,
-                    select: `${purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderNumber}`,
+                    select: `${purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderId}`,
                 })
                     .populate(BillingRecordsModel_1.BillingSchemaModelConstants.branchId);
                 if (!billingRecord) {
@@ -294,15 +330,19 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
     }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
-            itemId: item.itemId ? new mongoose_1.Types.ObjectId(item.itemId) : undefined,
-            taxId: item.taxId ? new mongoose_1.Types.ObjectId(item.taxId) : undefined,
+            itemId: new mongoose_1.Types.ObjectId(item.itemId),
+            taxId: new mongoose_1.Types.ObjectId(item.taxId),
+            prevItemId: item.prevItemId
+                ? new mongoose_1.Types.ObjectId(item.prevItemId)
+                : undefined,
             itemName: item.itemName,
             qty: item.qty,
-            tax: item.tax,
             rate: item.rate,
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
+            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : undefined,
+            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : undefined,
         }));
     }
 }

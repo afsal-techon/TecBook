@@ -198,7 +198,7 @@ const updateQuotes = async (req, res, next) => {
         branchId, customerId, projectId, salesPersonId, quoteDate, expDate, status, items, subTotal, terms, reference, note, taxTotal, total, discountValue, existingDocuments, // from frontend: existing docs (JSON string or array)
          } = req.body;
         const userId = req.user?.id;
-        console.log("dat", status);
+        console.log("datadi", status);
         //  Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {

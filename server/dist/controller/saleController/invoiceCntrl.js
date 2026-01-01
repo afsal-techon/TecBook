@@ -14,11 +14,11 @@ const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
+const quotation_1 = __importDefault(require("../../models/quotation"));
 const createInvoice = async (req, res, next) => {
     try {
-        console.log(req.body, "body");
         const { branchId, invoiceId, // may be null/ignored in auto mode
-        customerId, salesPersonId, projectId, invoiceDate, dueDate, status, orderNumber, subject, items, paymentTerms, terms, note, subTotal, taxTotal, total, discountValue, } = req.body;
+        customerId, salesPersonId, projectId, invoiceDate, quoteId, dueDate, status, orderNumber, subject, items, paymentTerms, terms, note, subTotal, taxTotal, total, discountValue, } = req.body;
         const userId = req.user?.id;
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
@@ -174,6 +174,13 @@ const createInvoice = async (req, res, next) => {
             }
             item.tax = Number(taxAmount.toFixed(2));
         }
+        let quotation;
+        if (quoteId) {
+            quotation = await quotation_1.default.findById(quoteId);
+            if (!quotation) {
+                return res.status(400).json({ message: "Quotation not found!" });
+            }
+        }
         const invoice = new invoice_1.default({
             branchId: new mongoose_1.Types.ObjectId(branchId),
             invoiceId: finalQuoteId, //  always use this
@@ -182,6 +189,7 @@ const createInvoice = async (req, res, next) => {
             salesPersonId: salesPersonId ? new mongoose_1.Types.ObjectId(salesPersonId) : null,
             invoiceDate,
             dueDate,
+            quoteId: quoteId ? new mongoose_1.Types.ObjectId(quoteId) : null,
             status,
             items: parsedItems,
             paymentTerms: parsedTerms,
@@ -197,6 +205,10 @@ const createInvoice = async (req, res, next) => {
             createdById: userId,
         });
         await invoice.save();
+        if (quotation) {
+            quotation.status = "Invoiced";
+            await quotation.save();
+        }
         return res.status(201).json({
             message: `Invoice created successfully.`,
             invoiceId: finalQuoteId,
@@ -210,7 +222,7 @@ exports.createInvoice = createInvoice;
 const updateInvoice = async (req, res, next) => {
     try {
         const { invoiceId } = req.params;
-        const { branchId, customerId, projectId, salesPersonId, invoiceDate, dueDate, status, items, subTotal, terms, paymentTerms, orderNumber, subject, note, taxTotal, total, discountValue, existingDocuments, } = req.body;
+        const { branchId, customerId, projectId, salesPersonId, invoiceDate, dueDate, quoteId, status, items, subTotal, terms, paymentTerms, orderNumber, subject, note, taxTotal, total, discountValue, existingDocuments, } = req.body;
         const userId = req.user?.id;
         // Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
@@ -330,6 +342,13 @@ const updateInvoice = async (req, res, next) => {
             }
             item.tax = Number(taxAmount.toFixed(2));
         }
+        let quotation;
+        if (quoteId) {
+            quotation = await quotation_1.default.findById(quoteId);
+            if (!quotation) {
+                return res.status(400).json({ message: "Quotation not found!" });
+            }
+        }
         invoice.branchId = branchId;
         invoice.customerId = customerId;
         invoice.projectId = projectId;
@@ -337,6 +356,7 @@ const updateInvoice = async (req, res, next) => {
         invoice.invoiceDate = invoiceDate;
         invoice.dueDate = dueDate;
         invoice.status = status;
+        invoice.quoteId = quoteId;
         invoice.items = parsedItems;
         invoice.paymentTerms = parsedTerms; // now always assigned
         invoice.terms = terms;
@@ -349,6 +369,10 @@ const updateInvoice = async (req, res, next) => {
         invoice.documents = finalDocuments;
         invoice.note = note;
         await invoice.save();
+        if (quotation) {
+            quotation.status = "Invoiced";
+            await quotation.save();
+        }
         return res.status(200).json({
             message: "Invoice updated successfully.",
         });
@@ -512,14 +536,14 @@ const getALLInvoices = async (req, res, next) => {
         const invoices = await invoice_1.default.aggregate(pipeline);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const overdueEligibleStatuses = ["Sent", "Invoiced"];
         const invoicesWithOverdue = invoices.map((invoice) => {
             let overdueDays = 0;
             let displayStatus = invoice.status;
             if (invoice.dueDate) {
                 const dueDate = new Date(invoice.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
-                if (invoice.status !== "Paid" &&
-                    invoice.status !== "Cancelled" &&
+                if (overdueEligibleStatuses.includes(invoice.status) &&
                     today > dueDate) {
                     overdueDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
                     displayStatus = `Overdue by ${overdueDays} day${overdueDays > 1 ? "s" : ""}`;
@@ -529,7 +553,7 @@ const getALLInvoices = async (req, res, next) => {
                 ...invoice,
                 overdueDays,
                 isOverdue: overdueDays > 0,
-                displayStatus, // derived field
+                displayStatus,
             };
         });
         //  YOU MUST RETURN RESPONSE
@@ -748,7 +772,7 @@ const deleteInvoice = async (req, res, next) => {
 exports.deleteInvoice = deleteInvoice;
 const markAsSent = async (req, res, next) => {
     try {
-        let { status, invoiceId } = req.body;
+        let { invoiceId, status } = req.body;
         const userId = req.user?.id;
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -770,9 +794,7 @@ const markAsSent = async (req, res, next) => {
         // normalize / validate status
         status = String(status);
         if (status !== "Sent") {
-            return res
-                .status(400)
-                .json({ message: "Status must be 'Sent'" });
+            return res.status(400).json({ message: "Status must be 'Sent'" });
         }
         invoice.status = status;
         await invoice.save(); // <-- important
