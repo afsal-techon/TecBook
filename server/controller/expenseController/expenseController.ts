@@ -94,10 +94,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         }
       }
 
-      const payload : Partial<IExpenses> = {
+      const payload: Partial<IExpenses> = {
         ...dto,
         date: dto.date ? new Date(dto.date) : new Date(),
-        expenseNumber: dto.expenseNumber, 
+        expenseNumber: dto.expenseNumber,
         customerId: new Types.ObjectId(dto.customerId),
         branchId: new Types.ObjectId(dto.branchId),
         taxPreference: dto.taxPreference,
@@ -152,7 +152,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   ) => {
     try {
       const { id } = req.params;
-      const dto : UpdateExpenseDto = req.body;
+      const dto: UpdateExpenseDto = req.body;
 
       await this.genericFindOneByIdOrNotFound(id);
 
@@ -171,7 +171,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         ? this.mapItems(req.body.items)
         : [];
 
-      const payload : Partial<IExpenses> = {
+      const payload: Partial<IExpenses> = {
         ...dto,
         date: req.body.date ? new Date(req.body.date) : undefined,
         customerId: req.body.customerId
@@ -358,10 +358,18 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     }
   };
 
-  deleteExpenseById = async(
-    req: Request<{ id: string }>,
-    res: Response
-  ) => {
+  /**
+   * Deletes an expense record by its ID.
+   * This method performs the following operations:
+   * 1. Validates the provided expense ID format.
+   * 2. Checks for the existence of the expense record.
+   * 3. Marks the expense record as deleted in the database.
+   * @param req - The Express Request object. Expects the expense ID in `req.params.id`.
+   * @param res - The Express Response object.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on successful deletion.
+   * @throws {Error} Throws an error if the database operation fails.
+   */
+  deleteExpenseById = async (req: Request<{ id: string }>, res: Response) => {
     try {
       const { id } = req.params;
       const result = await this.genericDeleteOneById(id);
@@ -370,8 +378,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         message: result.message,
         statusCode: result.statusCode,
       });
-
-    } catch (error:unknown) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Failed to delete expense", error.message);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -383,11 +390,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to delete expense",
-        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       });
-      
     }
-  }
+  };
   private async validateBranch(id: string) {
     const branch = await this.branchModel.findOne({
       _id: id,
