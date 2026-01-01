@@ -96,7 +96,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
 
       if(!numberSetting) return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Number setting not found",
+        message: "Number setting is not configured. Please configure it first.",
       });
 
 
