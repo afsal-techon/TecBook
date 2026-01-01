@@ -13,7 +13,7 @@ import {
 import { HTTP_STATUS } from "../../constants/http-status";
 import vendorModel from "../../models/vendor";
 import branchModel from "../../models/branch";
-import { IBranch, IVendor } from "../../types/common.types";
+import { IBranch, IPaymentTerms, IVendor } from "../../types/common.types";
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import purchaseOrderController from "../PurchaseOrderController/purchase-order.controller";
@@ -22,6 +22,10 @@ import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
 import { imagekit } from "../../config/imageKit";
+import numberSettingModel from "../../models/numberSetting";
+import { numberSettingsDocumentType } from "../../types/enum.types";
+import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
+import paymentTermModel from "../../models/paymentTerms";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -29,17 +33,20 @@ class BillingRecordsController extends GenericDatabaseService<
   private readonly vendorModel: Model<IVendor>;
   private readonly userModel: Model<IUser>;
   private readonly branchModel: Model<IBranch>;
+  private readonly paymentTermModel: Model<IPaymentTerms>;
   constructor(
     dbModel: Model<IBillingRecords>,
     vendorModel: Model<IVendor>,
     userModel: Model<IUser>,
     branchModel: Model<IBranch>,
-    private readonly purchaseOrderService = purchaseOrderController
+    private readonly purchaseOrderService = purchaseOrderController,
+    paymentTermModel: Model<IPaymentTerms>
   ) {
     super(dbModel);
     this.vendorModel = vendorModel;
     this.userModel = userModel;
     this.branchModel = branchModel;
+    this.paymentTermModel = paymentTermModel;
   }
 
   /**
@@ -74,6 +81,7 @@ class BillingRecordsController extends GenericDatabaseService<
       await this.validateUser(userId as string);
       await this.validateBranch(dto.branchId);
       await this.validateVendor(dto.vendorId);
+      await this.valiatePaymentTerms(dto.paymentTermsId);
 
       const billDate: Date = new Date(dto.billDate);
       const dueDate: Date = new Date(dto.dueDate);
@@ -110,6 +118,26 @@ class BillingRecordsController extends GenericDatabaseService<
         }
       }
 
+      const numberSetting = await numberSettingModel.findOne({
+        branchId: new Types.ObjectId(dto.branchId),
+        docType: numberSettingsDocumentType.BILL,
+      });
+
+      if (!numberSetting)
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message:
+            "Number setting is not configured. Please configure it first.",
+        });
+
+      const billNumber = await generateDocumentNumber({
+        branchId: dto.branchId,
+        manualId: numberSetting?.mode !== "Auto" ? dto.billNumber : undefined,
+        docType: numberSettingsDocumentType.PURCHASE_ORDER,
+        Model: BillingSchemaModel,
+        idField: BillingSchemaModelConstants.billNumber,
+      });
+
       const payload: Partial<IBillingRecords> = {
         ...dto,
         createdBy: new Types.ObjectId(userId),
@@ -121,6 +149,10 @@ class BillingRecordsController extends GenericDatabaseService<
         billDate: new Date(dto.billDate),
         dueDate: new Date(dto.dueDate),
         documents: uploadedFiles,
+        billNumber,
+        paymentTermsId: dto.paymentTermsId
+          ? new Types.ObjectId(dto.paymentTermsId)
+          : undefined,
       };
 
       const data = await this.genericCreateOne(payload);
@@ -204,6 +236,8 @@ class BillingRecordsController extends GenericDatabaseService<
           dto.purchaseOrderNumber
         );
       }
+      if (dto.paymentTermsId)
+        await this.valiatePaymentTerms(dto.paymentTermsId);
 
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
@@ -442,6 +476,17 @@ class BillingRecordsController extends GenericDatabaseService<
     if (!vendor) throw new Error("Vendor not found");
     return vendor;
   }
+
+  private readonly valiatePaymentTerms = async (id: string) => {
+    if (!this.isValidMongoId(id)) throw new Error("Invalid payment terms id");
+    const paymentTerms = await this.paymentTermModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+    if (!paymentTerms) throw new Error("Payment terms not found");
+    return paymentTerms;
+  };
+
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
       itemId: new Types.ObjectId(item.itemId),
@@ -471,5 +516,7 @@ export default new BillingRecordsController(
   BillingSchemaModel,
   vendorModel,
   userModel,
-  branchModel
+  branchModel,
+  purchaseOrderController,
+  paymentTermModel
 );

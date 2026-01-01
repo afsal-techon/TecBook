@@ -1,4 +1,5 @@
 import { Types, Document } from "mongoose";
+import { numberSettingsDocumentType } from "./enum.types";
 
 export interface IBranch extends Document {
   companyAdminId?: Types.ObjectId | null;
@@ -383,7 +384,7 @@ export interface ITax extends Document {
 
 export interface INumberSetting extends Document {
   branchId: Types.ObjectId | null;
-  docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT";
+  docType: numberSettingsDocumentType;
   prefix: string; // e.g. "QT-"
   nextNumber: number; // e.g. 8  (for 000008)
   nextNumberRaw: string; // e.g. 6  (number of digits)
