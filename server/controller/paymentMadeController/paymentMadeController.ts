@@ -1,0 +1,162 @@
+import { Model, Types } from "mongoose";
+import { Request, Response } from "express";
+import { GenericDatabaseService } from "../../Helper/GenericDatabase";
+import paymentMadeModel, {
+  PaymentMadeModelDocument,
+} from "../../models/payment-made.Model";
+import { IUser } from "../../types/user.types";
+import userModel from "../../models/user";
+import { HTTP_STATUS } from "../../constants/http-status";
+import { CreatePaymentMadeDto } from "../../dto/paymentMade.dto";
+import {
+  IAccounts,
+  IBranch,
+  IPaymentModes,
+  IVendor,
+} from "../../types/common.types";
+import vendorModel from "../../models/vendor";
+import branchModel from "../../models/branch";
+import paymentModel from "../../models/paymentMode";
+import accountModel from "../../models/accounts";
+import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
+
+class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
+  private readonly userModel: Model<IUser>;
+  private readonly vendorModel: Model<IVendor>;
+  private readonly branchModel: Model<IBranch>;
+  private readonly paymentModeModel: Model<IPaymentModes>;
+  private readonly accountModel: Model<IAccounts>;
+
+  constructor(
+    userModel: Model<IUser>,
+    vendorModel: Model<IVendor>,
+    branchModel: Model<IBranch>,
+    paymentModeModel: Model<IPaymentModes>,
+    accountModel: Model<IAccounts>
+  ) {
+    super(paymentMadeModel);
+    this.userModel = userModel;
+    this.vendorModel = vendorModel;
+    this.branchModel = branchModel;
+    this.paymentModeModel = paymentModeModel;
+    this.accountModel = accountModel;
+  }
+
+  async createPaymentMade(req: Request, res: Response) {
+    try {
+      const dto: CreatePaymentMadeDto = req.body;
+      const userId = req.user?.id;
+      await this.validateUser(userId as string);
+      if (dto.vendorId) await this.validateVendor(dto.vendorId);
+      if (dto.branchId) await this.validateBranch(dto.branchId);
+      if (dto.paymentModeId) await this.validatePaymentMode(dto.paymentModeId);
+      if (dto.accountId) await this.validateAccount(dto.accountId);
+
+      const payload: Partial<IPaymentMade> = {
+        ...dto,
+        createdBy: new Types.ObjectId(userId as string),
+        vendorId: new Types.ObjectId(dto.vendorId),
+        branchId: new Types.ObjectId(dto.branchId),
+        paymentModeId: new Types.ObjectId(dto.paymentModeId),
+        accountId: new Types.ObjectId(dto.accountId),
+        isDeleted: false,
+        date: new Date(dto.date),
+      };
+
+      await this.genericCreateOne(payload);
+
+      return res.status(HTTP_STATUS.CREATED).json({
+        success: true,
+        message: "Payment made created successfully",
+        statusCode: HTTP_STATUS.CREATED,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while creating payment made", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while creating payment made", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to create payment made",
+      });
+    }
+  }
+
+  private async validateUser(id: string) {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const user = await this.userModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return user;
+  }
+
+  private async validateVendor(vendorId: string) {
+    if (!this.isValidMongoId(vendorId)) {
+      throw new Error("Invalid vendor ID");
+    }
+
+    const vendor = await this.vendorModel.findOne({
+      _id: vendorId,
+      isDeleted: false,
+    });
+    if (!vendor) throw new Error("Vendor not found");
+    return vendor;
+  }
+
+  private async validateBranch(id: string) {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid branch ID");
+    }
+    const branch = await this.branchModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+    if (!branch) throw new Error("Branch not found");
+    return branch;
+  }
+
+  private async validatePaymentMode(id: string) {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid payment mode ID");
+    }
+    const paymentMode = await this.paymentModeModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+    if (!paymentMode) throw new Error("Payment mode not found");
+    return paymentMode;
+  }
+
+  private async validateAccount(id: string) {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid account ID");
+    }
+    const account = await this.accountModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+    if (!account) throw new Error("Account not found");
+    return account;
+  }
+}
+
+export const paymentMadeController = new PaymentMadeController(
+  userModel,
+  vendorModel,
+  branchModel,
+  paymentModel,
+  accountModel
+);
