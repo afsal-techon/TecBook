@@ -33,6 +33,7 @@ import paymentTermModel from "../../models/paymentTerms";
 import { stat } from "fs";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import numberSettingModel from "../../models/numberSetting";
+import { numberSettingsDocumentType } from "../../types/enum.types";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -102,7 +103,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const purchaseOrderNumber = await generateDocumentNumber({
         branchId: dto.branchId,
         manualId: numberSetting?.mode !== 'Auto' ? dto.purchaseOrderId : undefined,
-        docType: "PURCHASE_ORDER",
+        docType: numberSettingsDocumentType.PURCHASE_ORDER,
         Model: PurchaseOrderModel,
         idField: PurchaseOrderModelConstants.purchaseOrderId,
       });
