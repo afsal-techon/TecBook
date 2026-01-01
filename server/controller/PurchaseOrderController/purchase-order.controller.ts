@@ -91,7 +91,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
 
       const numberSetting = await numberSettingModel.findOne({
         branchId: new Types.ObjectId(dto.branchId),
-        docType: "PURCHASE_ORDER",
+        docType: numberSettingsDocumentType.PURCHASE_ORDER,
       });
 
       if(!numberSetting) return res.status(HTTP_STATUS.BAD_REQUEST).json({
