@@ -7,7 +7,7 @@ export interface IExpenses extends IBaseFIelds {
   date: Date;
   expenseNumber: string;
   customerId: Types.ObjectId;
-  taxPreference: TaxPreferences;
+  taxPreference?: TaxPreferences;
   paidAccount: Types.ObjectId;
   vendorId: Types.ObjectId;
   branchId: Types.ObjectId;
