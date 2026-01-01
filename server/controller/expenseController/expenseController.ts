@@ -22,6 +22,9 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import customerModel from "../../models/customer";
 import { IExpenses } from "../../Interfaces/expenses.interface";
 import { imagekit } from "../../config/imageKit";
+import numberSettingModel from "../../models/numberSetting";
+import { numberSettingsDocumentType } from "../../types/enum.types";
+import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 
 class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -94,10 +97,29 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         }
       }
 
+      const numberSetting = await numberSettingModel.findOne({
+        branchId: new Types.ObjectId(dto.branchId),
+        docType: numberSettingsDocumentType.EXPENSE,
+      });
+
+      if (!numberSetting)
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Number setting is not configured. Please configure it first.",
+        });
+
+      const expenseNumber = await generateDocumentNumber({
+        branchId: dto.branchId,
+        manualId: numberSetting?.mode !== "Auto" ? dto.expenseNumber : undefined,
+        docType: numberSettingsDocumentType.EXPENSE,
+        Model: ExpenseModel,
+        idField: ExpenseModelConstants.expenseNumber,
+      });
+
       const payload: Partial<IExpenses> = {
         ...dto,
         date: dto.date ? new Date(dto.date) : new Date(),
-        expenseNumber: dto.expenseNumber,
+        expenseNumber,
         customerId: new Types.ObjectId(dto.customerId),
         branchId: new Types.ObjectId(dto.branchId),
         taxPreference: dto.taxPreference,
