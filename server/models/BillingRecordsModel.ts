@@ -20,9 +20,13 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       unique: true,
     },
     purchaseOrderNumber: {
-      type: Schema.Types.ObjectId || String || undefined,
+      type: Schema.Types.ObjectId,
       ref: "PurchaseOrder",
       required: false,
+    },
+    purchaseOrder:{
+      type:String,
+      required:false
     },
     billDate: {
       type: Date,
@@ -108,6 +112,7 @@ export const BillingSchemaModelConstants = {
   vendorId: "vendorId",
   billNumber: "billNumber",
   purchaseOrderNumber: "purchaseOrderNumber",
+  purchaseOrder:"purchaseOrder",
   billDate: "billDate",
   dueDate: "dueDate",
   branchId: "branchId",
