@@ -23,6 +23,7 @@ import paymentModel from "../../models/paymentMode";
 import accountModel from "../../models/accounts";
 import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
 import { dot } from "node:test/reporters";
+import { stat } from "fs";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -106,7 +107,6 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     }
   };
 
-  
   /**
    * Updates an existing payment made record.
    * @description This method handles updating an existing payment made record by its ID. It performs several validation checks:
@@ -165,6 +165,116 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).jsonp({
         success: false,
         message: "Failed to update payment made",
+      });
+    }
+  };
+
+  getSinglePaymentMadeDataById = async (req: Request, res: Response) => {
+    try {
+      const id: string = req.params.id;
+      await this.genericFindOneByIdOrNotFound(id);
+      const paymentMade = await paymentMadeModel.aggregate([
+        {
+          $match: {
+            _id: new Types.ObjectId(id),
+            isDeleted: false,
+          },
+        },
+        {
+          $lookup: {
+            from: "vendors",
+            localField: "vendorId",
+            foreignField: "_id",
+            as: "vendor",
+          },
+        },
+        {
+          $unwind: {
+            path: "$vendor",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "accounts",
+            localField: "accountId",
+            foreignField: "_id",
+            as: "account",
+          },
+        },
+        {
+          $unwind: {
+            path: "$account",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "paymentmodes",
+            let: { paymentModeId: "$paymentModeId" },
+            pipeline: [
+              { $unwind: "$paymentModes" },
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$paymentModes._id", "$$paymentModeId"],
+                  },
+                },
+              },
+              {
+                $project: {
+                  _id: "$paymentModes._id",
+                  paymentMode: "$paymentModes.paymentMode",
+                },
+              },
+            ],
+            as: "paymentMode",
+          },
+        },
+        {
+          $unwind: {
+            path: "$paymentMode",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $project: {
+            "vendor._id": 1,
+            "vendor.name": 1,
+            amount: 1,
+            date: 1,
+            bankCharge: 1,
+            paymentId: 1,
+            note: 1,
+            "account._id": 1,
+            "account.accountName": 1,
+            "paymentMode._id": 1,
+            "paymentMode.paymentMode": 1,
+          },
+        },
+      ]);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: paymentMade,
+        statusCode: HTTP_STATUS.OK,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log(
+          "Error while getting single payment made data by id",
+          error.message
+        );
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while getting single payment made data by id", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to get single payment made data by id",
       });
     }
   };
