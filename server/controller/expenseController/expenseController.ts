@@ -353,7 +353,9 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         isDeleted: false,
       })
         .populate(ExpenseModelConstants.vendorId)
-        .populate(ExpenseModelConstants.branchId);
+        .populate(ExpenseModelConstants.branchId)
+        .populate(ExpenseModelConstants.paidAccount).select('accountName')
+        .populate(ExpenseModelConstants.customerId).select('name')
 
       if (!expense) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
