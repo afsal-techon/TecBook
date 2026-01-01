@@ -6,7 +6,7 @@ import { IItem } from "./item.interface";
 export interface IBillingRecords extends IBaseFIelds {
   vendorId: Types.ObjectId;
   billNumber: string;
-  purchaseOrderNumber: Types.ObjectId;
+  purchaseOrderNumber?: Types.ObjectId | null;
   billDate: Date;
   dueDate: Date;
   branchId: Types.ObjectId;

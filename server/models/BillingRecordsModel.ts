@@ -22,7 +22,7 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
     purchaseOrderNumber: {
       type: Schema.Types.ObjectId,
       ref: "PurchaseOrder",
-      required: true,
+      required: false,
     },
     billDate: {
       type: Date,

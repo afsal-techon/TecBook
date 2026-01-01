@@ -27,7 +27,8 @@ export class CreateBillingRecordsDTO {
   billNumber!: string;
 
   @IsMongoId()
-  purchaseOrderNumber!: string;
+  @IsOptional()
+  purchaseOrderNumber?: string;
 
   @IsDateString()
   billDate!: string;
