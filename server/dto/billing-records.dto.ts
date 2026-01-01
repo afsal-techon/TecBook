@@ -39,8 +39,9 @@ export class CreateBillingRecordsDTO {
   @IsNotEmpty()
   branchId!: string;
 
-  @IsEnum(BillingPaymentStatus)
-  payment!: BillingPaymentStatus;
+  @IsMongoId()
+  @IsNotEmpty()
+  paymentTermsId!: string;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -119,8 +120,8 @@ export class updateBillingRecordsDTO {
   branchId?: string;
 
   @IsOptional()
-  @IsEnum(BillingPaymentStatus)
-  payment?: BillingPaymentStatus;
+  @IsMongoId()
+  paymentTermsId?: string;
 
   @IsOptional()
   @IsArray()
