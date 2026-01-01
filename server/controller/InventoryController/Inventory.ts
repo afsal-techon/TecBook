@@ -1683,6 +1683,7 @@ export const getItemsListPurchase = async (
           purchaseTaxRate: "$purchaseTax.vatRate",
           purchaseCGST: "$purchaseTax.sgstRate",
            purchaseSgst: "$purchaseTax.cgstRate",
+           costPrice : "$purchaseInfo.costPrice",
 
           // Inventory account
           // inventoryAccountName: "$inventoryAccount.name",
