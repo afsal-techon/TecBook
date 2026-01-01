@@ -12,7 +12,7 @@ router.post("/", verifyUser,checkPermission('admin','ExpenseModel','can_create')
 router.put("/:id",verifyUser, checkPermission('admin','ExpenseModel','can_update'),upload.array('documents',10), validateDto(UpdateExpenseDto), expenseController.updateExpense);
 router.get("/", verifyUser, checkPermission('admin','ExpenseModel','can_read') ,expenseController.getAllExpenses);
 router.get("/:id",verifyUser, checkPermission('admin','ExpenseModel','can_read') ,expenseController.getExpenseById);
-router.delete("/:id",verifyUser,checkPermission('admin','ExpenseModel','can_delete') , expenseController.genericDeleteOneById);
+router.delete("/:id",verifyUser,checkPermission('admin','ExpenseModel','can_delete') , expenseController.deleteExpenseById);
 
 
 
