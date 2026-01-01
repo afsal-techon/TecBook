@@ -7,7 +7,10 @@ import paymentMadeModel, {
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import { HTTP_STATUS } from "../../constants/http-status";
-import { CreatePaymentMadeDto } from "../../dto/paymentMade.dto";
+import {
+  CreatePaymentMadeDto,
+  UpdatePaymentMadeDto,
+} from "../../dto/paymentMade.dto";
 import {
   IAccounts,
   IBranch,
@@ -19,6 +22,7 @@ import branchModel from "../../models/branch";
 import paymentModel from "../../models/paymentMode";
 import accountModel from "../../models/accounts";
 import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
+import { dot } from "node:test/reporters";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -98,6 +102,57 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to create payment made",
+      });
+    }
+  };
+
+  updatePaymentMadeByID = async (
+    req: Request<{ id: string }, {}, UpdatePaymentMadeDto>,
+    res: Response
+  ) => {
+    try {
+      const id: string = req.params.id;
+      await this.genericFindOneByIdOrNotFound(id);
+      const dto: UpdatePaymentMadeDto = req.body;
+      const userId = req.user?.id;
+
+      await this.validateUser(userId as string);
+      if (dto.vendorId) await this.validateVendor(dto.vendorId);
+      if (dto.branchId) await this.validateBranch(dto.branchId);
+      if (dto.paymentModeId) await this.validatePaymentMode(dto.paymentModeId);
+      if (dto.accountId) await this.validateAccount(dto.accountId);
+
+      const updatedPayload: Partial<IPaymentMade> = {
+        ...dto,
+        vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
+        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        paymentModeId: dto.paymentModeId
+          ? new Types.ObjectId(dto.paymentModeId)
+          : undefined,
+        accountId: dto.accountId
+          ? new Types.ObjectId(dto.accountId)
+          : undefined,
+        date: dto.date ? new Date(dto.date) : undefined,
+      };
+      await this.genericUpdateOneById(id, updatedPayload);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Payment made updated successfully",
+        statusCode: HTTP_STATUS.OK,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while updating payment made", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).jsonp({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while updating payment made", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).jsonp({
+        success: false,
+        message: "Failed to update payment made",
       });
     }
   };
