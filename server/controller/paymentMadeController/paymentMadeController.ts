@@ -24,6 +24,7 @@ import accountModel from "../../models/accounts";
 import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
 import { dot } from "node:test/reporters";
 import { stat } from "fs";
+import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -275,6 +276,159 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to get single payment made data by id",
+      });
+    }
+  };
+
+  getAllPaymentMadeData = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit = parseInt(req.query.limit as string) || 20;
+      const page = parseInt(req.query.page as string) || 1;
+      const skip = (page - 1) * limit;
+      const search = (req.query.search as string) || "";
+      const filterBranchId = req.query.branchId as string | undefined;
+
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: this.userModel,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
+
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            ...(allowedBranchIds.length && {
+              branchId: {
+                $in: allowedBranchIds.map((id) => new Types.ObjectId(id)),
+              },
+            }),
+          },
+        },
+        {
+          $lookup: {
+            from: "vendors",
+            localField: "vendorId",
+            foreignField: "_id",
+            as: "vendor",
+          },
+        },
+        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: "accounts",
+            localField: "accountId",
+            foreignField: "_id",
+            as: "account",
+          },
+        },
+        { $unwind: { path: "$account", preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: "paymentmodes",
+            let: { paymentModeId: "$paymentModeId" },
+            pipeline: [
+              { $unwind: "$paymentModes" },
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$paymentModes._id", "$$paymentModeId"],
+                  },
+                },
+              },
+              {
+                $project: {
+                  _id: "$paymentModes._id",
+                  paymentMode: "$paymentModes.paymentMode",
+                },
+              },
+            ],
+            as: "paymentMode",
+          },
+        },
+        { $unwind: { path: "$paymentMode", preserveNullAndEmptyArrays: true } },
+        ...(search
+          ? [
+              {
+                $match: {
+                  $or: [
+                    { paymentId: { $regex: search, $options: "i" } },
+                    { "vendor.name": { $regex: search, $options: "i" } },
+                    {
+                      "account.accountName": { $regex: search, $options: "i" },
+                    },
+                    {
+                      "paymentMode.paymentMode": {
+                        $regex: search,
+                        $options: "i",
+                      },
+                    },
+                  ],
+                },
+              },
+            ]
+          : []),
+        { $sort: { createdAt: -1 } },
+        {
+          $facet: {
+            data: [
+              { $skip: skip },
+              { $limit: limit },
+              {
+                $project: {
+                  _id: 1,
+                  amount: 1,
+                  date: 1,
+                  bankCharge: 1,
+                  paymentId: 1,
+                  "vendor._id": 1,
+                  "vendor.name": 1,
+                  "account._id": 1,
+                  "account.accountName": 1,
+                  "paymentMode._id": 1,
+                  "paymentMode.paymentMode": 1,
+                },
+              },
+            ],
+            totalCount: [{ $count: "count" }],
+          },
+        },
+      ];
+
+      const result = await paymentMadeModel.aggregate(pipeline);
+
+      const paymentMade = result[0]?.data || [];
+      const totalCount = result[0]?.totalCount[0]?.count || 0;
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: paymentMade,
+        statusCode: HTTP_STATUS.OK,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while getting all payment made data", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      console.log("Error while getting all payment made data", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to get all payment made data",
       });
     }
   };
