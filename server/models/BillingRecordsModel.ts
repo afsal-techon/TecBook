@@ -20,7 +20,7 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       unique: true,
     },
     purchaseOrderNumber: {
-      type: Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId || String || undefined,
       ref: "PurchaseOrder",
       required: false,
     },

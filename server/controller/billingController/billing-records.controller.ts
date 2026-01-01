@@ -71,6 +71,7 @@ class BillingRecordsController extends GenericDatabaseService<
   ) => {
     try {
       const dto: CreateBillingRecordsDTO = req.body;
+      console.log(" ~ dto:", dto);
       const userId = req.user?.id;
       if (!this.isValidMongoId(userId as string)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -81,7 +82,7 @@ class BillingRecordsController extends GenericDatabaseService<
       await this.validateUser(userId as string);
       await this.validateBranch(dto.branchId);
       await this.validateVendor(dto.vendorId);
-      await this.valiatePaymentTerms(dto.paymentTermsId);
+      await this.validatePaymenetTerms(dto.paymentTermsId);
 
       const billDate: Date = new Date(dto.billDate);
       const dueDate: Date = new Date(dto.dueDate);
@@ -133,8 +134,8 @@ class BillingRecordsController extends GenericDatabaseService<
 
       const billNumber = await generateDocumentNumber({
         branchId: dto.branchId,
-        manualId: numberSetting?.mode !== "Auto" ? dto.billNumber : undefined,
-        docType: numberSettingsDocumentType.PURCHASE_ORDER,
+        manualId: numberSetting?.mode !== 'Auto' ? dto.billNumber : undefined,
+        docType: numberSettingsDocumentType.BILL,
         Model: BillingSchemaModel,
         idField: BillingSchemaModelConstants.billNumber,
       });
@@ -238,7 +239,7 @@ class BillingRecordsController extends GenericDatabaseService<
         );
       }
       if (dto.paymentTermsId)
-        await this.valiatePaymentTerms(dto.paymentTermsId);
+        await this.validatePaymenetTerms(dto.paymentTermsId);
 
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
@@ -478,15 +479,14 @@ class BillingRecordsController extends GenericDatabaseService<
     return vendor;
   }
 
-  private readonly valiatePaymentTerms = async (id: string) => {
-    if (!this.isValidMongoId(id)) throw new Error("Invalid payment terms id");
+  private async validatePaymenetTerms(paymentTermsId: string) {
+    if (!this.isValidMongoId(paymentTermsId))
+      throw new Error("Invalid payment terms id");
     const paymentTerms = await this.paymentTermModel.findOne({
-      _id: id,
-      isDeleted: false,
+      "terms._id": new mongoose.Types.ObjectId(paymentTermsId),
     });
     if (!paymentTerms) throw new Error("Payment terms not found");
-    return paymentTerms;
-  };
+  }
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({

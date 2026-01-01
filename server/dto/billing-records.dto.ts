@@ -26,7 +26,7 @@ export class CreateBillingRecordsDTO {
   @IsNotEmpty()
   billNumber!: string;
 
-  @IsMongoId()
+  @IsString()
   @IsOptional()
   purchaseOrderNumber?: string;
 
@@ -105,7 +105,7 @@ export class updateBillingRecordsDTO {
   vendorId?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsString()
   purchaseOrderNumber?: string;
 
   @IsOptional()
