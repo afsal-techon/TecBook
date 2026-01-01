@@ -54,11 +54,15 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
    * @throws {Error} Throws an error if validation fails or if the database operation fails.
    */
 
-  async createPaymentMade(req: Request, res: Response) {
+  createPaymentMade = async (req: Request, res: Response) => {
     try {
       const dto: CreatePaymentMadeDto = req.body;
       const userId = req.user?.id;
+      console.log("userId", userId);
+      console.log("dto", dto);
+
       await this.validateUser(userId as string);
+
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.paymentModeId) await this.validatePaymentMode(dto.paymentModeId);
@@ -96,7 +100,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         message: "Failed to create payment made",
       });
     }
-  }
+  };
 
   private async validateUser(id: string) {
     if (!this.isValidMongoId(id)) {
@@ -145,8 +149,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       throw new Error("Invalid payment mode ID");
     }
     const paymentMode = await this.paymentModeModel.findOne({
-      _id: id,
-      isDeleted: false,
+      "paymentModes._id": id,
     });
     if (!paymentMode) throw new Error("Payment mode not found");
     return paymentMode;
