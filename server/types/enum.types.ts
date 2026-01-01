@@ -24,3 +24,23 @@ export enum commonStatus {
   PENDING = "Pending",
   DECLINED = "Declined",
 }
+
+export enum numberSettingsDocumentType {
+  QUOTE = "QUOTE",
+  SALE_ORDER = "SALE_ORDER",
+  INVOICE = "INVOICE",
+  PAYMENT = "PAYMENT",
+  PURCHASE_ORDER = "PURCHASE_ORDER",
+  BILL = "BILL",
+  EXPENSE = "EXPENSE",
+}
+
+export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
+  [numberSettingsDocumentType.QUOTE]: "QT-",
+  [numberSettingsDocumentType.SALE_ORDER]: "SO-",
+  [numberSettingsDocumentType.INVOICE]: "INV-",
+  [numberSettingsDocumentType.PAYMENT]: "PAY-",
+  [numberSettingsDocumentType.PURCHASE_ORDER]: "PO-",
+  [numberSettingsDocumentType.BILL]: "BILL-",
+  [numberSettingsDocumentType.EXPENSE]: "EXP-",
+};

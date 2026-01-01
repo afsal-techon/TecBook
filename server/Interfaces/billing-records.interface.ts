@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { IBaseFIelds } from "./base.interface";
-import { BillingPaymentStatus, commonStatus } from "../types/enum.types";
+import {  commonStatus } from "../types/enum.types";
 import { IItem } from "./item.interface";
 
 export interface IBillingRecords extends IBaseFIelds {
@@ -10,7 +10,7 @@ export interface IBillingRecords extends IBaseFIelds {
   billDate: Date;
   dueDate: Date;
   branchId: Types.ObjectId;
-  payment: BillingPaymentStatus;
+  paymentTermsId: Types.ObjectId;
   items: IItem[];
   note:string;
   terms:string;
