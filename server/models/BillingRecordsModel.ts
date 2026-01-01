@@ -37,9 +37,9 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       ref: "Branch",
       required: true,
     },
-    payment: {
-      type: String,
-      enum: BillingPaymentStatus,
+    paymentTermsId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PaymentTerm',
       required: true,
     },
     note: {
@@ -111,7 +111,7 @@ export const BillingSchemaModelConstants = {
   billDate: "billDate",
   dueDate: "dueDate",
   branchId: "branchId",
-  payment: "payment",
+  paymentTermsId: "paymentTermsId",
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",
