@@ -377,6 +377,37 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  deleteBillingRecordById = async(
+      req: Request<{ id: string }>,
+      res: Response
+    ) => {
+      try {
+        const { id } = req.params;
+        const result = await this.genericDeleteOneById(id);
+        return res.status(result.statusCode).json({
+          success: result.success,
+          message: result.message,
+          statusCode: result.statusCode,
+        });
+  
+      } catch (error:unknown) {
+        if (error instanceof Error) {
+          console.error("Failed to delete billing record", error.message);
+          return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: error.message,
+          });
+        }
+        console.log("Failed to delete billing record", error);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: "Failed to delete billing record",
+          statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR
+        });
+        
+      }
+    }
+
   private async validateUser(id: string) {
     const user = await this.userModel.findOne({
       _id: id,

@@ -357,6 +357,37 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       });
     }
   };
+
+  deleteExpenseById = async(
+    req: Request<{ id: string }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await this.genericDeleteOneById(id);
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+        statusCode: result.statusCode,
+      });
+
+    } catch (error:unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete expense", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to delete expense", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to delete expense",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      });
+      
+    }
+  }
   private async validateBranch(id: string) {
     const branch = await this.branchModel.findOne({
       _id: id,
