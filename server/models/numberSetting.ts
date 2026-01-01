@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model } from "mongoose";
 import { INumberSetting } from "../types/common.types";
+import { numberSettingsDocumentType } from "../types/enum.types";
 
 const numberSchema = new Schema<INumberSetting>(
   {
@@ -10,7 +11,7 @@ const numberSchema = new Schema<INumberSetting>(
     },
        docType: {
       type: String,
-      enum: ["QUOTE", "SALE_ORDER", "INVOICE","PAYMENT" ,'PURCHASE_ORDER'], // add more if needed
+      enum: Object.values(numberSettingsDocumentType), // add more if needed
       required: true,
     },
         prefix: {
