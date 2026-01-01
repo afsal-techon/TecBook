@@ -12,7 +12,7 @@ router.post("/", verifyUser,checkPermission('admin','PurchaseOrder','can_create'
 router.put("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_update'),upload.array('documents',10), validateDto(updateBillingRecordsDTO), billingRecordsController.updateBillingRecords);
 router.get("/", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,billingRecordsController.getAllBillingRecords);
 router.get("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,billingRecordsController.getBillingRecordById);
-router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , billingRecordsController.genericDeleteOneById);
+router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , billingRecordsController.deleteBillingRecordById);
 
 
 

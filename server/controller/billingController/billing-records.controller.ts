@@ -60,7 +60,7 @@ class BillingRecordsController extends GenericDatabaseService<
    */
   createBillingRecords = async (
     req: Request<{}, {}, CreateBillingRecordsDTO>,
-    res: Response,
+    res: Response
   ) => {
     try {
       const dto: CreateBillingRecordsDTO = req.body;
@@ -99,16 +99,16 @@ class BillingRecordsController extends GenericDatabaseService<
       }
 
       const uploadedFiles: string[] = [];
-            if (req.files && Array.isArray(req.files)) {
-              for (const file of req.files) {
-                const uploadResponse = await imagekit.upload({
-                  file: file.buffer.toString("base64"),
-                  fileName: file.originalname,
-                  folder: "/images",
-                });
-                uploadedFiles.push(uploadResponse.url);
-              }
-            }
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploadResponse = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          uploadedFiles.push(uploadResponse.url);
+        }
+      }
 
       const payload: Partial<IBillingRecords> = {
         ...dto,
@@ -130,8 +130,8 @@ class BillingRecordsController extends GenericDatabaseService<
         message: "Billing record created successfully",
         data,
       });
-    } catch (error:unknown) {
-      if (error instanceof Error){
+    } catch (error: unknown) {
+      if (error instanceof Error) {
         console.log("Error while creating billing record", error.message);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
@@ -159,7 +159,7 @@ class BillingRecordsController extends GenericDatabaseService<
    */
   updateBillingRecords = async (
     req: Request<{ id: string }, {}, updateBillingRecordsDTO>,
-    res: Response,
+    res: Response
   ) => {
     try {
       const id = req.params.id;
@@ -242,7 +242,7 @@ class BillingRecordsController extends GenericDatabaseService<
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to update billing record",
-      })
+      });
     }
   };
 
@@ -377,6 +377,45 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  /**
+   * Deletes a billing record by ID.
+   * @description This method deletes a billing record by its ID from the database.
+   * It first validates the billing record ID, then updates the record to mark it as deleted.
+   * @param req The Express request object, containing the billing record ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on successful deletion.
+   * @throws {Error} Throws an error if the database operation fails.
+   */
+
+  deleteBillingRecordById = async (
+    req: Request<{ id: string }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await this.genericDeleteOneById(id);
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+        statusCode: result.statusCode,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete billing record", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to delete billing record", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to delete billing record",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
   private async validateUser(id: string) {
     const user = await this.userModel.findOne({
       _id: id,
@@ -418,8 +457,12 @@ class BillingRecordsController extends GenericDatabaseService<
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId ? new Types.ObjectId(item.customerId) : undefined,
-      accountId: item.accountId ? new Types.ObjectId(item.accountId) : undefined,
+      customerId: item.customerId
+        ? new Types.ObjectId(item.customerId)
+        : undefined,
+      accountId: item.accountId
+        ? new Types.ObjectId(item.accountId)
+        : undefined,
     }));
   }
 }

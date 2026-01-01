@@ -430,11 +430,14 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     }
   };
 
-
-  deletePurchaseOrder = async(
-    req: Request<{ id: string }>,
-    res: Response
-  ) => {
+  /*  @summary Deletes a purchase order by ID.
+   * @description This method deletes a purchase order by its ID from the database.
+   * It first validates the purchase order ID, then updates the record to mark it as deleted.
+   * @param req The Express request object, containing the purchase order ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   * @param next The Express next function to pass control to the next middleware.
+   */
+  deletePurchaseOrder = async (req: Request<{ id: string }>, res: Response) => {
     try {
       const { id } = req.params;
       const result = await this.genericDeleteOneById(id);
@@ -443,8 +446,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         message: result.message,
         statusCode: result.statusCode,
       });
-
-    } catch (error:unknown) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Failed to delete purchase order", error.message);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
@@ -456,11 +458,10 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to delete purchase order",
-        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       });
-      
     }
-  }
+  };
 
   // Helper methods for validations
   private async validateVendor(vendorId: string) {
