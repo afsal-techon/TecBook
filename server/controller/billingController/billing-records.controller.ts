@@ -95,10 +95,11 @@ class BillingRecordsController extends GenericDatabaseService<
 
       const items: IItem[] = this.mapItems(dto.items);
 
-      await this.purchaseOrderService.genericFindOneByIdOrNotFound(
-        dto.purchaseOrderNumber
-      );
-
+      if (dto.purchaseOrderNumber) {
+        await this.purchaseOrderService.genericFindOneByIdOrNotFound(
+          dto.purchaseOrderNumber
+        );
+      }
       if (!userId) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
