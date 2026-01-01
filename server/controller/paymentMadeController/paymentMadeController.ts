@@ -280,6 +280,15 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     }
   };
 
+  /*  * Get all payment made data with pagination and search functionality.
+   * @description This method retrieves all payment made records from the database, with optional filtering by branch ID and search functionality.
+   * It also handles pagination and populates related fields like vendor, account, and payment mode.
+   * @param req The Express request object, which may contain `limit`, `page`, `search`, and `branchId` as query parameters.
+   * @param res The Express response object used to send back the result.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on success.
+   * @throws {Error} Throws an error if the database query fails or permission resolution encounters issues.
+   */
+
   getAllPaymentMadeData = async (req: Request, res: Response) => {
     try {
       const authUser = req.user as { id: string };
