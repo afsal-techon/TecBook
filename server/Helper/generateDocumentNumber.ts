@@ -1,9 +1,10 @@
 import { Types, Model } from "mongoose";
 import numberSettingModel from "../models/numberSetting";
+import { numberSettingsDocumentType } from "../types/enum.types";
 
 interface GenerateDocNumberParams {
   branchId: string;
-  docType: "QUOTE" | "PURCHASE_ORDER" | "INVOICE";
+  docType: numberSettingsDocumentType
   manualId?: string;
   Model: Model<any>;
   idField?: string;
