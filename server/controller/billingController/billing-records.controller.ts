@@ -22,6 +22,9 @@ import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
 import { imagekit } from "../../config/imageKit";
+import numberSettingModel from "../../models/numberSetting";
+import { numberSettingsDocumentType } from "../../types/enum.types";
+import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -110,6 +113,25 @@ class BillingRecordsController extends GenericDatabaseService<
         }
       }
 
+      const numberSetting = await numberSettingModel.findOne({
+        branchId: new Types.ObjectId(dto.branchId),
+        docType: numberSettingsDocumentType.BILL,
+      });
+
+      if(!numberSetting) return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: "Number setting not found",
+      });
+
+
+      const billNumber = await generateDocumentNumber({
+        branchId: dto.branchId,
+        manualId: numberSetting?.mode !== 'Auto' ? dto.billNumber : undefined,
+        docType: numberSettingsDocumentType.PURCHASE_ORDER,
+        Model: BillingSchemaModel,
+        idField: BillingSchemaModelConstants.billNumber,
+      });
+
       const payload: Partial<IBillingRecords> = {
         ...dto,
         createdBy: new Types.ObjectId(userId),
@@ -121,6 +143,7 @@ class BillingRecordsController extends GenericDatabaseService<
         billDate: new Date(dto.billDate),
         dueDate: new Date(dto.dueDate),
         documents: uploadedFiles,
+        billNumber
       };
 
       const data = await this.genericCreateOne(payload);
