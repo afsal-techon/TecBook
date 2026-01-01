@@ -289,6 +289,8 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         .sort({ createdAt: -1 })
         .populate(ExpenseModelConstants.vendorId)
         .populate(ExpenseModelConstants.branchId)
+        .populate(ExpenseModelConstants.paidAccount).select('accountName')
+        .populate(ExpenseModelConstants.customerId).select('name')
         .skip(skip)
         .limit(limit);
 
