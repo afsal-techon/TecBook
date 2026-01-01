@@ -383,7 +383,7 @@ export interface ITax extends Document {
 
 export interface INumberSetting extends Document {
   branchId: Types.ObjectId | null;
-  docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT";
+  docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT" | "PURCHASE_ORDER";
   prefix: string; // e.g. "QT-"
   nextNumber: number; // e.g. 8  (for 000008)
   nextNumberRaw: string; // e.g. 6  (number of digits)
