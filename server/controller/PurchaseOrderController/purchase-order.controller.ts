@@ -31,6 +31,8 @@ import { imagekit } from "../../config/imageKit";
 import salesPersonModel from "../../models/salesPerson";
 import paymentTermModel from "../../models/paymentTerms";
 import { stat } from "fs";
+import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
+import numberSettingModel from "../../models/numberSetting";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -86,15 +88,24 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         });
       }
 
-      const existingPurchaseNumberCheck = await this.genericFindOne({
-        purchaseOrderId: dto.purchaseOrderId,
+      const numberSetting = await numberSettingModel.findOne({
+        branchId: new Types.ObjectId(dto.branchId),
+        docType: "PURCHASE_ORDER",
       });
-      if (existingPurchaseNumberCheck) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: "Purchase order ID already exists",
-        });
-      }
+
+      if(!numberSetting) return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: "Number setting not found",
+      });
+
+
+      const purchaseOrderNumber = await generateDocumentNumber({
+        branchId: dto.branchId,
+        manualId: numberSetting?.mode !== 'Auto' ? dto.purchaseOrderId : undefined,
+        docType: "PURCHASE_ORDER",
+        Model: PurchaseOrderModel,
+        idField: PurchaseOrderModelConstants.purchaseOrderId,
+      });
 
       const quoteDate: Date = new Date(dto.purchaseOrderDate);
       const expiryDate: Date = new Date(dto.expDate);
@@ -129,7 +140,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderId: dto.purchaseOrderId,
+        purchaseOrderId: purchaseOrderNumber,
         quote: dto.quote,
         purchaseOrderDate: quoteDate,
         expDate: expiryDate,
