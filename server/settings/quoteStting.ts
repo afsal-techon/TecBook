@@ -21,7 +21,7 @@ export const upsertDocumentNumberSetting  = async (
     }: {
       branchId: string;
       prefix?: string;
-      docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT";
+      docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT" | "PURCHASE_ORDER";
       nextNumber?: string;
       mode: string;
     } = req.body;
@@ -103,6 +103,8 @@ function getDefaultPrefix(docType: string) {
       return "INV-";
         case "PAYMENT":
       return "PAY-";
+    case "PURCHASE_ORDER":
+      return "PO-";  
     default:
       return "DOC-";
   }
