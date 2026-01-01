@@ -442,6 +442,35 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     }
   };
 
+  deletePaymentMadeById = async (req: Request, res: Response) => {
+    try {
+      const id: string = req.params.id;
+      await this.genericFindOneByIdOrNotFound(id);
+      const userId = req.user?.id;
+      await this.validateUser(userId as string);
+      await this.genericDeleteOneById(id);
+      return res.status(HTTP_STATUS.OK).json({
+        status: res.status,
+        message: "Payment made deleted successfully",
+        statusCode: res.statusCode,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while deleting payment made", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Error while deleting payment made", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to delete payment made",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
   private async validateUser(id: string) {
     if (!this.isValidMongoId(id)) {
       throw new Error("Invalid user ID");
