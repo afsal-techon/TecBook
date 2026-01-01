@@ -42,6 +42,18 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     this.accountModel = accountModel;
   }
 
+  /**
+   * Creates a new payment made record.
+   * @description This method handles the creation of a new payment made record. It performs several validation checks:
+   * - Ensures a user is authenticated.
+   * - Validates the existence of the specified Vendor, Branch, Payment Mode, and Account.
+   * It then constructs and saves a new payment made document to the database.
+   * @param req The Express request object, containing the `CreatePaymentMadeDto` in the body.
+   * @param res The Express response object used to send back the result.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 201 (Created) on success.
+   * @throws {Error} Throws an error if validation fails or if the database operation fails.
+   */
+
   async createPaymentMade(req: Request, res: Response) {
     try {
       const dto: CreatePaymentMadeDto = req.body;
