@@ -3,6 +3,7 @@ import USER from "../models/user";
 import express, { NextFunction, Request, Response } from "express";
 import numberSettingModel from "../models/numberSetting";
 import { Types } from "mongoose";
+import { numberSettingsDocumentType, PREFIX_MAP } from "../types/enum.types";
 
 // POST or PUT /api/quotes/settings
 export const upsertDocumentNumberSetting  = async (
@@ -21,7 +22,7 @@ export const upsertDocumentNumberSetting  = async (
     }: {
       branchId: string;
       prefix?: string;
-      docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT" | "PURCHASE_ORDER";
+      docType: numberSettingsDocumentType
       nextNumber?: string;
       mode: string;
     } = req.body;
@@ -62,7 +63,7 @@ export const upsertDocumentNumberSetting  = async (
           .json({ message: "Next number must be a number >= 1" });
       }
 
-      updateData.prefix = (prefix || getDefaultPrefix(docType)).trim();
+      updateData.prefix = prefix?.trim() ||PREFIX_MAP[docType] ;
       updateData.nextNumber = numeric;
       updateData.nextNumberRaw = clean;
     } else  {
@@ -105,6 +106,10 @@ function getDefaultPrefix(docType: string) {
       return "PAY-";
     case "PURCHASE_ORDER":
       return "PO-";  
+    case "BILL":
+      return "BILL-";
+     case "EXPENSE":
+      return "EXP-";  
     default:
       return "DOC-";
   }
