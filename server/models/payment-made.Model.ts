@@ -51,14 +51,14 @@ const paymentMadeSchmea = new Schema<IPaymentMade>(
 
 paymentMadeSchmea.add(BaseSchemaFields)
 
-const paymentModel: Model<IPaymentMade> = model(
+const paymentMadeModel: Model<IPaymentMade> = model(
   "PaymentMade",
   paymentMadeSchmea
 );
 
-export default paymentModel;
+export default paymentMadeModel;
 
-export type PaymentMadeModelDocument = typeof paymentModel & Document;
+export type PaymentMadeModelDocument = typeof paymentMadeModel;
 
 export const PaymentMadeModelConstants  = {
     vendorId:'vendorId',
