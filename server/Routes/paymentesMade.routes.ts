@@ -11,6 +11,8 @@ router.post("/", verifyUser,checkPermission('admin','PurchaseOrder','can_create'
 router.post("/:id", verifyUser,checkPermission('admin','PurchaseOrder','can_update'),validateDto(UpdatePaymentMadeDto),paymentMadeController.updatePaymentMadeByID);
 router.get("/", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,paymentMadeController.getAllPaymentMadeData);
 router.get("/:id", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,paymentMadeController.getSinglePaymentMadeDataById);
+router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , paymentMadeController.deletePaymentMadeById);
+
 
 
 export default router;
