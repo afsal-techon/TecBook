@@ -71,17 +71,17 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
-            const uploadedFiles: string[] = [];
-            if (req.files && Array.isArray(req.files)) {
-              for (const file of req.files) {
-                const uploadResponse = await imagekit.upload({
-                  file: file.buffer.toString("base64"),
-                  fileName: file.originalname,
-                  folder: "/images",
-                });
-                uploadedFiles.push(uploadResponse.url);
-              }
-            }
+      const uploadedFiles: string[] = [];
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploadResponse = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          uploadedFiles.push(uploadResponse.url);
+        }
+      }
 
       const payload: Partial<IPaymentMade> = {
         ...dto,
@@ -151,7 +151,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           ? new Types.ObjectId(dto.accountId)
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
-        documents:dto.existingDocuments ?? []
+        documents: dto.existingDocuments ?? [],
       };
       await this.genericUpdateOneById(id, updatedPayload);
 
@@ -218,13 +218,13 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         {
           $lookup: {
             from: "paymentmodes",
-            let: { paymentModeId: "$paymentModeId" },
+            let: { paymentModeName: "$paymentMode" },
             pipeline: [
               { $unwind: "$paymentModes" },
               {
                 $match: {
                   $expr: {
-                    $eq: ["$paymentModes._id", "$$paymentModeId"],
+                    $eq: ["$paymentModes.paymentMode", "$$paymentModeName"],
                   },
                 },
               },
@@ -238,6 +238,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
             as: "paymentMode",
           },
         },
+
         {
           $unwind: {
             path: "$paymentMode",
@@ -346,13 +347,13 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         {
           $lookup: {
             from: "paymentmodes",
-            let: { paymentModeId: "$paymentModeId" },
+            let: { paymentModeName: "$paymentMode" },
             pipeline: [
               { $unwind: "$paymentModes" },
               {
                 $match: {
                   $expr: {
-                    $eq: ["$paymentModes._id", "$$paymentModeId"],
+                    $eq: ["$paymentModes.paymentMode", "$$paymentModeName"],
                   },
                 },
               },
@@ -366,6 +367,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
             as: "paymentMode",
           },
         },
+
         { $unwind: { path: "$paymentMode", preserveNullAndEmptyArrays: true } },
         ...(search
           ? [
@@ -407,7 +409,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   "account.accountName": 1,
                   "paymentMode._id": 1,
                   "paymentMode.paymentMode": 1,
-                  status:1,
+                  status: 1,
                 },
               },
             ],
@@ -519,8 +521,6 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     if (!branch) throw new Error("Branch not found");
     return branch;
   }
-
-
 
   private async validateAccount(id: string) {
     if (!this.isValidMongoId(id)) {
