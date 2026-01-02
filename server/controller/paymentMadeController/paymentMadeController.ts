@@ -234,8 +234,14 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   paymentMode: "$paymentModes.paymentMode",
                 },
               },
+              { $limit: 1 },
             ],
             as: "paymentMode",
+          },
+        },
+        {
+          $addFields: {
+            paymentMode: { $arrayElemAt: ["$paymentMode", 0] },
           },
         },
 
@@ -363,11 +369,16 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   paymentMode: "$paymentModes.paymentMode",
                 },
               },
+              { $limit: 1 },
             ],
             as: "paymentMode",
           },
         },
-
+        {
+          $addFields: {
+            paymentMode: { $arrayElemAt: ["$paymentMode", 0] },
+          },
+        },
         { $unwind: { path: "$paymentMode", preserveNullAndEmptyArrays: true } },
         ...(search
           ? [
