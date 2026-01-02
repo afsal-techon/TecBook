@@ -26,15 +26,15 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 
-app.use(cors({
-  origin: ["http://localhost:3000", "http://192.168.10.117:3000"],
-  credentials: true,
-}));
-
 // app.use(cors({
-//   origin: "https://www.tecbooks.online",
+//   origin: ["http://localhost:3000", "http://192.168.10.117:3000"],
 //   credentials: true,
 // }));
+
+app.use(cors({
+  origin: "https://www.tecbooks.online",
+  credentials: true,
+}));
 
 
  app.use((err:any, req:Request, res:Response, next:NextFunction) => {
