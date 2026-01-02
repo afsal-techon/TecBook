@@ -210,6 +210,20 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           },
         },
         {
+          $lookup:{
+            from: "branches",
+            localField: "branchId",
+            foreignField: "_id",
+            as: "branch",
+          }
+        },
+        {
+          $unwind: {
+            path: "$branch",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
           $unwind: {
             path: "$account",
             preserveNullAndEmptyArrays: true,
@@ -265,13 +279,23 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
             "account.accountName": 1,
             "paymentMode._id": 1,
             "paymentMode.paymentMode": 1,
+            status: 1,
+            "branch._id": 1,
+            "branch.branchName": 1,
+            "branch.city": 1,
+            "branch.address": 1,
+            "branch.email": 1,
+            "branch.phone": 1,
+
           },
         },
       ]);
 
+      const finalOutput = paymentMade[0] || null;
+
       return res.status(HTTP_STATUS.OK).json({
         success: true,
-        data: paymentMade,
+        data: finalOutput,
         statusCode: HTTP_STATUS.OK,
       });
     } catch (error: unknown) {
