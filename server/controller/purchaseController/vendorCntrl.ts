@@ -7,7 +7,6 @@ import mongoose from "mongoose";
 import BRANCH from "../../models/branch";
 import { imagekit } from "../../config/imageKit";
 
-
 export const CreateVendor = async (
   req: Request,
   res: Response,
@@ -149,7 +148,7 @@ export const getVendors = async (
     const filterBranchId = req.query.branchId as string;
     const search = ((req.query.search as string) || "").trim();
 
-    const paginate :boolean = req.query.paginate !== "false";
+    const paginate: boolean = req.query.paginate !== "false";
 
     // 🔹 Pagination
     const page = paginate ? Math.max(Number(req.query.page) || 1, 1) : 1;
@@ -203,7 +202,7 @@ export const getVendors = async (
       ];
     }
 
-        const projectStage = paginate
+    const projectStage = paginate
       ? {
           _id: 1,
           branchId: 1,
@@ -227,7 +226,7 @@ export const getVendors = async (
         };
 
     // 🔹 Aggregation pipeline
-        const pipeline: any[] = [
+    const pipeline: any[] = [
       { $match: matchStage },
       { $project: projectStage },
       { $sort: { createdAt: -1 } },
@@ -236,7 +235,6 @@ export const getVendors = async (
     if (paginate) {
       pipeline.push({ $skip: skip }, { $limit: limit });
     }
-
 
     const vendors = await VENDOR.aggregate(pipeline);
 
@@ -316,8 +314,7 @@ export const updateVendor = async (
       }
     }
 
-
-        if (email && email !== vendor.email) {
+    if (email && email !== vendor.email) {
       const existPhone = await VENDOR.findOne({
         email,
         branchId: branchId || vendor.branchId,
@@ -448,5 +445,3 @@ export const deleteVendor = async (
     next(err);
   }
 };
-
-
