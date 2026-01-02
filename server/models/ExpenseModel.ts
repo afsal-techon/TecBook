@@ -29,7 +29,7 @@ const ExpenseModelSchema = new Schema<IExpenses>(
     taxPreference: {
       type: String,
       enum: TaxPreferences,
-      required: true,
+      required: false,
     },
     paidAccount: {
       type: Schema.Types.ObjectId,

@@ -1,48 +1,44 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PurchaseOrderModelConstants = exports.PurchaseOrderModel = void 0;
+exports.ExpenseModelConstants = exports.ExpenseModel = void 0;
 const mongoose_1 = require("mongoose");
 const BaseSchemaFields_1 = require("./common/BaseSchemaFields");
 const ItemsSchemaFields_1 = require("./common/ItemsSchemaFields");
 const enum_types_1 = require("../types/enum.types");
-const PurchaseOrderSchema = new mongoose_1.Schema({
-    purchaseOrderId: {
+const ExpenseModelSchema = new mongoose_1.Schema({
+    date: {
+        type: Date,
+        required: true,
+        default: Date.now(),
+    },
+    expenseNumber: {
         type: String,
         required: true,
         unique: true,
-        trim: true,
     },
-    vendorId: {
+    customerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Vendor",
-        default: null,
-    },
-    quote: {
-        type: String,
-        required: false,
-        trim: true,
-    },
-    purchaseOrderDate: {
-        type: Date,
+        ref: "Customer",
         required: true,
-    },
-    expDate: {
-        type: Date,
-        required: true,
-    },
-    salesPersonId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "SalesPeople",
-        required: true,
-    },
-    projectId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Project",
-        required: false,
     },
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Branch",
+        required: true,
+    },
+    taxPreference: {
+        type: String,
+        enum: enum_types_1.TaxPreferences,
+        required: true,
+    },
+    paidAccount: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Account",
+        required: true,
+    },
+    vendorId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Vendor",
         required: true,
     },
     note: {
@@ -68,7 +64,7 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: enum_types_1.commonStatus
+        enum: enum_types_1.commonStatus,
     },
     documents: {
         type: [String],
@@ -89,19 +85,20 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
-}, { timestamps: true });
-PurchaseOrderSchema.add(BaseSchemaFields_1.BaseSchemaFields);
-PurchaseOrderSchema.add(ItemsSchemaFields_1.ItemsSchemaFields);
-exports.PurchaseOrderModel = (0, mongoose_1.model)("PurchaseOrder", PurchaseOrderSchema);
-exports.PurchaseOrderModelConstants = {
-    purchaseOrderId: "purchaseOrderId",
-    vendorId: "vendorId",
-    quote: "quote",
-    purchaseOrderDate: "purchaseOrderDate",
-    expDate: "expDate",
-    salesPersonId: "salesPersonId",
-    projectId: "projectId",
+}, {
+    timestamps: true,
+});
+ExpenseModelSchema.add(BaseSchemaFields_1.BaseSchemaFields);
+ExpenseModelSchema.add(ItemsSchemaFields_1.ItemsSchemaFields);
+exports.ExpenseModel = (0, mongoose_1.model)("ExpenseModel", ExpenseModelSchema);
+exports.ExpenseModelConstants = {
+    date: "date",
+    expenseNumber: "expenseNumber",
+    customerId: "customerId",
     branchId: "branchId",
+    taxPreference: "taxPreference",
+    paidAccount: "paidAccount",
+    vendorId: "vendorId",
     items: "items",
     createdBy: "createdBy",
     isDeleted: "isDeleted",
@@ -110,4 +107,10 @@ exports.PurchaseOrderModelConstants = {
     discountType: "discountType",
     discountValue: "discountValue",
     vatValue: "vatValue",
+    status: "status",
+    documents: "documents",
+    subTotal: "subTotal",
+    taxTotal: "taxTotal",
+    total: "total",
 };
+// export type ExpenseModelField = keyof typeof ExpenseModelConstants;

@@ -26,8 +26,14 @@ export class CreateBillingRecordsDTO {
   @IsNotEmpty()
   billNumber!: string;
 
+  @IsString()
+  @IsOptional()
   @IsMongoId()
-  purchaseOrderNumber!: string;
+  purchaseOrderNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  purchaseOrder?: string;
 
   @IsDateString()
   billDate!: string;
@@ -39,8 +45,9 @@ export class CreateBillingRecordsDTO {
   @IsNotEmpty()
   branchId!: string;
 
-  @IsEnum(BillingPaymentStatus)
-  payment!: BillingPaymentStatus;
+  @IsMongoId()
+  @IsNotEmpty()
+  paymentTermsId!: string;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -103,8 +110,13 @@ export class updateBillingRecordsDTO {
   vendorId?: string;
 
   @IsOptional()
+  @IsString()
   @IsMongoId()
   purchaseOrderNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  purchaseOrder?: string;
 
   @IsOptional()
   @IsDateString()
@@ -119,8 +131,8 @@ export class updateBillingRecordsDTO {
   branchId?: string;
 
   @IsOptional()
-  @IsEnum(BillingPaymentStatus)
-  payment?: BillingPaymentStatus;
+  @IsMongoId()
+  paymentTermsId?: string;
 
   @IsOptional()
   @IsArray()

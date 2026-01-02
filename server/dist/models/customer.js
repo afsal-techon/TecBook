@@ -82,5 +82,5 @@ const customerSchema = new mongoose_1.Schema({
 customerSchema.index({ branchId: 1, name: 1 });
 customerSchema.index({ branchId: 1, phone: 1 });
 customerSchema.index({ branchId: 1, phone: 1, isDeleted: 1 });
-const employeeModel = mongoose_1.default.model("Customer", customerSchema);
-exports.default = employeeModel;
+const customerModel = mongoose_1.default.model("Customer", customerSchema);
+exports.default = customerModel;

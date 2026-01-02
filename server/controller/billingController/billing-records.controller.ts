@@ -13,7 +13,7 @@ import {
 import { HTTP_STATUS } from "../../constants/http-status";
 import vendorModel from "../../models/vendor";
 import branchModel from "../../models/branch";
-import { IBranch, IVendor } from "../../types/common.types";
+import { IBranch, IPaymentTerms, IVendor } from "../../types/common.types";
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import purchaseOrderController from "../PurchaseOrderController/purchase-order.controller";
@@ -22,6 +22,10 @@ import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
 import { imagekit } from "../../config/imageKit";
+import numberSettingModel from "../../models/numberSetting";
+import { numberSettingsDocumentType } from "../../types/enum.types";
+import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
+import paymentTermModel from "../../models/paymentTerms";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -29,17 +33,20 @@ class BillingRecordsController extends GenericDatabaseService<
   private readonly vendorModel: Model<IVendor>;
   private readonly userModel: Model<IUser>;
   private readonly branchModel: Model<IBranch>;
+  private readonly paymentTermModel: Model<IPaymentTerms>;
   constructor(
     dbModel: Model<IBillingRecords>,
     vendorModel: Model<IVendor>,
     userModel: Model<IUser>,
     branchModel: Model<IBranch>,
-    private readonly purchaseOrderService = purchaseOrderController
+    private readonly purchaseOrderService = purchaseOrderController,
+    paymentTermModel: Model<IPaymentTerms>
   ) {
     super(dbModel);
     this.vendorModel = vendorModel;
     this.userModel = userModel;
     this.branchModel = branchModel;
+    this.paymentTermModel = paymentTermModel;
   }
 
   /**
@@ -60,10 +67,11 @@ class BillingRecordsController extends GenericDatabaseService<
    */
   createBillingRecords = async (
     req: Request<{}, {}, CreateBillingRecordsDTO>,
-    res: Response,
+    res: Response
   ) => {
     try {
       const dto: CreateBillingRecordsDTO = req.body;
+      console.log(" ~ dto:", dto);
       const userId = req.user?.id;
       if (!this.isValidMongoId(userId as string)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -74,6 +82,7 @@ class BillingRecordsController extends GenericDatabaseService<
       await this.validateUser(userId as string);
       await this.validateBranch(dto.branchId);
       await this.validateVendor(dto.vendorId);
+      await this.validatePaymenetTerms(dto.paymentTermsId);
 
       const billDate: Date = new Date(dto.billDate);
       const dueDate: Date = new Date(dto.dueDate);
@@ -87,10 +96,11 @@ class BillingRecordsController extends GenericDatabaseService<
 
       const items: IItem[] = this.mapItems(dto.items);
 
-      await this.purchaseOrderService.genericFindOneByIdOrNotFound(
-        dto.purchaseOrderNumber
-      );
-
+      if (dto.purchaseOrderNumber) {
+        await this.purchaseOrderService.genericFindOneByIdOrNotFound(
+          dto.purchaseOrderNumber
+        );
+      }
       if (!userId) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
@@ -99,16 +109,36 @@ class BillingRecordsController extends GenericDatabaseService<
       }
 
       const uploadedFiles: string[] = [];
-            if (req.files && Array.isArray(req.files)) {
-              for (const file of req.files) {
-                const uploadResponse = await imagekit.upload({
-                  file: file.buffer.toString("base64"),
-                  fileName: file.originalname,
-                  folder: "/images",
-                });
-                uploadedFiles.push(uploadResponse.url);
-              }
-            }
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploadResponse = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          uploadedFiles.push(uploadResponse.url);
+        }
+      }
+
+      const numberSetting = await numberSettingModel.findOne({
+        branchId: new Types.ObjectId(dto.branchId),
+        docType: numberSettingsDocumentType.BILL,
+      });
+
+      if (!numberSetting)
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message:
+            "Number setting is not configured. Please configure it first.",
+        });
+
+      const billNumber = await generateDocumentNumber({
+        branchId: dto.branchId,
+        manualId: numberSetting?.mode !== 'Auto' ? dto.billNumber : undefined,
+        docType: numberSettingsDocumentType.BILL,
+        Model: BillingSchemaModel,
+        idField: BillingSchemaModelConstants.billNumber,
+      });
 
       const payload: Partial<IBillingRecords> = {
         ...dto,
@@ -121,6 +151,10 @@ class BillingRecordsController extends GenericDatabaseService<
         billDate: new Date(dto.billDate),
         dueDate: new Date(dto.dueDate),
         documents: uploadedFiles,
+        billNumber,
+        paymentTermsId: dto.paymentTermsId
+          ? new Types.ObjectId(dto.paymentTermsId)
+          : undefined,
       };
 
       const data = await this.genericCreateOne(payload);
@@ -130,8 +164,8 @@ class BillingRecordsController extends GenericDatabaseService<
         message: "Billing record created successfully",
         data,
       });
-    } catch (error:unknown) {
-      if (error instanceof Error){
+    } catch (error: unknown) {
+      if (error instanceof Error) {
         console.log("Error while creating billing record", error.message);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
@@ -159,7 +193,7 @@ class BillingRecordsController extends GenericDatabaseService<
    */
   updateBillingRecords = async (
     req: Request<{ id: string }, {}, updateBillingRecordsDTO>,
-    res: Response,
+    res: Response
   ) => {
     try {
       const id = req.params.id;
@@ -204,6 +238,8 @@ class BillingRecordsController extends GenericDatabaseService<
           dto.purchaseOrderNumber
         );
       }
+      if (dto.paymentTermsId)
+        await this.validatePaymenetTerms(dto.paymentTermsId);
 
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
@@ -242,7 +278,7 @@ class BillingRecordsController extends GenericDatabaseService<
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to update billing record",
-      })
+      });
     }
   };
 
@@ -377,6 +413,45 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  /**
+   * Deletes a billing record by ID.
+   * @description This method deletes a billing record by its ID from the database.
+   * It first validates the billing record ID, then updates the record to mark it as deleted.
+   * @param req The Express request object, containing the billing record ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on successful deletion.
+   * @throws {Error} Throws an error if the database operation fails.
+   */
+
+  deleteBillingRecordById = async (
+    req: Request<{ id: string }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await this.genericDeleteOneById(id);
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+        statusCode: result.statusCode,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete billing record", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to delete billing record", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to delete billing record",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
   private async validateUser(id: string) {
     const user = await this.userModel.findOne({
       _id: id,
@@ -403,6 +478,16 @@ class BillingRecordsController extends GenericDatabaseService<
     if (!vendor) throw new Error("Vendor not found");
     return vendor;
   }
+
+  private async validatePaymenetTerms(paymentTermsId: string) {
+    if (!this.isValidMongoId(paymentTermsId))
+      throw new Error("Invalid payment terms id");
+    const paymentTerms = await this.paymentTermModel.findOne({
+      "terms._id": new mongoose.Types.ObjectId(paymentTermsId),
+    });
+    if (!paymentTerms) throw new Error("Payment terms not found");
+  }
+
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
       itemId: new Types.ObjectId(item.itemId),
@@ -418,8 +503,12 @@ class BillingRecordsController extends GenericDatabaseService<
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId ? new Types.ObjectId(item.customerId) : undefined,
-      accountId: item.accountId ? new Types.ObjectId(item.accountId) : undefined,
+      customerId: item.customerId
+        ? new Types.ObjectId(item.customerId)
+        : undefined,
+      accountId: item.accountId
+        ? new Types.ObjectId(item.accountId)
+        : undefined,
     }));
   }
 }
@@ -428,5 +517,7 @@ export default new BillingRecordsController(
   BillingSchemaModel,
   vendorModel,
   userModel,
-  branchModel
+  branchModel,
+  purchaseOrderController,
+  paymentTermModel
 );

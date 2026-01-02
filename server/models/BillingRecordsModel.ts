@@ -22,7 +22,11 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
     purchaseOrderNumber: {
       type: Schema.Types.ObjectId,
       ref: "PurchaseOrder",
-      required: true,
+      required: false,
+    },
+    purchaseOrder:{
+      type:String,
+      required:false
     },
     billDate: {
       type: Date,
@@ -37,9 +41,9 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       ref: "Branch",
       required: true,
     },
-    payment: {
-      type: String,
-      enum: BillingPaymentStatus,
+    paymentTermsId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PaymentTerm',
       required: true,
     },
     note: {
@@ -108,10 +112,11 @@ export const BillingSchemaModelConstants = {
   vendorId: "vendorId",
   billNumber: "billNumber",
   purchaseOrderNumber: "purchaseOrderNumber",
+  purchaseOrder:"purchaseOrder",
   billDate: "billDate",
   dueDate: "dueDate",
   branchId: "branchId",
-  payment: "payment",
+  paymentTermsId: "paymentTermsId",
   items: "items",
   createdBy: "createdBy",
   isDeleted: "isDeleted",

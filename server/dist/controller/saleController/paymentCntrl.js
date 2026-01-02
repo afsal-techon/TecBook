@@ -18,7 +18,8 @@ const paymentMode_1 = __importDefault(require("../../models/paymentMode"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const createPaymentReceived = async (req, res, next) => {
     try {
-        const { branchId, customerId, invoiceId, paymentId, paymentDate, amount, accountId, bankCharges = 0, paymentMode, reference, status, } = req.body;
+        const { branchId, customerId, invoiceId, paymentId, paymentDate, amount, accountId, bankCharges = 0, paymentMode, reference, note, status, } = req.body;
+        console.log(status, 'states');
         const userId = req.user?.id;
         let invoice = null;
         // 1️ Basic validations
@@ -157,6 +158,7 @@ const createPaymentReceived = async (req, res, next) => {
             accountId: salesAccount._id,
             paymentMode,
             reference,
+            note,
             documents: uploadedFiles,
             status,
             createdById: new mongoose_1.Types.ObjectId(userId),
@@ -380,7 +382,7 @@ exports.getAllPaymentReceived = getAllPaymentReceived;
 const updatePaymentReceived = async (req, res, next) => {
     try {
         const { paymentId } = req.params;
-        const { branchId, customerId, invoiceId, paymentDate, accountId, amount, bankCharges = 0, paymentMode, reference, status, } = req.body;
+        const { branchId, customerId, invoiceId, paymentDate, accountId, amount, bankCharges = 0, paymentMode, reference, note, status, } = req.body;
         const userId = req.user?.id;
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -432,6 +434,7 @@ const updatePaymentReceived = async (req, res, next) => {
             accountId: accountId || null,
             paymentMode,
             reference,
+            note,
             status,
             isReversed: false,
             createdById: new mongoose_1.Types.ObjectId(userId),
@@ -483,9 +486,9 @@ const updatePaymentReceived = async (req, res, next) => {
                         },
                     },
                 ]);
-                const totalPaid = totalPaidAgg[0]?.totalPaid || 0;
-                const invoiceTotal = Number(invoice.total || 0);
-                invoice.status = totalPaid >= invoiceTotal ? "Paid" : "Partially Paid";
+                // const totalPaid = totalPaidAgg[0]?.totalPaid || 0;
+                // const invoiceTotal = Number(invoice.total || 0);
+                // invoice.status = totalPaid >= invoiceTotal ? "Paid" : "Partially Paid";
                 await invoice.save();
             }
         }
@@ -559,6 +562,9 @@ const getOnePaymentReceived = async (req, res, next) => {
                     paymentRecieved: 1,
                     paymentDate: 1,
                     paymentId: 1,
+                    branchId: 1,
+                    accountId: 1,
+                    note: 1,
                     reference: 1,
                     amount: 1,
                     bankCharges: 1,

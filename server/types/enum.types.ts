@@ -14,19 +14,6 @@ export enum TaxPreferences {
   NON_VAT = "Non-VAT",
 }
 
-export enum PaymentsMadeStatus {
-  DRAFT = "draft",
-  PAID = "paid",
-  VOID = "void",
-}
-
-export enum PaymentsMode {
-  CASH = "cash",
-  CHEQUE = "cheque",
-  UPI = "upi",
-  CARD = "card",
-  BANK_TRANSFER = "bank transfer",
-}
 
 export enum commonStatus {
   DRAFT = "Draft",
@@ -37,3 +24,23 @@ export enum commonStatus {
   PENDING = "Pending",
   DECLINED = "Declined",
 }
+
+export enum numberSettingsDocumentType {
+  QUOTE = "QUOTE",
+  SALE_ORDER = "SALE_ORDER",
+  INVOICE = "INVOICE",
+  PAYMENT = "PAYMENT",
+  PURCHASE_ORDER = "PURCHASE_ORDER",
+  BILL = "BILL",
+  EXPENSE = "EXPENSE",
+}
+
+export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
+  [numberSettingsDocumentType.QUOTE]: "QT-",
+  [numberSettingsDocumentType.SALE_ORDER]: "SO-",
+  [numberSettingsDocumentType.INVOICE]: "INV-",
+  [numberSettingsDocumentType.PAYMENT]: "PAY-",
+  [numberSettingsDocumentType.PURCHASE_ORDER]: "PO-",
+  [numberSettingsDocumentType.BILL]: "BILL-",
+  [numberSettingsDocumentType.EXPENSE]: "EXP-",
+};

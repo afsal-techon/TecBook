@@ -35,8 +35,9 @@ export class CreateExpenseDto {
   branchId!: string;
 
   @IsEnum(TaxPreferences)
-  @IsNotEmpty()
-  taxPreference!: TaxPreferences;
+  @IsString()
+  @IsOptional()
+  taxPreference?: TaxPreferences;
 
   @IsMongoId()
   @IsNotEmpty()
@@ -119,8 +120,9 @@ export class UpdateExpenseDto {
   @IsMongoId()
   branchId?: string;
 
-  @IsOptional()
   @IsEnum(TaxPreferences)
+  @IsString()
+  @IsOptional()
   taxPreference?: TaxPreferences;
 
   @IsOptional()
