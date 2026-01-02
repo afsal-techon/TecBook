@@ -1,9 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = require("mongoose");
+const mongoose_1 = __importStar(require("mongoose"));
 const GenericDatabase_1 = require("../../Helper/GenericDatabase");
 const BillingRecordsModel_1 = require("../../models/BillingRecordsModel");
 const http_status_1 = require("../../constants/http-status");
@@ -14,8 +47,12 @@ const purchase_order_controller_1 = __importDefault(require("../PurchaseOrderCon
 const branch_access_helper_1 = require("../../Helper/branch-access.helper");
 const purchaseOrderModel_1 = require("../../models/purchaseOrderModel");
 const imageKit_1 = require("../../config/imageKit");
+const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
+const enum_types_1 = require("../../types/enum.types");
+const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
+const paymentTerms_1 = __importDefault(require("../../models/paymentTerms"));
 class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService {
-    constructor(dbModel, vendorModel, userModel, branchModel, purchaseOrderService = purchase_order_controller_1.default) {
+    constructor(dbModel, vendorModel, userModel, branchModel, purchaseOrderService = purchase_order_controller_1.default, paymentTermModel) {
         super(dbModel);
         this.purchaseOrderService = purchaseOrderService;
         /**
@@ -37,6 +74,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
         this.createBillingRecords = async (req, res) => {
             try {
                 const dto = req.body;
+                console.log(" ~ dto:", dto);
                 const userId = req.user?.id;
                 if (!this.isValidMongoId(userId)) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
@@ -47,6 +85,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 await this.validateUser(userId);
                 await this.validateBranch(dto.branchId);
                 await this.validateVendor(dto.vendorId);
+                await this.validatePaymenetTerms(dto.paymentTermsId);
                 const billDate = new Date(dto.billDate);
                 const dueDate = new Date(dto.dueDate);
                 if (dueDate < billDate) {
@@ -56,7 +95,9 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     });
                 }
                 const items = this.mapItems(dto.items);
-                await this.purchaseOrderService.genericFindOneByIdOrNotFound(dto.purchaseOrderNumber);
+                if (dto.purchaseOrderNumber) {
+                    await this.purchaseOrderService.genericFindOneByIdOrNotFound(dto.purchaseOrderNumber);
+                }
                 if (!userId) {
                     return res.status(http_status_1.HTTP_STATUS.UNAUTHORIZED).json({
                         success: false,
@@ -74,6 +115,22 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                         uploadedFiles.push(uploadResponse.url);
                     }
                 }
+                const numberSetting = await numberSetting_1.default.findOne({
+                    branchId: new mongoose_1.Types.ObjectId(dto.branchId),
+                    docType: enum_types_1.numberSettingsDocumentType.BILL,
+                });
+                if (!numberSetting)
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Number setting is not configured. Please configure it first.",
+                    });
+                const billNumber = await (0, generateDocumentNumber_1.generateDocumentNumber)({
+                    branchId: dto.branchId,
+                    manualId: numberSetting?.mode !== 'Auto' ? dto.billNumber : undefined,
+                    docType: enum_types_1.numberSettingsDocumentType.BILL,
+                    Model: BillingRecordsModel_1.BillingSchemaModel,
+                    idField: BillingRecordsModel_1.BillingSchemaModelConstants.billNumber,
+                });
                 const payload = {
                     ...dto,
                     createdBy: new mongoose_1.Types.ObjectId(userId),
@@ -85,6 +142,10 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     billDate: new Date(dto.billDate),
                     dueDate: new Date(dto.dueDate),
                     documents: uploadedFiles,
+                    billNumber,
+                    paymentTermsId: dto.paymentTermsId
+                        ? new mongoose_1.Types.ObjectId(dto.paymentTermsId)
+                        : undefined,
                 };
                 const data = await this.genericCreateOne(payload);
                 return res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -152,6 +213,8 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 if (dto.purchaseOrderNumber) {
                     await this.purchaseOrderService.genericFindOneByIdOrNotFound(dto.purchaseOrderNumber);
                 }
+                if (dto.paymentTermsId)
+                    await this.validatePaymenetTerms(dto.paymentTermsId);
                 const items = dto.items ? this.mapItems(dto.items) : [];
                 const payload = {
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
@@ -297,9 +360,45 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 next(error);
             }
         };
+        /**
+         * Deletes a billing record by ID.
+         * @description This method deletes a billing record by its ID from the database.
+         * It first validates the billing record ID, then updates the record to mark it as deleted.
+         * @param req The Express request object, containing the billing record ID in `req.params.id`.
+         * @param res The Express response object used to send back the result.
+         * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on successful deletion.
+         * @throws {Error} Throws an error if the database operation fails.
+         */
+        this.deleteBillingRecordById = async (req, res) => {
+            try {
+                const { id } = req.params;
+                const result = await this.genericDeleteOneById(id);
+                return res.status(result.statusCode).json({
+                    success: result.success,
+                    message: result.message,
+                    statusCode: result.statusCode,
+                });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.error("Failed to delete billing record", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Failed to delete billing record", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to delete billing record",
+                    statusCode: http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR,
+                });
+            }
+        };
         this.vendorModel = vendorModel;
         this.userModel = userModel;
         this.branchModel = branchModel;
+        this.paymentTermModel = paymentTermModel;
     }
     async validateUser(id) {
         const user = await this.userModel.findOne({
@@ -328,6 +427,15 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
             throw new Error("Vendor not found");
         return vendor;
     }
+    async validatePaymenetTerms(paymentTermsId) {
+        if (!this.isValidMongoId(paymentTermsId))
+            throw new Error("Invalid payment terms id");
+        const paymentTerms = await this.paymentTermModel.findOne({
+            "terms._id": new mongoose_1.default.Types.ObjectId(paymentTermsId),
+        });
+        if (!paymentTerms)
+            throw new Error("Payment terms not found");
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
             itemId: new mongoose_1.Types.ObjectId(item.itemId),
@@ -341,9 +449,13 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
-            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : undefined,
-            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : undefined,
+            customerId: item.customerId
+                ? new mongoose_1.Types.ObjectId(item.customerId)
+                : undefined,
+            accountId: item.accountId
+                ? new mongoose_1.Types.ObjectId(item.accountId)
+                : undefined,
         }));
     }
 }
-exports.default = new BillingRecordsController(BillingRecordsModel_1.BillingSchemaModel, vendor_1.default, user_1.default, branch_1.default);
+exports.default = new BillingRecordsController(BillingRecordsModel_1.BillingSchemaModel, vendor_1.default, user_1.default, branch_1.default, purchase_order_controller_1.default, paymentTerms_1.default);

@@ -15,5 +15,5 @@ router.post("/", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Exp
 router.put("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'ExpenseModel', 'can_update'), imgUpload_1.upload.array('documents', 10), (0, validate_dto_middleware_1.validateDto)(create_expense_dto_1.UpdateExpenseDto), expenseController_1.expenseController.updateExpense);
 router.get("/", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'ExpenseModel', 'can_read'), expenseController_1.expenseController.getAllExpenses);
 router.get("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'ExpenseModel', 'can_read'), expenseController_1.expenseController.getExpenseById);
-router.delete("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'ExpenseModel', 'can_delete'), expenseController_1.expenseController.genericDeleteOneById);
+router.delete("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'ExpenseModel', 'can_delete'), expenseController_1.expenseController.deleteExpenseById);
 exports.default = router;

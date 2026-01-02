@@ -89,6 +89,11 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
+    paymentTermsId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "PaymentTerm",
+        default: null,
+    },
 }, { timestamps: true });
 PurchaseOrderSchema.add(BaseSchemaFields_1.BaseSchemaFields);
 PurchaseOrderSchema.add(ItemsSchemaFields_1.ItemsSchemaFields);
@@ -110,4 +115,10 @@ exports.PurchaseOrderModelConstants = {
     discountType: "discountType",
     discountValue: "discountValue",
     vatValue: "vatValue",
+    status: "status",
+    documents: "documents",
+    subTotal: "subTotal",
+    taxTotal: "taxTotal",
+    total: "total",
+    paymentTermsId: "paymentTermsId",
 };

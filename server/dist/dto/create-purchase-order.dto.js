@@ -116,6 +116,11 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreatePurchaseOrderDto.prototype, "total", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], CreatePurchaseOrderDto.prototype, "paymentTermsId", void 0);
 class UpdatePurchaseOrderDto {
 }
 exports.UpdatePurchaseOrderDto = UpdatePurchaseOrderDto;
@@ -225,3 +230,8 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], UpdatePurchaseOrderDto.prototype, "total", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], UpdatePurchaseOrderDto.prototype, "paymentTermsId", void 0);

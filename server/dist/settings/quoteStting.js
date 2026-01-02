@@ -7,6 +7,7 @@ exports.getNextQuotePreview = exports.upsertDocumentNumberSetting = void 0;
 const user_1 = __importDefault(require("../models/user"));
 const numberSetting_1 = __importDefault(require("../models/numberSetting"));
 const mongoose_1 = require("mongoose");
+const enum_types_1 = require("../types/enum.types");
 // POST or PUT /api/quotes/settings
 const upsertDocumentNumberSetting = async (req, res, next) => {
     try {
@@ -42,7 +43,7 @@ const upsertDocumentNumberSetting = async (req, res, next) => {
                     .status(400)
                     .json({ message: "Next number must be a number >= 1" });
             }
-            updateData.prefix = (prefix || getDefaultPrefix(docType)).trim();
+            updateData.prefix = prefix?.trim() || enum_types_1.PREFIX_MAP[docType];
             updateData.nextNumber = numeric;
             updateData.nextNumberRaw = clean;
         }
@@ -78,6 +79,12 @@ function getDefaultPrefix(docType) {
             return "INV-";
         case "PAYMENT":
             return "PAY-";
+        case "PURCHASE_ORDER":
+            return "PO-";
+        case "BILL":
+            return "BILL-";
+        case "EXPENSE":
+            return "EXP-";
         default:
             return "DOC-";
     }

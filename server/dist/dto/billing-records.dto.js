@@ -28,9 +28,16 @@ __decorate([
     __metadata("design:type", String)
 ], CreateBillingRecordsDTO.prototype, "billNumber", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], CreateBillingRecordsDTO.prototype, "purchaseOrderNumber", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateBillingRecordsDTO.prototype, "purchaseOrder", void 0);
 __decorate([
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", String)
@@ -45,9 +52,10 @@ __decorate([
     __metadata("design:type", String)
 ], CreateBillingRecordsDTO.prototype, "branchId", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(enum_types_1.BillingPaymentStatus),
+    (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreateBillingRecordsDTO.prototype, "payment", void 0);
+], CreateBillingRecordsDTO.prototype, "paymentTermsId", void 0);
 __decorate([
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.ValidateNested)({ each: true }),
@@ -122,9 +130,15 @@ __decorate([
 ], updateBillingRecordsDTO.prototype, "vendorId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], updateBillingRecordsDTO.prototype, "purchaseOrderNumber", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], updateBillingRecordsDTO.prototype, "purchaseOrder", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsDateString)(),
@@ -142,9 +156,9 @@ __decorate([
 ], updateBillingRecordsDTO.prototype, "branchId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsEnum)(enum_types_1.BillingPaymentStatus),
+    (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
-], updateBillingRecordsDTO.prototype, "payment", void 0);
+], updateBillingRecordsDTO.prototype, "paymentTermsId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),

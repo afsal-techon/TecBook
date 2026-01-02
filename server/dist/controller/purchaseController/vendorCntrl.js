@@ -111,10 +111,11 @@ const getVendors = async (req, res, next) => {
         const userRole = user.role; // "CompanyAdmin" | "User"
         const filterBranchId = req.query.branchId;
         const search = (req.query.search || "").trim();
+        const paginate = req.query.paginate !== "false";
         // 🔹 Pagination
-        const page = Math.max(Number(req.query.page) || 1, 1);
-        const limit = Math.max(Number(req.query.limit) || 10, 1);
-        const skip = (page - 1) * limit;
+        const page = paginate ? Math.max(Number(req.query.page) || 1, 1) : 1;
+        const limit = paginate ? Math.max(Number(req.query.limit) || 10, 1) : 10;
+        const skip = paginate ? (page - 1) * limit : 0;
         // 🔹 Determine allowed branches
         let allowedBranchIds = [];
         if (userRole === "CompanyAdmin") {
@@ -157,32 +158,37 @@ const getVendors = async (req, res, next) => {
                 { phone: { $regex: search, $options: "i" } },
             ];
         }
+        const projectStage = paginate
+            ? {
+                _id: 1,
+                branchId: 1,
+                name: 1,
+                phone: 1,
+                email: 1,
+                currency: 1,
+                paymentTerms: 1,
+                openingBalance: 1,
+                billingInfo: 1,
+                shippingInfo: 1,
+                taxTreatment: 1,
+                trn: 1,
+                placeOfSupplay: 1,
+                createdAt: 1,
+                updatedAt: 1,
+            }
+            : {
+                _id: 1,
+                name: 1,
+            };
         // 🔹 Aggregation pipeline
         const pipeline = [
             { $match: matchStage },
-            {
-                $project: {
-                    _id: 1,
-                    branchId: 1,
-                    name: 1,
-                    phone: 1,
-                    email: 1,
-                    currency: 1,
-                    paymentTerms: 1,
-                    openingBalance: 1,
-                    billingInfo: 1,
-                    shippingInfo: 1,
-                    taxTreatment: 1,
-                    trn: 1,
-                    placeOfSupplay: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
-                },
-            },
+            { $project: projectStage },
             { $sort: { createdAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
         ];
+        if (paginate) {
+            pipeline.push({ $skip: skip }, { $limit: limit });
+        }
         const vendors = await vendor_1.default.aggregate(pipeline);
         //  Total count for pagination
         const totalCount = await vendor_1.default.countDocuments(matchStage);

@@ -14,6 +14,9 @@ const http_status_1 = require("../../constants/http-status");
 const branch_access_helper_1 = require("../../Helper/branch-access.helper");
 const customer_1 = __importDefault(require("../../models/customer"));
 const imageKit_1 = require("../../config/imageKit");
+const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
+const enum_types_1 = require("../../types/enum.types");
+const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
     constructor() {
         super(ExpenseModel_1.ExpenseModel);
@@ -66,10 +69,26 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                         uploadedFiles.push(uploadResponse.url);
                     }
                 }
+                const numberSetting = await numberSetting_1.default.findOne({
+                    branchId: new mongoose_1.Types.ObjectId(dto.branchId),
+                    docType: enum_types_1.numberSettingsDocumentType.EXPENSE,
+                });
+                if (!numberSetting)
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Number setting is not configured. Please configure it first.",
+                    });
+                const expenseNumber = await (0, generateDocumentNumber_1.generateDocumentNumber)({
+                    branchId: dto.branchId,
+                    manualId: numberSetting?.mode !== "Auto" ? dto.expenseNumber : undefined,
+                    docType: enum_types_1.numberSettingsDocumentType.EXPENSE,
+                    Model: ExpenseModel_1.ExpenseModel,
+                    idField: ExpenseModel_1.ExpenseModelConstants.expenseNumber,
+                });
                 const payload = {
                     ...dto,
                     date: dto.date ? new Date(dto.date) : new Date(),
-                    expenseNumber: dto.expenseNumber,
+                    expenseNumber,
                     customerId: new mongoose_1.Types.ObjectId(dto.customerId),
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
                     taxPreference: dto.taxPreference,
@@ -221,6 +240,14 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                     .sort({ createdAt: -1 })
                     .populate(ExpenseModel_1.ExpenseModelConstants.vendorId)
                     .populate(ExpenseModel_1.ExpenseModelConstants.branchId)
+                    .populate({
+                    path: ExpenseModel_1.ExpenseModelConstants.paidAccount,
+                    select: 'accountName'
+                })
+                    .populate({
+                    path: ExpenseModel_1.ExpenseModelConstants.customerId,
+                    select: 'name'
+                })
                     .skip(skip)
                     .limit(limit);
                 res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -280,7 +307,15 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                     isDeleted: false,
                 })
                     .populate(ExpenseModel_1.ExpenseModelConstants.vendorId)
-                    .populate(ExpenseModel_1.ExpenseModelConstants.branchId);
+                    .populate(ExpenseModel_1.ExpenseModelConstants.branchId)
+                    .populate({
+                    path: ExpenseModel_1.ExpenseModelConstants.paidAccount,
+                    select: 'accountName'
+                })
+                    .populate({
+                    path: ExpenseModel_1.ExpenseModelConstants.customerId,
+                    select: 'name'
+                });
                 if (!expense) {
                     return res.status(http_status_1.HTTP_STATUS.NOT_FOUND).json({
                         success: false,
@@ -304,6 +339,43 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                     success: false,
                     message: "failed to get expense by id",
+                });
+            }
+        };
+        /**
+         * Deletes an expense record by its ID.
+         * This method performs the following operations:
+         * 1. Validates the provided expense ID format.
+         * 2. Checks for the existence of the expense record.
+         * 3. Marks the expense record as deleted in the database.
+         * @param req - The Express Request object. Expects the expense ID in `req.params.id`.
+         * @param res - The Express Response object.
+         * @returns A Promise that resolves to void. Sends a JSON response with HTTP 200 (OK) on successful deletion.
+         * @throws {Error} Throws an error if the database operation fails.
+         */
+        this.deleteExpenseById = async (req, res) => {
+            try {
+                const { id } = req.params;
+                const result = await this.genericDeleteOneById(id);
+                return res.status(result.statusCode).json({
+                    success: result.success,
+                    message: result.message,
+                    statusCode: result.statusCode,
+                });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.error("Failed to delete expense", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Failed to delete expense", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to delete expense",
+                    statusCode: http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR,
                 });
             }
         };
