@@ -407,6 +407,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   "account.accountName": 1,
                   "paymentMode._id": 1,
                   "paymentMode.paymentMode": 1,
+                  status:1,
                 },
               },
             ],
