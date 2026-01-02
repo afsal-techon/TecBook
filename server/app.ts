@@ -11,7 +11,7 @@ import cors from 'cors';
 import purchaseOrderRoutes from './Routes/purchase-order.routes';
 import billingRecordsRoutes from './Routes/billing-records.routes';
 import expensesRoutes from './Routes/expense.routes'
-
+import paymentsMadeRoutes from './Routes/paymentesMade.routes'
 
 
 
@@ -51,6 +51,7 @@ app.use(cors({
   app.use("/api/purchase-orders", purchaseOrderRoutes);
   app.use("/api/billing-records", billingRecordsRoutes);
   app.use("/api/expenses", expensesRoutes);
+  app.use("/api/payments-made", paymentsMadeRoutes);
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
