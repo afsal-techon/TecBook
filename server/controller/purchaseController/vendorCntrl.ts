@@ -149,10 +149,12 @@ export const getVendors = async (
     const filterBranchId = req.query.branchId as string;
     const search = ((req.query.search as string) || "").trim();
 
+    const paginate :boolean = req.query.paginate !== "false";
+
     // 🔹 Pagination
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.max(Number(req.query.limit) || 10, 1);
-    const skip = (page - 1) * limit;
+    const page = paginate ? Math.max(Number(req.query.page) || 1, 1) : 1;
+    const limit = paginate ? Math.max(Number(req.query.limit) || 10, 1) : 10;
+    const skip = paginate ? (page - 1) * limit : 0;
 
     // 🔹 Determine allowed branches
     let allowedBranchIds: mongoose.Types.ObjectId[] = [];
@@ -201,17 +203,13 @@ export const getVendors = async (
       ];
     }
 
-    // 🔹 Aggregation pipeline
-    const pipeline: any[] = [
-      { $match: matchStage },
-
-      {
-        $project: {
+        const projectStage = paginate
+      ? {
           _id: 1,
           branchId: 1,
           name: 1,
           phone: 1,
-          email:1,
+          email: 1,
           currency: 1,
           paymentTerms: 1,
           openingBalance: 1,
@@ -222,13 +220,23 @@ export const getVendors = async (
           placeOfSupplay: 1,
           createdAt: 1,
           updatedAt: 1,
-        },
-      },
+        }
+      : {
+          _id: 1,
+          name: 1,
+        };
 
+    // 🔹 Aggregation pipeline
+        const pipeline: any[] = [
+      { $match: matchStage },
+      { $project: projectStage },
       { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
     ];
+
+    if (paginate) {
+      pipeline.push({ $skip: skip }, { $limit: limit });
+    }
+
 
     const vendors = await VENDOR.aggregate(pipeline);
 
