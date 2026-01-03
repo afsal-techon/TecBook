@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import {
   IsMongoId,
   IsNumber,
@@ -5,7 +6,10 @@ import {
   IsString,
   IsDateString,
   Min,
+  IsArray,
+  IsEnum,
 } from "class-validator";
+import { commonStatus } from "../types/enum.types";
 
 export class CreatePaymentMadeDto {
   @IsMongoId()
@@ -30,8 +34,9 @@ export class CreatePaymentMadeDto {
   @IsString()
   paymentId?: string;
 
-  @IsMongoId()
-  paymentModeId!: string;
+  @IsOptional()
+  @IsString()
+  paymentMode?: string;
 
   @IsMongoId()
   accountId!: string;
@@ -39,6 +44,26 @@ export class CreatePaymentMadeDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+  @IsOptional()
+  @IsString()
+  @IsEnum(commonStatus)
+  status?: commonStatus;
 }
 
 export class UpdatePaymentMadeDto {
@@ -69,8 +94,8 @@ export class UpdatePaymentMadeDto {
   paymentId?: string;
 
   @IsOptional()
-  @IsMongoId()
-  paymentModeId?: string;
+  @IsString()
+  paymentMode?: string;
 
   @IsOptional()
   @IsMongoId()
@@ -79,4 +104,26 @@ export class UpdatePaymentMadeDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  documents?: string[];
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    typeof value === "string" ? JSON.parse(value) : value
+  )
+  existingDocuments?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(commonStatus)
+  status?: commonStatus;
 }

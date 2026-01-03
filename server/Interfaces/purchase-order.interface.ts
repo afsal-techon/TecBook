@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { IItem } from "./item.interface";
 import { IBaseFIelds } from "./base.interface";
-import { commonStatus } from "../types/enum.types";
+import { PurchaseOrderStatus } from "../types/enum.types";
 
 export interface IPurchaseOrder extends IBaseFIelds {
   purchaseOrderId: string;
@@ -19,10 +19,11 @@ export interface IPurchaseOrder extends IBaseFIelds {
   discountType:string;
   discountValue:number;
   vatValue:number;
-  status: commonStatus;
+  status: PurchaseOrderStatus;
   documents: string[];
   subTotal: number;
   taxTotal: number;
   total: number;
   paymentTermsId?: Types.ObjectId;
+  billedStatus:PurchaseOrderStatus;
 }

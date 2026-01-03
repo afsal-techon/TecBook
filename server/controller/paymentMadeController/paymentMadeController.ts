@@ -22,9 +22,8 @@ import branchModel from "../../models/branch";
 import paymentModel from "../../models/paymentMode";
 import accountModel from "../../models/accounts";
 import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
-import { dot } from "node:test/reporters";
-import { stat } from "fs";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import { imagekit } from "../../config/imageKit";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -71,18 +70,28 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
 
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
-      if (dto.paymentModeId) await this.validatePaymentMode(dto.paymentModeId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
+      const uploadedFiles: string[] = [];
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploadResponse = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          uploadedFiles.push(uploadResponse.url);
+        }
+      }
 
       const payload: Partial<IPaymentMade> = {
         ...dto,
         createdBy: new Types.ObjectId(userId as string),
         vendorId: new Types.ObjectId(dto.vendorId),
         branchId: new Types.ObjectId(dto.branchId),
-        paymentModeId: new Types.ObjectId(dto.paymentModeId),
         accountId: new Types.ObjectId(dto.accountId),
         isDeleted: false,
         date: new Date(dto.date),
+        documents: uploadedFiles,
       };
 
       await this.genericCreateOne(payload);
@@ -132,20 +141,17 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       await this.validateUser(userId as string);
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
-      if (dto.paymentModeId) await this.validatePaymentMode(dto.paymentModeId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
 
       const updatedPayload: Partial<IPaymentMade> = {
         ...dto,
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
         branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
-        paymentModeId: dto.paymentModeId
-          ? new Types.ObjectId(dto.paymentModeId)
-          : undefined,
         accountId: dto.accountId
           ? new Types.ObjectId(dto.accountId)
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
+        documents: dto.existingDocuments ?? [],
       };
       await this.genericUpdateOneById(id, updatedPayload);
 
@@ -204,6 +210,20 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           },
         },
         {
+          $lookup:{
+            from: "branches",
+            localField: "branchId",
+            foreignField: "_id",
+            as: "branch",
+          }
+        },
+        {
+          $unwind: {
+            path: "$branch",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
           $unwind: {
             path: "$account",
             preserveNullAndEmptyArrays: true,
@@ -212,13 +232,13 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         {
           $lookup: {
             from: "paymentmodes",
-            let: { paymentModeId: "$paymentModeId" },
+            let: { paymentModeName: "$paymentMode" },
             pipeline: [
               { $unwind: "$paymentModes" },
               {
                 $match: {
                   $expr: {
-                    $eq: ["$paymentModes._id", "$$paymentModeId"],
+                    $eq: ["$paymentModes.paymentMode", "$$paymentModeName"],
                   },
                 },
               },
@@ -228,10 +248,17 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   paymentMode: "$paymentModes.paymentMode",
                 },
               },
+              { $limit: 1 },
             ],
             as: "paymentMode",
           },
         },
+        {
+          $addFields: {
+            paymentMode: { $arrayElemAt: ["$paymentMode", 0] },
+          },
+        },
+
         {
           $unwind: {
             path: "$paymentMode",
@@ -252,13 +279,23 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
             "account.accountName": 1,
             "paymentMode._id": 1,
             "paymentMode.paymentMode": 1,
+            status: 1,
+            "branch._id": 1,
+            "branch.branchName": 1,
+            "branch.city": 1,
+            "branch.address": 1,
+            "branch.email": 1,
+            "branch.phone": 1,
+
           },
         },
       ]);
 
+      const finalOutput = paymentMade[0] || null;
+
       return res.status(HTTP_STATUS.OK).json({
         success: true,
-        data: paymentMade,
+        data: finalOutput,
         statusCode: HTTP_STATUS.OK,
       });
     } catch (error: unknown) {
@@ -340,13 +377,13 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         {
           $lookup: {
             from: "paymentmodes",
-            let: { paymentModeId: "$paymentModeId" },
+            let: { paymentModeName: "$paymentMode" },
             pipeline: [
               { $unwind: "$paymentModes" },
               {
                 $match: {
                   $expr: {
-                    $eq: ["$paymentModes._id", "$$paymentModeId"],
+                    $eq: ["$paymentModes.paymentMode", "$$paymentModeName"],
                   },
                 },
               },
@@ -356,8 +393,14 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   paymentMode: "$paymentModes.paymentMode",
                 },
               },
+              { $limit: 1 },
             ],
             as: "paymentMode",
+          },
+        },
+        {
+          $addFields: {
+            paymentMode: { $arrayElemAt: ["$paymentMode", 0] },
           },
         },
         { $unwind: { path: "$paymentMode", preserveNullAndEmptyArrays: true } },
@@ -401,6 +444,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
                   "account.accountName": 1,
                   "paymentMode._id": 1,
                   "paymentMode.paymentMode": 1,
+                  status: 1,
                 },
               },
             ],
@@ -511,17 +555,6 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     });
     if (!branch) throw new Error("Branch not found");
     return branch;
-  }
-
-  private async validatePaymentMode(id: string) {
-    if (!this.isValidMongoId(id)) {
-      throw new Error("Invalid payment mode ID");
-    }
-    const paymentMode = await this.paymentModeModel.findOne({
-      "paymentModes._id": id,
-    });
-    if (!paymentMode) throw new Error("Payment mode not found");
-    return paymentMode;
   }
 
   private async validateAccount(id: string) {

@@ -1,9 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = require("mongoose");
+const mongoose_1 = __importStar(require("mongoose"));
 const GenericDatabase_1 = require("../../Helper/GenericDatabase");
 const purchaseOrderModel_1 = require("../../models/purchaseOrderModel");
 const vendor_1 = __importDefault(require("../../models/vendor"));
@@ -14,8 +47,12 @@ const branch_1 = __importDefault(require("../../models/branch"));
 const branch_access_helper_1 = require("../../Helper/branch-access.helper");
 const imageKit_1 = require("../../config/imageKit");
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
+const paymentTerms_1 = __importDefault(require("../../models/paymentTerms"));
+const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
+const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
+const enum_types_1 = require("../../types/enum.types");
 class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
-    constructor(vendorModel, userModel, projectModel, branchModel, salesModel) {
+    constructor(vendorModel, userModel, projectModel, branchModel, salesModel, paymentTermsModel) {
         super(purchaseOrderModel_1.PurchaseOrderModel);
         /**
          * @summary Creates a new purchase order.
@@ -40,15 +77,22 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         message: "Unauthorized",
                     });
                 }
-                const existingPurchaseNumberCheck = await this.genericFindOne({
-                    purchaseOrderId: dto.purchaseOrderId,
+                const numberSetting = await numberSetting_1.default.findOne({
+                    branchId: new mongoose_1.Types.ObjectId(dto.branchId),
+                    docType: enum_types_1.numberSettingsDocumentType.PURCHASE_ORDER,
                 });
-                if (existingPurchaseNumberCheck) {
+                if (!numberSetting)
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
                         success: false,
-                        message: "Purchase order ID already exists",
+                        message: "Number setting is not configured. Please configure it first.",
                     });
-                }
+                const purchaseOrderNumber = await (0, generateDocumentNumber_1.generateDocumentNumber)({
+                    branchId: dto.branchId,
+                    manualId: numberSetting?.mode !== 'Auto' ? dto.purchaseOrderId : undefined,
+                    docType: enum_types_1.numberSettingsDocumentType.PURCHASE_ORDER,
+                    Model: purchaseOrderModel_1.PurchaseOrderModel,
+                    idField: purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderId,
+                });
                 const quoteDate = new Date(dto.purchaseOrderDate);
                 const expiryDate = new Date(dto.expDate);
                 if (expiryDate < quoteDate) {
@@ -61,6 +105,8 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 await this.validateSalesman(dto.salesPersonId);
                 if (dto.projectId)
                     await this.validateProject(dto.projectId);
+                if (dto.paymentTermsId)
+                    await this.validatePaymenetTerms(dto.paymentTermsId);
                 const uploadedFiles = [];
                 if (req.files && Array.isArray(req.files)) {
                     for (const file of req.files) {
@@ -76,7 +122,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 const payload = {
                     ...dto,
                     vendorId: new mongoose_1.Types.ObjectId(dto.vendorId),
-                    purchaseOrderId: dto.purchaseOrderId,
+                    purchaseOrderId: purchaseOrderNumber,
                     quote: dto.quote,
                     purchaseOrderDate: quoteDate,
                     expDate: expiryDate,
@@ -88,6 +134,9 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     createdBy: new mongoose_1.Types.ObjectId(userId) ?? undefined,
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
                     documents: uploadedFiles,
+                    paymentTermsId: dto.paymentTermsId
+                        ? new mongoose_1.Types.ObjectId(dto.paymentTermsId)
+                        : undefined,
                 };
                 const purchaseOrder = await this.genericCreateOne(payload);
                 res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -123,6 +172,8 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
             try {
                 const id = req.params.id;
                 const dto = req.body;
+                console.log(dto, "dto");
+                console.log(req.body, "req.body");
                 if (!this.isValidMongoId(req.params.id)) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
                         success: false,
@@ -153,6 +204,9 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 if (req.body.projectId) {
                     await this.validateProject(req.body.projectId);
                 }
+                if (dto.paymentTermsId) {
+                    await this.validatePaymenetTerms(dto.paymentTermsId);
+                }
                 const items = this.mapItems(req.body.items || []);
                 const payload = {
                     ...dto,
@@ -171,6 +225,9 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         : undefined,
                     items,
                     branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
+                    paymentTermsId: req.body.paymentTermsId
+                        ? new mongoose_1.Types.ObjectId(req.body.paymentTermsId)
+                        : undefined,
                 };
                 await this.genericUpdateOneById(id, payload);
                 return res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -263,7 +320,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
          * @param res The Express response object used to send back the result.
          * @param next The Express next function to pass control to the next middleware.
          */
-        this.getPurchaseOrderById = async (req, res, next) => {
+        this.getPurchaseOrderById = async (req, res) => {
             try {
                 const { id } = req.params;
                 if (!this.isValidMongoId(id)) {
@@ -281,30 +338,75 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     path: purchaseOrderModel_1.PurchaseOrderModelConstants.salesPersonId,
                     select: "username email",
                 })
-                    .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.projectId);
+                    .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.projectId)
+                    .populate({
+                    path: purchaseOrderModel_1.PurchaseOrderModelConstants.branchId,
+                    select: "branchName city email phone",
+                });
                 if (!purchaseOrder) {
                     return res.status(http_status_1.HTTP_STATUS.NOT_FOUND).json({
                         success: false,
                         message: "Purchase order not found",
                     });
                 }
-                res.status(http_status_1.HTTP_STATUS.OK).json({
+                let paymentTerm = null;
+                if (purchaseOrder.paymentTermsId &&
+                    mongoose_1.default.Types.ObjectId.isValid(purchaseOrder.paymentTermsId.toString())) {
+                    const paymentTermsDoc = await this.paymentTermsModel.findOne({
+                        "terms._id": purchaseOrder.paymentTermsId,
+                    }, {
+                        "terms.$": 1,
+                    });
+                    paymentTerm = paymentTermsDoc?.terms?.[0] || null;
+                }
+                return res.status(http_status_1.HTTP_STATUS.OK).json({
                     success: true,
-                    data: purchaseOrder,
+                    data: {
+                        ...purchaseOrder.toObject(),
+                        paymentTerm,
+                    },
+                });
+            }
+            catch (error) {
+                console.error("Failed to get purchase order", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: error instanceof Error
+                        ? error.message
+                        : "Failed to get purchase order",
+                });
+            }
+        };
+        /*  @summary Deletes a purchase order by ID.
+         * @description This method deletes a purchase order by its ID from the database.
+         * It first validates the purchase order ID, then updates the record to mark it as deleted.
+         * @param req The Express request object, containing the purchase order ID in `req.params.id`.
+         * @param res The Express response object used to send back the result.
+         * @param next The Express next function to pass control to the next middleware.
+         */
+        this.deletePurchaseOrder = async (req, res) => {
+            try {
+                const { id } = req.params;
+                const result = await this.genericDeleteOneById(id);
+                return res.status(result.statusCode).json({
+                    success: result.success,
+                    message: result.message,
+                    statusCode: result.statusCode,
                 });
             }
             catch (error) {
                 if (error instanceof Error) {
-                    console.log("Failed to get purchase order", error.message);
+                    console.error("Failed to delete purchase order", error.message);
                     return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                         success: false,
                         message: error.message,
                     });
                 }
-                console.log("Failed to get purchase order", error);
+                console.log("Failed to delete purchase order", error);
                 return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                     success: false,
-                    message: "Failed to get purchase order",
+                    message: "Failed to delete purchase order",
+                    statusCode: http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR,
                 });
             }
         };
@@ -313,6 +415,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
         this.projectModel = projectModel;
         this.branchModel = branchModel;
         this.salesModel = salesPerson_1.default;
+        this.paymentTermsModel = paymentTermsModel;
     }
     // Helper methods for validations
     async validateVendor(vendorId) {
@@ -340,6 +443,15 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
         if (!project)
             throw new Error("Project not found");
     }
+    async validatePaymenetTerms(paymentTermsId) {
+        if (!this.isValidMongoId(paymentTermsId))
+            throw new Error("Invalid payment terms id");
+        const paymentTerms = await this.paymentTermsModel.findOne({
+            "terms._id": new mongoose_1.default.Types.ObjectId(paymentTermsId),
+        });
+        if (!paymentTerms)
+            throw new Error("Payment terms not found");
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
             itemId: new mongoose_1.Types.ObjectId(item.itemId),
@@ -353,9 +465,13 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
-            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : undefined,
-            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : undefined,
+            customerId: item.customerId
+                ? new mongoose_1.Types.ObjectId(item.customerId)
+                : undefined,
+            accountId: item.accountId
+                ? new mongoose_1.Types.ObjectId(item.accountId)
+                : undefined,
         }));
     }
 }
-exports.default = new PurchaseOrderController(vendor_1.default, user_1.default, project_1.default, branch_1.default, salesPerson_1.default);
+exports.default = new PurchaseOrderController(vendor_1.default, user_1.default, project_1.default, branch_1.default, salesPerson_1.default, paymentTerms_1.default);

@@ -289,6 +289,14 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         .sort({ createdAt: -1 })
         .populate(ExpenseModelConstants.vendorId)
         .populate(ExpenseModelConstants.branchId)
+        .populate({
+          path:ExpenseModelConstants.paidAccount,
+          select: 'accountName'
+        })
+        .populate({
+          path:ExpenseModelConstants.customerId,
+          select: 'name'
+        })
         .skip(skip)
         .limit(limit);
 
@@ -351,7 +359,15 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         isDeleted: false,
       })
         .populate(ExpenseModelConstants.vendorId)
-        .populate(ExpenseModelConstants.branchId);
+        .populate(ExpenseModelConstants.branchId)
+        .populate({
+          path:ExpenseModelConstants.paidAccount,
+          select: 'accountName'
+        })
+        .populate({
+          path:ExpenseModelConstants.customerId,
+          select: 'name'
+        })
 
       if (!expense) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({

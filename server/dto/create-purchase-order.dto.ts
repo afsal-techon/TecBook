@@ -11,7 +11,10 @@ import {
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ItemDto } from "./item.dto";
-import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
+import {
+  PurchaseOrderDiscountType,
+  PurchaseOrderStatus,
+} from "../types/enum.types";
 
 export class CreatePurchaseOrderDto {
   @IsString()
@@ -81,8 +84,8 @@ export class CreatePurchaseOrderDto {
 
   @IsOptional()
   @IsString()
-  @IsEnum(commonStatus)
-  status?: commonStatus;
+  @IsEnum(PurchaseOrderStatus)
+  status?: PurchaseOrderStatus;
 
   @IsNumber()
   @IsOptional()
@@ -99,6 +102,11 @@ export class CreatePurchaseOrderDto {
   @IsOptional()
   @IsMongoId()
   paymentTermsId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(PurchaseOrderStatus)
+  billedStatus?: PurchaseOrderStatus;
 }
 
 export class UpdatePurchaseOrderDto {
@@ -178,8 +186,8 @@ export class UpdatePurchaseOrderDto {
 
   @IsOptional()
   @IsString()
-  @IsEnum(commonStatus)
-  status?: commonStatus;
+  @IsEnum(PurchaseOrderStatus)
+  status?: PurchaseOrderStatus;
 
   @IsNumber()
   @IsOptional()
@@ -196,4 +204,9 @@ export class UpdatePurchaseOrderDto {
   @IsOptional()
   @IsMongoId()
   paymentTermsId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(PurchaseOrderStatus)
+  billedStatus?: PurchaseOrderStatus;
 }

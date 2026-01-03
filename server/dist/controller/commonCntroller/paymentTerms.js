@@ -105,52 +105,39 @@ const upsertPaymentModes = async (req, res, next) => {
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        let { branchId, paymentModes } = req.body;
+        const { branchId, paymentModes } = req.body;
+        // ------------------ Validations ------------------
         if (!branchId) {
             return res.status(400).json({ message: "branchId is required!" });
         }
         if (!mongoose_1.default.Types.ObjectId.isValid(branchId)) {
             return res.status(400).json({ message: `Invalid branchId: ${branchId}` });
         }
-        // 1) Check if paymentTerms already exists for this branch
-        const existing = await paymentMode_1.default.findOne({ branchId });
-        // 2) terms must be provided from frontend always in this flow
-        if (!paymentModes || !Array.isArray(paymentModes) || paymentModes.length === 0) {
-            return res.status(400).json({ message: "PaymentModes is required!" });
+        if (!Array.isArray(paymentModes) || paymentModes.length === 0) {
+            return res.status(400).json({ message: "paymentModes is required!" });
         }
-        // 3) Clean / normalize body terms
-        const cleanedBodyTerms = paymentModes.map((t) => ({
-            paymentMode: t.paymentMode?.trim(),
-        }));
-        let termsToSave = cleanedBodyTerms;
-        // 4) If this is the FIRST TIME (no existing doc), prepend default terms
-        //    TODO Add this when adding branch for automatic creation 
-        // if (!existing) {
-        //   const defaultTerms = [
-        //     {
-        //       paymentMode: "Cash",
-        //     },
-        //    {
-        //       paymentMode: "Bank Transfer",
-        //     },
-        //     {
-        //       paymentMode: "Credit Card",
-        //     },
-        //      {
-        //       paymentMode: "Wallet",
-        //     },
-        //      {
-        //       paymentMode: "Cheque",
-        //     }
-        //   ];
-        //   // Combine defaults + body terms
-        //   termsToSave = [...defaultTerms, ...cleanedBodyTerms];
-        // }
+        const paymentModeMap = new Map();
+        for (const mode of paymentModes) {
+            if (!mode?.paymentMode)
+                continue;
+            const trimmedName = mode.paymentMode.trim();
+            const normalizedName = trimmedName.toLowerCase();
+            // If same paymentMode appears again → it updates (overwrites)
+            paymentModeMap.set(normalizedName, {
+                paymentMode: trimmedName,
+            });
+        }
+        const uniquePaymentModes = Array.from(paymentModeMap.values());
+        if (uniquePaymentModes.length === 0) {
+            return res.status(400).json({ message: "Valid payment modes required!" });
+        }
+        const existing = await paymentMode_1.default.findOne({ branchId });
+        // ------------------ Upsert ------------------
         const updatedDoc = await paymentMode_1.default.findOneAndUpdate({ branchId }, {
             $set: {
                 branchId,
-                paymentModes: termsToSave,
-                createdById: existing?.createdById || userId, // keep original creator if exists
+                paymentModes: uniquePaymentModes,
+                createdById: existing?.createdById || userId,
                 deletedAt: null,
                 deletedById: null,
                 deletedBy: null,
@@ -163,12 +150,12 @@ const upsertPaymentModes = async (req, res, next) => {
         return res.status(200).json({
             message: existing
                 ? "Payment modes updated successfully"
-                : "Payment modes created successfully with defaults",
+                : "Payment modes created successfully",
             data: [updatedDoc],
         });
     }
-    catch (err) {
-        next(err);
+    catch (error) {
+        next(error);
     }
 };
 exports.upsertPaymentModes = upsertPaymentModes;

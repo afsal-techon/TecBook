@@ -1,6 +1,7 @@
 import { Document, Model, model, Schema } from "mongoose";
 import { IPaymentMade } from "../Interfaces/paymentMade.interface";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
+import { commonStatus } from "../types/enum.types";
 
 const paymentMadeSchmea = new Schema<IPaymentMade>(
   {
@@ -29,10 +30,9 @@ const paymentMadeSchmea = new Schema<IPaymentMade>(
     paymentId: {
       type: String,
     },
-    paymentModeId: {
-      type: Schema.Types.ObjectId,
-      ref: "PaymentMode",
-      required: true,
+    paymentMode: {
+      type: String,
+      required: false,
     },
     accountId: {
       type: Schema.Types.ObjectId,
@@ -43,6 +43,18 @@ const paymentMadeSchmea = new Schema<IPaymentMade>(
       type: String,
       default: null,
     },
+    reference:{
+      type:String,
+      default:null
+    },
+        documents: {
+      type: [String],
+      default: [],
+    },
+        status: {
+          type: String,
+          enum: commonStatus
+        },
   },
   {
     timestamps: true,
@@ -67,9 +79,12 @@ export const PaymentMadeModelConstants  = {
     date:'date',
     bankCharge:'bankCharge',
     paymentId:'paymentId',
-    paymentModeId:'paymentModeId',
+    paymentMode:'paymentMode',
     accountId:'accountId',
     note:'note',
     createdBy:'createdBy',
     isDeleted:'isDeleted',
+    reference:'reference',
+    documents:'documents',
+    status:'status',
 } as const;

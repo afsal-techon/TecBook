@@ -124,9 +124,10 @@ const getCustomers = async (req, res, next) => {
         const filterBranchId = req.query.branchId; // optional
         const search = (req.query.search || "").trim();
         // Pagination
-        const limit = parseInt(req.query.limit) || 20;
-        const page = parseInt(req.query.page) || 1;
-        const skip = (page - 1) * limit;
+        const paginate = req.query.paginate !== "false";
+        const limit = paginate ? parseInt(req.query.limit) || 20 : 0;
+        const page = paginate ? parseInt(req.query.page) || 1 : 1;
+        const skip = paginate ? (page - 1) * limit : 0;
         // 🔹 Determine allowed branches
         let allowedBranchIds = [];
         if (userRole === "CompanyAdmin") {
@@ -227,12 +228,8 @@ const getCustomers = async (req, res, next) => {
         const countPipeline = [...pipeline, { $count: "total" }];
         const countResult = await customer_1.default.aggregate(countPipeline);
         const totalCount = countResult[0]?.total || 0;
-        // 🔹 Pagination & projection
-        pipeline.push({ $sort: { createdAt: -1 } });
-        pipeline.push({ $skip: skip });
-        pipeline.push({ $limit: limit });
-        pipeline.push({
-            $project: {
+        const projectStage = paginate
+            ? {
                 _id: 1,
                 branchId: 1,
                 name: 1,
@@ -249,8 +246,16 @@ const getCustomers = async (req, res, next) => {
                 documents: 1,
                 createdAt: 1,
                 updatedAt: 1,
-            },
-        });
+            }
+            : {
+                _id: 1,
+                name: 1,
+            };
+        pipeline.push({ $sort: { createdAt: -1 } });
+        if (paginate) {
+            pipeline.push({ $skip: skip }, { $limit: limit });
+        }
+        pipeline.push({ $project: projectStage });
         // 🔹 Execute
         const customers = await customer_1.default.aggregate(pipeline);
         return res.status(200).json({
@@ -258,6 +263,7 @@ const getCustomers = async (req, res, next) => {
             totalCount,
             page,
             limit,
+            paginate,
         });
     }
     catch (err) {

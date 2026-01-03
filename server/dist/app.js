@@ -16,6 +16,7 @@ const cors_1 = __importDefault(require("cors"));
 const purchase_order_routes_1 = __importDefault(require("./Routes/purchase-order.routes"));
 const billing_records_routes_1 = __importDefault(require("./Routes/billing-records.routes"));
 const expense_routes_1 = __importDefault(require("./Routes/expense.routes"));
+const paymentesMade_routes_1 = __importDefault(require("./Routes/paymentesMade.routes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT;
@@ -40,6 +41,7 @@ app.use((err, req, res, next) => {
     app.use("/api/purchase-orders", purchase_order_routes_1.default);
     app.use("/api/billing-records", billing_records_routes_1.default);
     app.use("/api/expenses", expense_routes_1.default);
+    app.use("/api/payments-made", paymentesMade_routes_1.default);
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);
     });

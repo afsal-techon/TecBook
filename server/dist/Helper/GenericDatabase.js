@@ -272,6 +272,7 @@ class GenericDatabaseService {
             const data = await this.dbModel.findOneAndUpdate({ _id: id, isDeleted: false }, payload, {
                 new: true,
                 runValidators: true,
+                upsert: true,
             });
             if (!data) {
                 throw Object.assign(new Error("Record not found"), {

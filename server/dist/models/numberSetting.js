@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const enum_types_1 = require("../types/enum.types");
 const numberSchema = new mongoose_1.Schema({
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -42,7 +43,7 @@ const numberSchema = new mongoose_1.Schema({
     },
     docType: {
         type: String,
-        enum: ["QUOTE", "SALE_ORDER", "INVOICE", "PAYMENT"], // add more if needed
+        enum: Object.values(enum_types_1.numberSettingsDocumentType), // add more if needed
         required: true,
     },
     prefix: {

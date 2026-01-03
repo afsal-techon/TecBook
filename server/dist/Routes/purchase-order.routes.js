@@ -15,5 +15,5 @@ router.post("/", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Pur
 router.put("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_update'), imgUpload_1.upload.array('documents', 10), (0, validate_dto_middleware_1.validateDto)(create_purchase_order_dto_1.UpdatePurchaseOrderDto), purchase_order_controller_1.default.updatePurchaseOrder);
 router.get("/", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_read'), purchase_order_controller_1.default.getAllPurchaseOrders);
 router.get("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_read'), purchase_order_controller_1.default.getPurchaseOrderById);
-router.delete("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_delete'), purchase_order_controller_1.default.genericDeleteOneById);
+router.delete("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_delete'), purchase_order_controller_1.default.deletePurchaseOrder);
 exports.default = router;

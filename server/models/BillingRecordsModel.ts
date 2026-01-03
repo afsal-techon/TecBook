@@ -1,7 +1,6 @@
 import { model, Schema } from "mongoose";
 import {
-  BillingPaymentStatus,
-  commonStatus,
+  BillingRecordsStatus,
   PurchaseOrderDiscountType,
 } from "../types/enum.types";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
@@ -20,9 +19,13 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       unique: true,
     },
     purchaseOrderNumber: {
-      type: Schema.Types.ObjectId || String || undefined,
+      type: Schema.Types.ObjectId,
       ref: "PurchaseOrder",
       required: false,
+    },
+    purchaseOrder:{
+      type:String,
+      required:false
     },
     billDate: {
       type: Date,
@@ -65,7 +68,7 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
     },
     status: {
       type: String,
-      enum: commonStatus,
+      enum: BillingRecordsStatus,
     },
     documents: {
       type: [String],
@@ -82,12 +85,15 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       required: true,
       default: 0,
     },
-
     total: {
       type: Number,
       required: true,
       default: 0,
     },
+    balanceDue:{
+      type:Number,
+      default:0
+    }
   },
   {
     timestamps: true,
@@ -108,6 +114,7 @@ export const BillingSchemaModelConstants = {
   vendorId: "vendorId",
   billNumber: "billNumber",
   purchaseOrderNumber: "purchaseOrderNumber",
+  purchaseOrder:"purchaseOrder",
   billDate: "billDate",
   dueDate: "dueDate",
   branchId: "branchId",

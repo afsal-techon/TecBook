@@ -18,7 +18,11 @@ const BillngRecordSchema = new mongoose_1.Schema({
     purchaseOrderNumber: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "PurchaseOrder",
-        required: true,
+        required: false,
+    },
+    purchaseOrder: {
+        type: String,
+        required: false
     },
     billDate: {
         type: Date,
@@ -33,9 +37,9 @@ const BillngRecordSchema = new mongoose_1.Schema({
         ref: "Branch",
         required: true,
     },
-    payment: {
-        type: String,
-        enum: enum_types_1.BillingPaymentStatus,
+    paymentTermsId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'PaymentTerm',
         required: true,
     },
     note: {
@@ -92,10 +96,11 @@ exports.BillingSchemaModelConstants = {
     vendorId: "vendorId",
     billNumber: "billNumber",
     purchaseOrderNumber: "purchaseOrderNumber",
+    purchaseOrder: "purchaseOrder",
     billDate: "billDate",
     dueDate: "dueDate",
     branchId: "branchId",
-    payment: "payment",
+    paymentTermsId: "paymentTermsId",
     items: "items",
     createdBy: "createdBy",
     isDeleted: "isDeleted",

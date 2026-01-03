@@ -30,10 +30,9 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import { imagekit } from "../../config/imageKit";
 import salesPersonModel from "../../models/salesPerson";
 import paymentTermModel from "../../models/paymentTerms";
-import { stat } from "fs";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import numberSettingModel from "../../models/numberSetting";
-import { numberSettingsDocumentType } from "../../types/enum.types";
+import { numberSettingsDocumentType, PurchaseOrderStatus } from "../../types/enum.types";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -156,6 +155,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         paymentTermsId: dto.paymentTermsId
           ? new Types.ObjectId(dto.paymentTermsId)
           : undefined,
+        billedStatus:PurchaseOrderStatus.YET_TO_BE_BILLED
       };
 
       const purchaseOrder = await this.genericCreateOne(payload);

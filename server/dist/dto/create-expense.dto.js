@@ -39,7 +39,8 @@ __decorate([
 ], CreateExpenseDto.prototype, "branchId", void 0);
 __decorate([
     (0, class_validator_1.IsEnum)(enum_types_1.TaxPreferences),
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateExpenseDto.prototype, "taxPreference", void 0);
 __decorate([
@@ -140,8 +141,9 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateExpenseDto.prototype, "branchId", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(enum_types_1.TaxPreferences),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateExpenseDto.prototype, "taxPreference", void 0);
 __decorate([

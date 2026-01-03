@@ -29,7 +29,7 @@ const ExpenseModelSchema = new mongoose_1.Schema({
     taxPreference: {
         type: String,
         enum: enum_types_1.TaxPreferences,
-        required: true,
+        required: false,
     },
     paidAccount: {
         type: mongoose_1.Schema.Types.ObjectId,

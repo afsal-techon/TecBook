@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { IBaseFIelds } from "./base.interface";
+import { commonStatus } from "../types/enum.types";
 
 export interface IPaymentMade extends IBaseFIelds{
     vendorId: Types.ObjectId,
@@ -8,7 +9,11 @@ export interface IPaymentMade extends IBaseFIelds{
     date: Date,
     bankCharge:number,
     paymentId:string,
-    paymentModeId:Types.ObjectId,
-    accountId:Types.ObjectId
-    note:string
+    paymentMode:string,
+    accountId:Types.ObjectId,
+    note:string,
+    reference?:string,
+    documents?:string[],
+    status: commonStatus;
+
 }
