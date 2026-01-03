@@ -101,6 +101,10 @@ export class CreateBillingRecordsDTO {
   @IsNumber()
   @IsOptional()
   total?: number;
+  
+  @IsNumber()
+  @IsOptional()
+  balanceDue?: number;
 }
 
 export class updateBillingRecordsDTO {
@@ -188,4 +192,8 @@ export class updateBillingRecordsDTO {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+  @IsNumber()
+  @IsOptional()
+  balanceDue?: number;
 }
