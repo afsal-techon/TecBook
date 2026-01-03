@@ -85,12 +85,15 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
       required: true,
       default: 0,
     },
-
     total: {
       type: Number,
       required: true,
       default: 0,
     },
+    balanceDue:{
+      type:Number,
+      default:0
+    }
   },
   {
     timestamps: true,
