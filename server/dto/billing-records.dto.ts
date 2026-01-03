@@ -10,7 +10,6 @@ import {
   ValidateNested,
 } from "class-validator";
 import {
-  BillingPaymentStatus,
   commonStatus,
   PurchaseOrderDiscountType,
 } from "../types/enum.types";

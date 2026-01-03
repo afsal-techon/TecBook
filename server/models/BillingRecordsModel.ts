@@ -1,6 +1,5 @@
 import { model, Schema } from "mongoose";
 import {
-  BillingPaymentStatus,
   commonStatus,
   PurchaseOrderDiscountType,
 } from "../types/enum.types";
