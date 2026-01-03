@@ -23,7 +23,10 @@ export enum commonStatus {
   INVOICED = "Invoiced",
   PENDING = "Pending",
   DECLINED = "Declined",
-  PAID ='Paid'
+  PAID ='Paid',
+  BILLED ='Billed',
+  CLOSED ='Closed',
+  ISSUED ='Issued',
 }
 
 export enum numberSettingsDocumentType {
