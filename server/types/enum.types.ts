@@ -54,3 +54,8 @@ export enum PurchaseOrderStatus {
   PARTIALLY_BILLED = 'Partially Billed',
   CANCELLED = 'Cancelled'
 }
+
+  export enum BillingRecordsStatus {
+    OPEN = 'Open',
+    PAID = 'Paid'
+  }
