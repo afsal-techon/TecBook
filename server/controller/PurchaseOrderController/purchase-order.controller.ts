@@ -30,7 +30,6 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import { imagekit } from "../../config/imageKit";
 import salesPersonModel from "../../models/salesPerson";
 import paymentTermModel from "../../models/paymentTerms";
-import { stat } from "fs";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import numberSettingModel from "../../models/numberSetting";
 import { numberSettingsDocumentType } from "../../types/enum.types";
