@@ -48,3 +48,10 @@ export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
   [numberSettingsDocumentType.BILL]: "BILL-",
   [numberSettingsDocumentType.EXPENSE]: "EXP-",
 };
+
+
+export enum PurchaseOrderStatus {
+  DRAFT = "Draft",
+  ISSUED = "Issued",
+  CLOSED = "Closed",
+}
