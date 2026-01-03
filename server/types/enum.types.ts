@@ -21,6 +21,7 @@ export enum commonStatus {
   BILLED ='Billed',
   CLOSED ='Closed',
   ISSUED ='Issued',
+  OPEN = 'Open',
 }
 
 export enum numberSettingsDocumentType {
@@ -52,10 +53,12 @@ export enum PurchaseOrderStatus {
   APPROVED = "Approved",
   BILLED ='Billed',
   PARTIALLY_BILLED = 'Partially Billed',
-  CANCELLED = 'Cancelled'
+  CANCELLED = 'Cancelled',
+  YET_TO_BE_BILLED ='Yet to be Billed'
 }
 
   export enum BillingRecordsStatus {
+    DRAFT ='Draft',
     OPEN = 'Open',
     PAID = 'Paid'
   }
