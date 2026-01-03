@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose, { Model, Types } from "mongoose";
+import mongoose, { Document, HydratedDocument, Model, Types } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import { IBillingRecords } from "../../Interfaces/billing-records.interface";
 import {
@@ -20,12 +20,20 @@ import purchaseOrderController from "../PurchaseOrderController/purchase-order.c
 import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
-import { PurchaseOrderModelConstants } from "../../models/purchaseOrderModel";
+import {
+  PurchaseOrderModel,
+  PurchaseOrderModelConstants,
+} from "../../models/purchaseOrderModel";
 import { imagekit } from "../../config/imageKit";
 import numberSettingModel from "../../models/numberSetting";
-import { numberSettingsDocumentType } from "../../types/enum.types";
+import {
+  BillingRecordsStatus,
+  numberSettingsDocumentType,
+  PurchaseOrderStatus,
+} from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import paymentTermModel from "../../models/paymentTerms";
+import { IPurchaseOrder } from "../../Interfaces/purchase-order.interface";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -34,19 +42,22 @@ class BillingRecordsController extends GenericDatabaseService<
   private readonly userModel: Model<IUser>;
   private readonly branchModel: Model<IBranch>;
   private readonly paymentTermModel: Model<IPaymentTerms>;
+  private readonly purchaseOrderModel: Model<IPurchaseOrder>;
   constructor(
     dbModel: Model<IBillingRecords>,
     vendorModel: Model<IVendor>,
     userModel: Model<IUser>,
     branchModel: Model<IBranch>,
     private readonly purchaseOrderService = purchaseOrderController,
-    paymentTermModel: Model<IPaymentTerms>
+    paymentTermModel: Model<IPaymentTerms>,
+    purchaseOrderModel: Model<IPurchaseOrder>
   ) {
     super(dbModel);
     this.vendorModel = vendorModel;
     this.userModel = userModel;
     this.branchModel = branchModel;
     this.paymentTermModel = paymentTermModel;
+    this.purchaseOrderModel = PurchaseOrderModel;
   }
 
   /**
@@ -70,22 +81,23 @@ class BillingRecordsController extends GenericDatabaseService<
     res: Response
   ) => {
     try {
-      const dto: CreateBillingRecordsDTO = req.body;
-      console.log(" ~ dto:", dto);
+      const dto = req.body;
       const userId = req.user?.id;
+
       if (!this.isValidMongoId(userId as string)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Invalid user id",
         });
       }
+
       await this.validateUser(userId as string);
       await this.validateBranch(dto.branchId);
       await this.validateVendor(dto.vendorId);
       await this.validatePaymenetTerms(dto.paymentTermsId);
 
-      const billDate: Date = new Date(dto.billDate);
-      const dueDate: Date = new Date(dto.dueDate);
+      const billDate = new Date(dto.billDate);
+      const dueDate = new Date(dto.dueDate);
 
       if (dueDate < billDate) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -96,16 +108,11 @@ class BillingRecordsController extends GenericDatabaseService<
 
       const items: IItem[] = this.mapItems(dto.items);
 
+      let purchaseOrderDoc: HydratedDocument<IPurchaseOrder> | null = null;
       if (dto.purchaseOrderNumber) {
-        await this.purchaseOrderService.genericFindOneByIdOrNotFound(
+        purchaseOrderDoc = await this.validatePurchaseOrder(
           dto.purchaseOrderNumber
         );
-      }
-      if (!userId) {
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-          success: false,
-          message: "Unauthorized",
-        });
       }
 
       const uploadedFiles: string[] = [];
@@ -125,16 +132,17 @@ class BillingRecordsController extends GenericDatabaseService<
         docType: numberSettingsDocumentType.BILL,
       });
 
-      if (!numberSetting)
+      if (!numberSetting) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message:
             "Number setting is not configured. Please configure it first.",
         });
+      }
 
       const billNumber = await generateDocumentNumber({
         branchId: dto.branchId,
-        manualId: numberSetting?.mode !== 'Auto' ? dto.billNumber : undefined,
+        manualId: numberSetting.mode !== "Auto" ? dto.billNumber : undefined,
         docType: numberSettingsDocumentType.BILL,
         Model: BillingSchemaModel,
         idField: BillingSchemaModelConstants.billNumber,
@@ -143,19 +151,28 @@ class BillingRecordsController extends GenericDatabaseService<
       const payload: Partial<IBillingRecords> = {
         ...dto,
         createdBy: new Types.ObjectId(userId),
-        items: items,
-        isDeleted: false,
         vendorId: new Types.ObjectId(dto.vendorId),
-        purchaseOrderNumber: new Types.ObjectId(dto.purchaseOrderNumber),
         branchId: new Types.ObjectId(dto.branchId),
-        billDate: new Date(dto.billDate),
-        dueDate: new Date(dto.dueDate),
-        documents: uploadedFiles,
+        paymentTermsId: new Types.ObjectId(dto.paymentTermsId),
+        purchaseOrderNumber: purchaseOrderDoc?._id as Types.ObjectId,
+        billDate,
+        dueDate,
         billNumber,
-        paymentTermsId: dto.paymentTermsId
-          ? new Types.ObjectId(dto.paymentTermsId)
-          : undefined,
+        items,
+        documents: uploadedFiles,
+        isDeleted: false,
+        balanceDue: dto.total,
       };
+
+      if (purchaseOrderDoc && dto.status === BillingRecordsStatus.OPEN) {
+        await this.purchaseOrderService.genericUpdateOneById(
+          purchaseOrderDoc._id as string,
+          {
+            status: PurchaseOrderStatus.CLOSED,
+            billedStatus: PurchaseOrderStatus.BILLED,
+          }
+        );
+      }
 
       const data = await this.genericCreateOne(payload);
 
@@ -164,18 +181,10 @@ class BillingRecordsController extends GenericDatabaseService<
         message: "Billing record created successfully",
         data,
       });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.log("Error while creating billing record", error.message);
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          message: error.message,
-        });
-      }
-      console.log("Error while creating billing record", error);
+    } catch (error: any) {
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
-        message: "Error while creating billing record",
+        message: error.message || "Error while creating billing record",
       });
     }
   };
@@ -488,6 +497,20 @@ class BillingRecordsController extends GenericDatabaseService<
     if (!paymentTerms) throw new Error("Payment terms not found");
   }
 
+  private async validatePurchaseOrder(
+    id: string
+  ): Promise<HydratedDocument<IPurchaseOrder>> {
+    if (!this.isValidMongoId(id)) throw new Error("Invalid purchase order");
+
+    const purchaseOrder = await this.purchaseOrderModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!purchaseOrder) throw new Error("Purchase order not found");
+
+    return purchaseOrder;
+  }
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
       itemId: new Types.ObjectId(item.itemId),
@@ -519,5 +542,6 @@ export default new BillingRecordsController(
   userModel,
   branchModel,
   purchaseOrderController,
-  paymentTermModel
+  paymentTermModel,
+  PurchaseOrderModel
 );

@@ -1,9 +1,3 @@
-export enum BillingPaymentStatus {
-  SALES = " sales",
-  COST_OF_GOODS_SOLD = "cost of goods sold",
-  CASH = "cash",
-}
-
 export enum PurchaseOrderDiscountType {
   PERCENTAGE = "%",
   FLAT = "flat",
@@ -23,7 +17,11 @@ export enum commonStatus {
   INVOICED = "Invoiced",
   PENDING = "Pending",
   DECLINED = "Declined",
-  PAID ='Paid'
+  PAID ='Paid',
+  BILLED ='Billed',
+  CLOSED ='Closed',
+  ISSUED ='Issued',
+  OPEN = 'Open',
 }
 
 export enum numberSettingsDocumentType {
@@ -45,3 +43,22 @@ export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
   [numberSettingsDocumentType.BILL]: "BILL-",
   [numberSettingsDocumentType.EXPENSE]: "EXP-",
 };
+
+
+export enum PurchaseOrderStatus {
+  DRAFT = "Draft",
+  ISSUED = "Issued",
+  CLOSED = "Closed",
+  PENDING_APPROVAL = "Pending Approval",
+  APPROVED = "Approved",
+  BILLED ='Billed',
+  PARTIALLY_BILLED = 'Partially Billed',
+  CANCELLED = 'Cancelled',
+  YET_TO_BE_BILLED ='Yet to be Billed'
+}
+
+  export enum BillingRecordsStatus {
+    DRAFT ='Draft',
+    OPEN = 'Open',
+    PAID = 'Paid'
+  }

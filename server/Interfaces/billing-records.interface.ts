@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { IBaseFIelds } from "./base.interface";
-import {  commonStatus } from "../types/enum.types";
+import {  BillingRecordsStatus } from "../types/enum.types";
 import { IItem } from "./item.interface";
 
 export interface IBillingRecords extends IBaseFIelds {
@@ -18,9 +18,10 @@ export interface IBillingRecords extends IBaseFIelds {
   discountType:string;
   discountValue:number;
   vatValue:number;
-  status:commonStatus;
+  status:BillingRecordsStatus;
   documents: string[];
   subTotal: number;
   taxTotal: number;
   total: number;
+  balanceDue?:number;
 }

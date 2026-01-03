@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import { IPurchaseOrder } from "../Interfaces/purchase-order.interface";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { ItemsSchemaFields } from "./common/ItemsSchemaFields";
-import { commonStatus, PurchaseOrderDiscountType } from "../types/enum.types";
+import { commonStatus, PurchaseOrderDiscountType, PurchaseOrderStatus } from "../types/enum.types";
 
 const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
@@ -100,6 +100,10 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
       ref: "PaymentTerm",
       default: null,
     },
+    billedStatus:{
+      type:String,
+      enum:PurchaseOrderStatus,
+    }
   },
   { timestamps: true }
 );
