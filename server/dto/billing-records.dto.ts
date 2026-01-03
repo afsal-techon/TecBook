@@ -10,6 +10,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import {
+  BillingRecordsStatus,
   commonStatus,
   PurchaseOrderDiscountType,
 } from "../types/enum.types";
@@ -87,8 +88,8 @@ export class CreateBillingRecordsDTO {
 
   @IsOptional()
   @IsString()
-  @IsEnum(commonStatus)
-  status?: commonStatus;
+  @IsEnum(BillingRecordsStatus)
+  status?: BillingRecordsStatus;
 
   @IsNumber()
   @IsOptional()
@@ -178,8 +179,8 @@ export class updateBillingRecordsDTO {
 
   @IsOptional()
   @IsString()
-  @IsEnum(commonStatus)
-  status?: commonStatus;
+  @IsEnum(BillingRecordsStatus)
+  status?: BillingRecordsStatus;
 
   @IsNumber()
   @IsOptional()
