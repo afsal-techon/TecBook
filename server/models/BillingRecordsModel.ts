@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 import {
-  commonStatus,
+  BillingRecordsStatus,
   PurchaseOrderDiscountType,
 } from "../types/enum.types";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
@@ -68,7 +68,7 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
     },
     status: {
       type: String,
-      enum: commonStatus,
+      enum: BillingRecordsStatus,
     },
     documents: {
       type: [String],
