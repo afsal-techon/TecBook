@@ -182,7 +182,33 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
-      if (dto.billId) await this.validateBill(dto.billId);
+      let billingRecord: HydratedDocument<IBillingRecords> | null = null;
+
+      if (dto.billId) {
+        billingRecord = await this.validateBill(dto.billId);
+      }
+
+      if (
+        billingRecord &&
+        billingRecord._id &&
+        dto.status === commonStatus.PAID &&
+        typeof dto.amount === "number"
+      ) {
+        let finalStatus: BillingRecordsStatus | null = null;
+
+        if (dto.amount >= billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PAID;
+        } else if (dto.amount > 0 && dto.amount < billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PARTIALLY_PAID;
+        }
+
+        if (finalStatus) {
+          await this.billingRecordService.genericUpdateOneById(
+            billingRecord._id.toString(),
+            { status: finalStatus }
+          );
+        }
+      }
 
       const updatedPayload: Partial<IPaymentMade> = {
         ...dto,
