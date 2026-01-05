@@ -316,6 +316,14 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
+
+  /**   
+   ** Retrieves a single credit note by ID.
+   * @description This method retrieves a single credit note by its ID from the database.
+   * It first validates the credit note ID, then fetches the credit note along with its related branch, customer, and sales person details.
+   * @param req The Express request object, containing the credit note ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   */
   getCreditNoteById = async (req: Request<{ id: string }>, res: Response) => {
     try {
       const { id } = req.params;
