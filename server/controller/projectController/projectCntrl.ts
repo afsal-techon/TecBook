@@ -1,13 +1,14 @@
 import USER from "../../models/user";
 import express, { Request, Response, NextFunction } from "express";
 import CUSTOMER from "../../models/customer";
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import PROJECT from "../../models/project";
 import LOGENTRY from "../../models/logEntry";
 import { parseTimeToMinutes } from "../../Helper/timeCalc";
 import { log } from "console";
+import { IProject } from "../../types/common.types";
 
 export const createProject = async (
   req: Request,
@@ -719,33 +720,68 @@ export const getProjects = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
-    const { branchId } = req.params;
     const userId = req.user?.id;
+    const branchId = req.query.branchId as string;
+    const customerId = req.query.customerId as string | undefined;
 
-    if(!mongoose.isValidObjectId(userId)) {
-         return res.status(400).json({ message: "User Id not valid!" });
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ message: "User Id not valid!" });
     }
 
-    
+    const user = await USER.findOne({
+      _id: userId,
+      isDeleted: false,
+    });
 
-    const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
 
-
-    const branch = await BRANCH.findById(branchId);
-    if(!branch){
-      return res.status(400).json({ message:'Branch not found!'})
+    if (!mongoose.isValidObjectId(branchId)) {
+      return res.status(400).json({ message: "Branch Id not valid!" });
     }
 
+    const branch = await BRANCH.findOne({
+      _id: branchId,
+      isDeleted: false,
+    });
 
-    const projects = await PROJECT.find({ branchId, isDeleted:false });
-    return res.status(200).json({ data: projects})
+    if (!branch) {
+      return res.status(400).json({ message: "Branch not found!" });
+    }
 
-  } catch (err) {
-    next(err);
+    if (customerId) {
+      if (!mongoose.isValidObjectId(customerId)) {
+        return res.status(400).json({ message: "Customer Id not valid!" });
+      }
+
+      const customer = await CUSTOMER.findOne({
+        _id: customerId,
+        isDeleted: false,
+      });
+
+      if (!customer) {
+        return res.status(400).json({ message: "Customer not found!" });
+      }
+    }
+
+    const query: FilterQuery<IProject> = {
+      branchId,
+      isDeleted: false,
+    };
+
+    if (customerId) {
+      query.customerId = customerId;
+    }
+
+    const projects = await PROJECT.find(query).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: projects,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
