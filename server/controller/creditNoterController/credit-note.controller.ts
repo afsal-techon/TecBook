@@ -1,4 +1,4 @@
-import { Model, Types } from "mongoose";
+import { FilterQuery, Model, Types } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   CreditNoteModel,
@@ -22,6 +22,7 @@ import { IItem } from "../../Interfaces/item.interface";
 import numberSettingModel from "../../models/numberSetting";
 import { numberSettingsDocumentType } from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
+import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 
 class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocument> {
   private readonly branchModel: Model<IBranch>;
@@ -135,7 +136,6 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
-  
   /**
    * Updates an existing credit note.
    * @description This method handles the update of an existing credit note. It first validates the provided credit note ID.
@@ -201,6 +201,73 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to update Credit Note",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
+  getAllCreditNotes = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit: number = parseInt(req.query.limit as string) || 20;
+      const page: number = parseInt(req.query.page as string) || 1;
+      const skip: number = (page - 1) * limit;
+      const search: string = (req.query.search as string) || "";
+      const filterBranchId: string | undefined = req.query.branchId as
+        | string
+        | undefined;
+
+      const { allowedBranchIds }: { allowedBranchIds: Types.ObjectId[] } =
+        await resolveUserAndAllowedBranchIds({
+          userId: authUser.id,
+          userModel: undefined as any,
+          branchModel: this.branchModel,
+          requestedBranchId: filterBranchId,
+        });
+
+      const query: FilterQuery<ICreditNote> = {
+        isDeleted: false,
+        branchId: { $in: allowedBranchIds },
+      };
+
+      if (search) {
+        query.creditNoteNumber = { $regex: search, $options: "i" };
+      }
+
+      const totalCount: number = await CreditNoteModel.countDocuments(query);
+
+      const creditNotes = await CreditNoteModel.find(query)
+        .populate(CreditNoteModelConstants.customerId)
+        .populate(CreditNoteModelConstants.salesPersonId)
+        .populate(CreditNoteModelConstants.branchId)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: creditNotes,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Failed to fetch Credit Note", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+          statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        });
+      }
+      console.log("Failed to fetch Credit Note", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch Credit Note",
         statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       });
     }
