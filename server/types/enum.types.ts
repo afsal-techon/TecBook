@@ -60,5 +60,6 @@ export enum PurchaseOrderStatus {
   export enum BillingRecordsStatus {
     DRAFT ='Draft',
     OPEN = 'Open',
-    PAID = 'Paid'
+    PAID = 'Paid',
+    PARTIALLY_PAID = 'Partially Paid',
   }
