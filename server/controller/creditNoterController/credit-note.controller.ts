@@ -36,6 +36,18 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     this.salesPersoneModel = salesPersoneModel;
   }
 
+  /**
+   * Creates a new credit note.
+   * @description This method handles the creation of a new credit note. It performs several validation checks:
+   * - Ensures a user is authenticated.
+   * - Validates the existence of the specified branch, customer, and sales person (if applicable).
+   * - Generates a unique credit note number based on number settings.
+   * - Uploads any attached documents to ImageKit.
+   * - Maps item DTOs to the required schema format.
+   * It then constructs and saves a new credit note document to the database.
+   * @param req The Express request object, containing the `CreateCreditNoteDto` in the body.
+   * @param res The Express response object used to send back the result.
+   */
   createCreditNote = async (
     req: Request<{}, {}, CreateCreditNoteDto>,
     res: Response
