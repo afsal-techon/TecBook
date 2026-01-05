@@ -64,6 +64,10 @@ export class CreatePaymentMadeDto {
   @IsString()
   @IsEnum(commonStatus)
   status?: commonStatus;
+
+  @IsOptional()
+  @IsMongoId()
+  billId?: string;
 }
 
 export class UpdatePaymentMadeDto {
@@ -126,4 +130,8 @@ export class UpdatePaymentMadeDto {
   @IsString()
   @IsEnum(commonStatus)
   status?: commonStatus;
+
+  @IsOptional()
+  @IsMongoId()
+  billId?: string;
 }

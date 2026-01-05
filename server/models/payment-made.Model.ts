@@ -43,25 +43,31 @@ const paymentMadeSchmea = new Schema<IPaymentMade>(
       type: String,
       default: null,
     },
-    reference:{
-      type:String,
-      default:null
+    reference: {
+      type: String,
+      default: null,
     },
-        documents: {
+    documents: {
       type: [String],
       default: [],
     },
-        status: {
-          type: String,
-          enum: commonStatus
-        },
+    status: {
+      type: String,
+      enum: commonStatus,
+    },
+    billId:{
+      type:Schema.Types.ObjectId,
+      ref:'BillingRecords',
+      required:false,
+      default:null
+    }
   },
   {
     timestamps: true,
   }
 );
 
-paymentMadeSchmea.add(BaseSchemaFields)
+paymentMadeSchmea.add(BaseSchemaFields);
 
 const paymentMadeModel: Model<IPaymentMade> = model(
   "PaymentMade",
@@ -72,19 +78,19 @@ export default paymentMadeModel;
 
 export type PaymentMadeModelDocument = typeof paymentMadeModel;
 
-export const PaymentMadeModelConstants  = {
-    vendorId:'vendorId',
-    branchId:'branchId',
-    amount:'amount',
-    date:'date',
-    bankCharge:'bankCharge',
-    paymentId:'paymentId',
-    paymentMode:'paymentMode',
-    accountId:'accountId',
-    note:'note',
-    createdBy:'createdBy',
-    isDeleted:'isDeleted',
-    reference:'reference',
-    documents:'documents',
-    status:'status',
+export const PaymentMadeModelConstants = {
+  vendorId: "vendorId",
+  branchId: "branchId",
+  amount: "amount",
+  date: "date",
+  bankCharge: "bankCharge",
+  paymentId: "paymentId",
+  paymentMode: "paymentMode",
+  accountId: "accountId",
+  note: "note",
+  createdBy: "createdBy",
+  isDeleted: "isDeleted",
+  reference: "reference",
+  documents: "documents",
+  status: "status",
 } as const;
