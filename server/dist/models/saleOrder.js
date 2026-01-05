@@ -54,6 +54,11 @@ const saleOrderSchema = new mongoose_1.Schema({
         ref: "Employee",
         default: null,
     },
+    projectId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Project",
+        default: null,
+    },
     saleOrderDate: {
         type: Date,
         default: null,
@@ -64,7 +69,15 @@ const saleOrderSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ["Draft", "Closed", "Confirmed", "Accepted", "Approved", "Invoiced", "Pending"],
+        enum: [
+            "Draft",
+            "Closed",
+            "Confirmed",
+            "Accepted",
+            "Approved",
+            "Invoiced",
+            "Pending",
+        ],
     },
     items: [
         {
@@ -108,7 +121,7 @@ const saleOrderSchema = new mongoose_1.Schema({
     },
     terms: {
         type: String,
-        default: false
+        default: false,
     },
     note: {
         type: String,

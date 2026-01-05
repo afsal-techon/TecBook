@@ -22,7 +22,9 @@ const upsertDocumentNumberSetting = async (req, res, next) => {
             return res.status(400).json({ message: "Branch ID is required!" });
         }
         if (!mode || (mode !== "Auto" && mode !== "Manual")) {
-            return res.status(400).json({ message: "Mode must be 'Auto' or 'Manual'" });
+            return res
+                .status(400)
+                .json({ message: "Mode must be 'Auto' or 'Manual'" });
         }
         //  Common update object
         const updateData = {
@@ -49,9 +51,8 @@ const upsertDocumentNumberSetting = async (req, res, next) => {
         }
         else {
             // Manual
-            updateData.prefix = prefix && prefix.trim()
-                ? prefix.trim()
-                : getDefaultPrefix(docType);
+            updateData.prefix =
+                prefix && prefix.trim() ? prefix.trim() : getDefaultPrefix(docType);
             updateData.nextNumber = null;
             // updateData.nextNumberRaw = "1";
         }
@@ -85,6 +86,8 @@ function getDefaultPrefix(docType) {
             return "BILL-";
         case "EXPENSE":
             return "EXP-";
+        case "CREDIT_NOTE":
+            return "CN-";
         default:
             return "DOC-";
     }

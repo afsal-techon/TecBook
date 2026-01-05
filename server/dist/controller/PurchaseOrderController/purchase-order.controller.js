@@ -88,7 +88,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     });
                 const purchaseOrderNumber = await (0, generateDocumentNumber_1.generateDocumentNumber)({
                     branchId: dto.branchId,
-                    manualId: numberSetting?.mode !== 'Auto' ? dto.purchaseOrderId : undefined,
+                    manualId: numberSetting?.mode !== "Auto" ? dto.purchaseOrderId : undefined,
                     docType: enum_types_1.numberSettingsDocumentType.PURCHASE_ORDER,
                     Model: purchaseOrderModel_1.PurchaseOrderModel,
                     idField: purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderId,
@@ -137,6 +137,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     paymentTermsId: dto.paymentTermsId
                         ? new mongoose_1.Types.ObjectId(dto.paymentTermsId)
                         : undefined,
+                    billedStatus: enum_types_1.PurchaseOrderStatus.YET_TO_BE_BILLED,
                 };
                 const purchaseOrder = await this.genericCreateOne(payload);
                 res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -262,8 +263,8 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
         this.getAllPurchaseOrders = async (req, res, next) => {
             try {
                 const authUser = req.user;
-                const limit = parseInt(req.query.limit) || 20;
-                const page = parseInt(req.query.page) || 1;
+                const limit = Number(req.query.limit) || 20;
+                const page = Number(req.query.page) || 1;
                 const skip = (page - 1) * limit;
                 const search = req.query.search || "";
                 const filterBranchId = req.query.branchId;
@@ -273,26 +274,60 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     branchModel: this.branchModel,
                     requestedBranchId: filterBranchId,
                 });
-                // console.log("allowedBranchIds", allowedBranchIds);
-                const query = {
-                    isDeleted: false,
-                    branchId: { $in: allowedBranchIds },
-                };
+                const pipeline = [
+                    {
+                        $match: {
+                            isDeleted: false,
+                            branchId: { $in: allowedBranchIds },
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "vendors",
+                            localField: "vendorId",
+                            foreignField: "_id",
+                            as: "vendor",
+                        },
+                    },
+                    { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+                    {
+                        $lookup: {
+                            from: "salespeoples",
+                            localField: "salesPersonId",
+                            foreignField: "_id",
+                            as: "salesPerson",
+                        },
+                    },
+                    { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
+                    {
+                        $lookup: {
+                            from: "projects",
+                            localField: "projectId",
+                            foreignField: "_id",
+                            as: "project",
+                        },
+                    },
+                    { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
+                ];
                 if (search) {
-                    query.quoteNumber = { $regex: search, $options: "i" };
+                    pipeline.push({
+                        $match: {
+                            $or: [
+                                { purchaseOrderId: { $regex: search, $options: "i" } },
+                                { quote: { $regex: search, $options: "i" } },
+                                { status: { $regex: search, $options: "i" } },
+                                { "vendor.name": { $regex: search, $options: "i" } },
+                                { "salesPerson.name": { $regex: search, $options: "i" } },
+                                { "project.name": { $regex: search, $options: "i" } },
+                            ],
+                        },
+                    });
                 }
-                const totalCount = await purchaseOrderModel_1.PurchaseOrderModel.countDocuments(query);
-                // console.log('count', totalCount)
-                const purchaseOrders = await purchaseOrderModel_1.PurchaseOrderModel.find(query)
-                    .sort({ createdAt: -1 })
-                    .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.vendorId)
-                    .populate({
-                    path: purchaseOrderModel_1.PurchaseOrderModelConstants.salesPersonId,
-                    select: "name email",
-                })
-                    .populate(purchaseOrderModel_1.PurchaseOrderModelConstants.projectId)
-                    .skip(skip)
-                    .limit(limit);
+                const countPipeline = [...pipeline, { $count: "total" }];
+                const countResult = await purchaseOrderModel_1.PurchaseOrderModel.aggregate(countPipeline);
+                const totalCount = countResult[0]?.total || 0;
+                pipeline.push({ $sort: { createdAt: -1 } }, { $skip: skip }, { $limit: limit });
+                const purchaseOrders = await purchaseOrderModel_1.PurchaseOrderModel.aggregate(pipeline);
                 res.status(http_status_1.HTTP_STATUS.OK).json({
                     success: true,
                     data: purchaseOrders,
@@ -406,6 +441,46 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                     success: false,
                     message: "Failed to delete purchase order",
+                    statusCode: http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR,
+                });
+            }
+        };
+        this.updatePurchaseOrderStatus = async (req, res) => {
+            try {
+                const { id } = req.params;
+                if (!this.isValidMongoId(id)) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Invalid purchase order id",
+                    });
+                }
+                await this.genericFindOneByIdOrNotFound(id);
+                const { status } = req.body;
+                if (!Object.values(enum_types_1.PurchaseOrderStatus).includes(status)) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Invalid status provided",
+                    });
+                }
+                const result = await this.genericUpdateOneById(id, { status });
+                return res.status(result.data.statusCode).json({
+                    success: result.data.success,
+                    message: result.data.message,
+                    statusCode: result.data.statusCode,
+                });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.error("Failed to update purchase order status", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                console.log("Failed to update purchase order status", error);
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to update purchase order status",
                     statusCode: http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR,
                 });
             }

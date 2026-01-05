@@ -102,7 +102,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
+    (0, class_validator_1.IsEnum)(enum_types_1.BillingRecordsStatus),
     __metadata("design:type", String)
 ], CreateBillingRecordsDTO.prototype, "status", void 0);
 __decorate([
@@ -120,6 +120,11 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreateBillingRecordsDTO.prototype, "total", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateBillingRecordsDTO.prototype, "balanceDue", void 0);
 class updateBillingRecordsDTO {
 }
 exports.updateBillingRecordsDTO = updateBillingRecordsDTO;
@@ -206,7 +211,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
+    (0, class_validator_1.IsEnum)(enum_types_1.BillingRecordsStatus),
     __metadata("design:type", String)
 ], updateBillingRecordsDTO.prototype, "status", void 0);
 __decorate([
@@ -224,3 +229,8 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], updateBillingRecordsDTO.prototype, "total", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], updateBillingRecordsDTO.prototype, "balanceDue", void 0);

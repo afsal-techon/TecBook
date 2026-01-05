@@ -51,6 +51,11 @@ exports.ItemsSchemaFields = {
                 type: mongoose_1.Schema.Types.ObjectId,
                 ref: "Account",
                 default: null,
+            },
+            projectId: {
+                type: mongoose_1.Schema.Types.ObjectId,
+                ref: "Project",
+                default: null,
             }
         },
     ],

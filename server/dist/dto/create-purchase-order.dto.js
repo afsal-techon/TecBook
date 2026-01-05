@@ -98,7 +98,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderStatus),
     __metadata("design:type", String)
 ], CreatePurchaseOrderDto.prototype, "status", void 0);
 __decorate([
@@ -121,6 +121,12 @@ __decorate([
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], CreatePurchaseOrderDto.prototype, "paymentTermsId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderStatus),
+    __metadata("design:type", String)
+], CreatePurchaseOrderDto.prototype, "billedStatus", void 0);
 class UpdatePurchaseOrderDto {
 }
 exports.UpdatePurchaseOrderDto = UpdatePurchaseOrderDto;
@@ -212,7 +218,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderStatus),
     __metadata("design:type", String)
 ], UpdatePurchaseOrderDto.prototype, "status", void 0);
 __decorate([
@@ -235,3 +241,9 @@ __decorate([
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], UpdatePurchaseOrderDto.prototype, "paymentTermsId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(enum_types_1.PurchaseOrderStatus),
+    __metadata("design:type", String)
+], UpdatePurchaseOrderDto.prototype, "billedStatus", void 0);

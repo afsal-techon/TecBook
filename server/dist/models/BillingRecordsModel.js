@@ -65,7 +65,7 @@ const BillngRecordSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: enum_types_1.commonStatus,
+        enum: enum_types_1.BillingRecordsStatus,
     },
     documents: {
         type: [String],
@@ -86,6 +86,10 @@ const BillngRecordSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
+    balanceDue: {
+        type: Number,
+        default: 0
+    }
 }, {
     timestamps: true,
 });

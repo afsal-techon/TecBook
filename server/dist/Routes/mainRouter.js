@@ -128,7 +128,7 @@ router.post('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin
 router.put('/project/:projectIid', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_update'), projectCntrl_1.updateProject);
 router.get('/project', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getAllProjects);
 router.get('/project/:projectId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getOneProject);
-router.get('/projects/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getProjects);
+router.get('/projects', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'Project', 'can_read'), projectCntrl_1.getProjects);
 router.post('/sales-person', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_create'), salesPerson_1.createSalesPerson);
 router.get('/sales-person/:branchId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_read'), salesPerson_1.getSalesPerson);
 router.put('/sales-person/:salesPersonId', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'SalesPerson', 'can_update'), salesPerson_1.updateSalesPerson);

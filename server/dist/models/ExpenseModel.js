@@ -85,6 +85,15 @@ const ExpenseModelSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
+    projectId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Project',
+        default: null
+    },
+    isBillable: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true,
 });
@@ -112,5 +121,7 @@ exports.ExpenseModelConstants = {
     subTotal: "subTotal",
     taxTotal: "taxTotal",
     total: "total",
+    projectId: 'projectId',
+    isBillable: 'isBillable'
 };
 // export type ExpenseModelField = keyof typeof ExpenseModelConstants;

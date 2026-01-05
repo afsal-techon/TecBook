@@ -81,6 +81,11 @@ __decorate([
     (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
     __metadata("design:type", String)
 ], CreatePaymentMadeDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], CreatePaymentMadeDto.prototype, "billId", void 0);
 class UpdatePaymentMadeDto {
 }
 exports.UpdatePaymentMadeDto = UpdatePaymentMadeDto;
@@ -154,3 +159,8 @@ __decorate([
     (0, class_validator_1.IsEnum)(enum_types_1.commonStatus),
     __metadata("design:type", String)
 ], UpdatePaymentMadeDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], UpdatePaymentMadeDto.prototype, "billId", void 0);
