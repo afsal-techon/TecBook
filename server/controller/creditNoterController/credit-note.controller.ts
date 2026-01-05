@@ -135,6 +135,14 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
+  
+  /**
+   * Updates an existing credit note.
+   * @description This method handles the update of an existing credit note. It first validates the provided credit note ID.
+   * It then validates the associated branch, customer, and sales person (if provided) to ensure their existence. Finally, it updates the credit note in the database with the new data.
+   * @param req The Express request object, containing the credit note ID in `req.params.id` and the `UpdateCreditNoteDto` in the body.
+   * @param res The Express response object used to send back the result.
+   */
   updateCreditNoteById = async (
     req: Request<{ id: string }, {}, UpdateCreditNoteDto>,
     res: Response
