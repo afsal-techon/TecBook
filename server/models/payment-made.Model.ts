@@ -55,6 +55,12 @@ const paymentMadeSchmea = new Schema<IPaymentMade>(
       type: String,
       enum: commonStatus,
     },
+    billId:{
+      type:Schema.Types.ObjectId,
+      ref:'BillingRecords',
+      required:false,
+      default:null
+    }
   },
   {
     timestamps: true,
