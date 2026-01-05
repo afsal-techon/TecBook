@@ -217,40 +217,72 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     try {
       const authUser = req.user as { id: string };
 
-      const limit: number = parseInt(req.query.limit as string) || 20;
-      const page: number = parseInt(req.query.page as string) || 1;
-      const skip: number = (page - 1) * limit;
-      const search: string = (req.query.search as string) || "";
-      const filterBranchId: string | undefined = req.query.branchId as
-        | string
-        | undefined;
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
+      const skip = (page - 1) * limit;
+      const search = (req.query.search as string) || "";
+      const filterBranchId = req.query.branchId as string | undefined;
 
-      const { allowedBranchIds }: { allowedBranchIds: Types.ObjectId[] } =
-        await resolveUserAndAllowedBranchIds({
-          userId: authUser.id,
-          userModel: undefined as any,
-          branchModel: this.branchModel,
-          requestedBranchId: filterBranchId,
-        });
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: undefined as any,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
 
-      const query: FilterQuery<ICreditNote> = {
-        isDeleted: false,
-        branchId: { $in: allowedBranchIds },
-      };
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+          },
+        },
+
+        {
+          $lookup: {
+            from: "customers",
+            localField: "customerId",
+            foreignField: "_id",
+            as: "customer",
+          },
+        },
+        { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: "salespeoples",
+            localField: "salesPersonId",
+            foreignField: "_id",
+            as: "salesPerson",
+          },
+        },
+        { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
+      ];
 
       if (search) {
-        query.creditNoteNumber = { $regex: search, $options: "i" };
+        pipeline.push({
+          $match: {
+            $or: [
+              { creditNoteNumber: { $regex: search, $options: "i" } },
+              { subject: { $regex: search, $options: "i" } },
+              { "customer.name": { $regex: search, $options: "i" } },
+              { "salesPerson.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        });
       }
 
-      const totalCount: number = await CreditNoteModel.countDocuments(query);
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await CreditNoteModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
 
-      const creditNotes = await CreditNoteModel.find(query)
-        .populate(CreditNoteModelConstants.customerId)
-        .populate(CreditNoteModelConstants.salesPersonId)
-        .populate(CreditNoteModelConstants.branchId)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
+
+      const creditNotes = await CreditNoteModel.aggregate(pipeline);
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -271,7 +303,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
           statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
         });
       }
-      console.log("Failed to fetch Credit Note", error);
+
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to fetch Credit Note",
@@ -316,8 +348,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
-
-  /**   
+  /**
    ** Retrieves a single credit note by ID.
    * @description This method retrieves a single credit note by its ID from the database.
    * It first validates the credit note ID, then fetches the credit note along with its related branch, customer, and sales person details.
