@@ -475,6 +475,50 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     }
   };
 
+
+  updatePurchaseOrderStatus = async (
+    req: Request<{ id: string }, {}, { status: PurchaseOrderStatus }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid purchase order id",
+        })
+      }
+      await this.genericFindOneByIdOrNotFound(id);
+      const { status } = req.body;
+      if(!Object.values(PurchaseOrderStatus).includes(status)){
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid status provided",
+        });
+      }
+      const result = await this.genericUpdateOneById(id, { status });
+      return res.status(result.data.statusCode).json({
+        success: result.data.success,
+        message: result.data.message,
+        statusCode: result.data.statusCode,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to update purchase order status", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to update purchase order status", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to update purchase order status",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
   // Helper methods for validations
   private async validateVendor(vendorId: string) {
     const vendor = await this.vendorModel.findOne({
