@@ -15,5 +15,7 @@ export interface IPaymentMade extends IBaseFIelds{
     reference?:string,
     documents?:string[],
     status: commonStatus;
+    billId?:Types.ObjectId
+
 
 }
