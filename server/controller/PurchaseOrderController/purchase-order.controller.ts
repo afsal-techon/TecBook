@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import mongoose, { Types, Model } from "mongoose";
+import mongoose, { Types, Model, FilterQuery } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   PurchaseOrderModel,
@@ -32,7 +32,10 @@ import salesPersonModel from "../../models/salesPerson";
 import paymentTermModel from "../../models/paymentTerms";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import numberSettingModel from "../../models/numberSetting";
-import { numberSettingsDocumentType, PurchaseOrderStatus } from "../../types/enum.types";
+import {
+  numberSettingsDocumentType,
+  PurchaseOrderStatus,
+} from "../../types/enum.types";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -93,15 +96,17 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         docType: numberSettingsDocumentType.PURCHASE_ORDER,
       });
 
-      if(!numberSetting) return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Number setting is not configured. Please configure it first.",
-      });
-
+      if (!numberSetting)
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message:
+            "Number setting is not configured. Please configure it first.",
+        });
 
       const purchaseOrderNumber = await generateDocumentNumber({
         branchId: dto.branchId,
-        manualId: numberSetting?.mode !== 'Auto' ? dto.purchaseOrderId : undefined,
+        manualId:
+          numberSetting?.mode !== "Auto" ? dto.purchaseOrderId : undefined,
         docType: numberSettingsDocumentType.PURCHASE_ORDER,
         Model: PurchaseOrderModel,
         idField: PurchaseOrderModelConstants.purchaseOrderId,
@@ -155,7 +160,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         paymentTermsId: dto.paymentTermsId
           ? new Types.ObjectId(dto.paymentTermsId)
           : undefined,
-        billedStatus:PurchaseOrderStatus.YET_TO_BE_BILLED
+        billedStatus: PurchaseOrderStatus.YET_TO_BE_BILLED,
       };
 
       const purchaseOrder = await this.genericCreateOne(payload);
@@ -303,8 +308,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     try {
       const authUser = req.user as { id: string };
 
-      const limit = parseInt(req.query.limit as string) || 20;
-      const page = parseInt(req.query.page as string) || 1;
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
       const skip = (page - 1) * limit;
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
@@ -316,30 +321,69 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         requestedBranchId: filterBranchId,
       });
 
-      // console.log("allowedBranchIds", allowedBranchIds);
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+          },
+        },
+        {
+          $lookup: {
+            from: "vendors",
+            localField: "vendorId",
+            foreignField: "_id",
+            as: "vendor",
+          },
+        },
+        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+        {
+          $lookup: {
+            from: "salespeoples",
+            localField: "salesPersonId",
+            foreignField: "_id",
+            as: "salesPerson",
+          },
+        },
+        { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
 
-      const query: any = {
-        isDeleted: false,
-        branchId: { $in: allowedBranchIds },
-      };
+        {
+          $lookup: {
+            from: "projects",
+            localField: "projectId",
+            foreignField: "_id",
+            as: "project",
+          },
+        },
+        { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
+      ];
 
       if (search) {
-        query.quoteNumber = { $regex: search, $options: "i" };
+        pipeline.push({
+          $match: {
+            $or: [
+              { purchaseOrderId: { $regex: search, $options: "i" } },
+              { quote: { $regex: search, $options: "i" } },
+              { status: { $regex: search, $options: "i" } },
+              { "vendor.name": { $regex: search, $options: "i" } },
+              { "salesPerson.name": { $regex: search, $options: "i" } },
+              { "project.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        });
       }
 
-      const totalCount = await PurchaseOrderModel.countDocuments(query);
-      // console.log('count', totalCount)
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await PurchaseOrderModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
 
-      const purchaseOrders = await PurchaseOrderModel.find(query)
-        .sort({ createdAt: -1 })
-        .populate(PurchaseOrderModelConstants.vendorId)
-        .populate({
-          path: PurchaseOrderModelConstants.salesPersonId,
-          select: "name email",
-        })
-        .populate(PurchaseOrderModelConstants.projectId)
-        .skip(skip)
-        .limit(limit);
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
+
+      const purchaseOrders = await PurchaseOrderModel.aggregate(pipeline);
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -475,7 +519,6 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     }
   };
 
-
   updatePurchaseOrderStatus = async (
     req: Request<{ id: string }, {}, { status: PurchaseOrderStatus }>,
     res: Response
@@ -486,11 +529,11 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Invalid purchase order id",
-        })
+        });
       }
       await this.genericFindOneByIdOrNotFound(id);
       const { status } = req.body;
-      if(!Object.values(PurchaseOrderStatus).includes(status)){
+      if (!Object.values(PurchaseOrderStatus).includes(status)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: "Invalid status provided",
