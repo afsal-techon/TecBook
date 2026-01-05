@@ -327,43 +327,58 @@ class BillingRecordsController extends GenericDatabaseService<
     try {
       const authUser = req.user as { id: string };
 
-      const limit = parseInt(req.query.limit as string) || 20;
-      const page = parseInt(req.query.page as string) || 1;
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
       const skip = (page - 1) * limit;
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
 
-      const { user, allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
         userModel: this.userModel,
         branchModel: this.branchModel,
         requestedBranchId: filterBranchId,
       });
 
-      // console.log("allowedBranchIds", allowedBranchIds);
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+          },
+        },
 
-      const query: any = {
-        isDeleted: false,
-        branchId: { $in: allowedBranchIds },
-      };
+        {
+          $lookup: {
+            from: "vendors",
+            localField: "vendorId",
+            foreignField: "_id",
+            as: "vendor",
+          },
+        },
+        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+      ];
 
       if (search) {
-        query.quoteNumber = { $regex: search, $options: "i" };
+        pipeline.push({
+          $match: {
+            $or: [
+              { billNumber: { $regex: search, $options: "i" } },
+              { "vendor.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        });
       }
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await BillingSchemaModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
 
-      const totalCount = await BillingSchemaModel.countDocuments(query);
-      // console.log('count', totalCount)
-
-      const billingRecords = await BillingSchemaModel.find(query)
-        .sort({ createdAt: -1 })
-        .populate(BillingSchemaModelConstants.vendorId)
-        .populate({
-          path: BillingSchemaModelConstants.purchaseOrderNumber,
-          select: `${PurchaseOrderModelConstants.purchaseOrderId}`,
-        })
-        .populate(BillingSchemaModelConstants.branchId)
-        .skip(skip)
-        .limit(limit);
+      const billingRecords = await BillingSchemaModel.aggregate(pipeline);
 
       res.status(HTTP_STATUS.OK).json({
         success: true,

@@ -6,7 +6,7 @@ import { Types } from "mongoose";
 import { numberSettingsDocumentType, PREFIX_MAP } from "../types/enum.types";
 
 // POST or PUT /api/quotes/settings
-export const upsertDocumentNumberSetting  = async (
+export const upsertDocumentNumberSetting = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -22,7 +22,7 @@ export const upsertDocumentNumberSetting  = async (
     }: {
       branchId: string;
       prefix?: string;
-      docType: numberSettingsDocumentType
+      docType: numberSettingsDocumentType;
       nextNumber?: string;
       mode: string;
     } = req.body;
@@ -37,8 +37,10 @@ export const upsertDocumentNumberSetting  = async (
       return res.status(400).json({ message: "Branch ID is required!" });
     }
 
-      if (!mode || (mode !== "Auto" && mode !== "Manual")) {
-      return res.status(400).json({ message: "Mode must be 'Auto' or 'Manual'" });
+    if (!mode || (mode !== "Auto" && mode !== "Manual")) {
+      return res
+        .status(400)
+        .json({ message: "Mode must be 'Auto' or 'Manual'" });
     }
 
     //  Common update object
@@ -48,7 +50,7 @@ export const upsertDocumentNumberSetting  = async (
       mode,
     };
 
-   if (mode === "Auto") {
+    if (mode === "Auto") {
       if (!nextNumber || typeof nextNumber !== "string" || !nextNumber.trim()) {
         return res
           .status(400)
@@ -63,19 +65,18 @@ export const upsertDocumentNumberSetting  = async (
           .json({ message: "Next number must be a number >= 1" });
       }
 
-      updateData.prefix = prefix?.trim() ||PREFIX_MAP[docType] ;
+      updateData.prefix = prefix?.trim() || PREFIX_MAP[docType];
       updateData.nextNumber = numeric;
       updateData.nextNumberRaw = clean;
-    } else  {
+    } else {
       // Manual
-      updateData.prefix = prefix && prefix.trim()
-        ? prefix.trim()
-        : getDefaultPrefix(docType);
+      updateData.prefix =
+        prefix && prefix.trim() ? prefix.trim() : getDefaultPrefix(docType);
       updateData.nextNumber = null;
       // updateData.nextNumberRaw = "1";
     }
 
-       const setting = await numberSettingModel.findOneAndUpdate(
+    const setting = await numberSettingModel.findOneAndUpdate(
       {
         branchId: new Types.ObjectId(branchId),
         docType,
@@ -83,7 +84,6 @@ export const upsertDocumentNumberSetting  = async (
       updateData,
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-
 
     return res.status(200).json({
       message: "Number setting saved successfully",
@@ -102,14 +102,16 @@ function getDefaultPrefix(docType: string) {
       return "SO-";
     case "INVOICE":
       return "INV-";
-        case "PAYMENT":
+    case "PAYMENT":
       return "PAY-";
     case "PURCHASE_ORDER":
-      return "PO-";  
+      return "PO-";
     case "BILL":
       return "BILL-";
-     case "EXPENSE":
-      return "EXP-";  
+    case "EXPENSE":
+      return "EXP-";
+    case "CREDIT_NOTE":
+      return "CN-";
     default:
       return "DOC-";
   }
@@ -125,24 +127,22 @@ export const getNextQuotePreview = async (
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-     const branchId = (req.query.branchId as string) 
-    
+    const branchId = req.query.branchId as string;
+
     if (!branchId)
       return res.status(400).json({ message: "Branch ID is required!" });
 
-    const docType = (req.query.docType as string) 
-
+    const docType = req.query.docType as string;
 
     const setting = await numberSettingModel.findOne({
       branchId: new Types.ObjectId(branchId),
       docType,
     });
-    
 
     // If no setting yet – fallback default
-     const defaultPrefix = getDefaultPrefix(docType);
+    const defaultPrefix = getDefaultPrefix(docType);
 
-     const prefix = setting?.prefix ?? defaultPrefix;
+    const prefix = setting?.prefix ?? defaultPrefix;
     // if setting.nextNumberRaw is "0001" → length = 4
     // if "1" → length = 1
     const raw = setting?.nextNumberRaw ?? "00001";
@@ -158,11 +158,9 @@ export const getNextQuotePreview = async (
       prefix,
       nextNumber: numeric,
       nextNumberRaw: raw,
-      mode:setting?.mode,
+      mode: setting?.mode,
     });
   } catch (err) {
     next(err);
   }
 };
-
-

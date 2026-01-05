@@ -53,10 +53,12 @@ export class ItemDto {
   @IsOptional()
   discount?: number;
 
+  @Transform(({ value }) => value === "" || value === null ? undefined : value)
   @IsOptional()
   @IsMongoId()
   customerId?: string;
 
+  @Transform(({ value }) => value === "" || value === null ? undefined : value)
   @IsOptional()
   @IsMongoId()
   accountId?: string;

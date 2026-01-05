@@ -105,12 +105,14 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       if (!numberSetting)
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
-          message: "Number setting is not configured. Please configure it first.",
+          message:
+            "Number setting is not configured. Please configure it first.",
         });
 
       const expenseNumber = await generateDocumentNumber({
         branchId: dto.branchId,
-        manualId: numberSetting?.mode !== "Auto" ? dto.expenseNumber : undefined,
+        manualId:
+          numberSetting?.mode !== "Auto" ? dto.expenseNumber : undefined,
         docType: numberSettingsDocumentType.EXPENSE,
         Model: ExpenseModel,
         idField: ExpenseModelConstants.expenseNumber,
@@ -261,10 +263,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     try {
       const authUser = req.user as { id: string };
 
-      const limit: number = parseInt(req.query.limit as string) || 20;
-      const page: number = parseInt(req.query.page as string) || 1;
-      const skip: number = (page - 1) * limit;
-      const search: string = (req.query.search as string) || "";
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
+      const skip = (page - 1) * limit;
+      const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
 
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
@@ -274,31 +276,69 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         requestedBranchId: filterBranchId,
       });
 
-      const query: FilterQuery<IExpenses> = {
-        isDeleted: false,
-        branchId: { $in: allowedBranchIds },
-      };
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+          },
+        },
+
+        {
+          $lookup: {
+            from: "vendors",
+            localField: "vendorId",
+            foreignField: "_id",
+            as: "vendor",
+          },
+        },
+        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: "accounts",
+            localField: "paidAccount",
+            foreignField: "_id",
+            as: "paidAccount",
+          },
+        },
+        { $unwind: { path: "$paidAccount", preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: "customers",
+            localField: "customerId",
+            foreignField: "_id",
+            as: "customer",
+          },
+        },
+        { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
+      ];
 
       if (search) {
-        query.expenseNumber = { $regex: search, $options: "i" };
+        pipeline.push({
+          $match: {
+            $or: [
+              { expenseNumber: { $regex: search, $options: "i" } },
+              { "vendor.name": { $regex: search, $options: "i" } },
+              { "paidAccount.accountName": { $regex: search, $options: "i" } },
+              { "customer.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        });
       }
 
-      const totalCount: number = await ExpenseModel.countDocuments(query);
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await ExpenseModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
 
-      const expenses = await ExpenseModel.find(query)
-        .sort({ createdAt: -1 })
-        .populate(ExpenseModelConstants.vendorId)
-        .populate(ExpenseModelConstants.branchId)
-        .populate({
-          path:ExpenseModelConstants.paidAccount,
-          select: 'accountName'
-        })
-        .populate({
-          path:ExpenseModelConstants.customerId,
-          select: 'name'
-        })
-        .skip(skip)
-        .limit(limit);
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
+
+      const expenses = await ExpenseModel.aggregate(pipeline);
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -310,19 +350,8 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
           totalPages: Math.ceil(totalCount / limit),
         },
       });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.log("Error while getting all expenses", error.message);
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          message: error.message,
-        });
-      }
-      console.log("Error while getting all expenses", error);
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: "failed to get all expenses",
-      });
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -361,13 +390,13 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         .populate(ExpenseModelConstants.vendorId)
         .populate(ExpenseModelConstants.branchId)
         .populate({
-          path:ExpenseModelConstants.paidAccount,
-          select: 'accountName'
+          path: ExpenseModelConstants.paidAccount,
+          select: "accountName",
         })
         .populate({
-          path:ExpenseModelConstants.customerId,
-          select: 'name'
-        })
+          path: ExpenseModelConstants.customerId,
+          select: "name",
+        });
 
       if (!expense) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
