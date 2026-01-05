@@ -62,3 +62,9 @@ export enum BillingRecordsStatus {
   PAID = "Paid",
   PARTIALLY_PAID = "Partially Paid",
 }
+
+export enum CreditNoteStatus {
+  DRAFT = "Draft",
+  OPEN = "Open",
+  CLOSED = "Closed",
+}
