@@ -11,6 +11,8 @@ const router = Router()
 router.post("/", verifyUser,checkPermission('admin','CreditNote','can_create'),upload.array('documents',10),validateDto(CreateCreditNoteDto),creditNoteController.createCreditNote);
 router.put("/:id", verifyUser,checkPermission('admin','CreditNote','can_update'),upload.array('documents',10),validateDto(UpdateCreditNoteDto),creditNoteController.updateCreditNoteById);
 router.get("/", verifyUser, checkPermission('admin','CreditNote','can_read') ,creditNoteController.getAllCreditNotes);
+router.get("/:id", verifyUser, checkPermission('admin','CreditNote','can_read') ,creditNoteController.getCreditNoteById);
+router.delete("/:id",verifyUser,checkPermission('admin','CreditNote','can_delete') , creditNoteController.deleteCreditNote);
 
 
 export default router;
