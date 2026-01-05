@@ -3,7 +3,7 @@ import { verifyUser } from "../middleware/auth";
 import checkPermission from "../middleware/checkPermission";
 import { validateDto } from "../middleware/validate-dto.middleware";
 import { CreateExpenseDto, UpdateExpenseDto } from "../dto/create-expense.dto";
-import { expenseController } from "../controller/expenseController/expenseController";
+import { expenseController } from "../controller/expenseController/expense.Controller";
 import { upload } from "../middleware/imgUpload";
 
 const router = Router()
