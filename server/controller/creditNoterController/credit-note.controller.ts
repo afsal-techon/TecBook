@@ -206,6 +206,13 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
+  /**
+   * Retrieves all credit notes.
+   * @description This method retrieves all credit notes from the database, with optional filtering by branch ID and search functionality.
+   * It also handles pagination and populates related fields like branch, customer, and sales person.
+   * @param req The Express request object, which may contain `limit`, `page`, `search`, and `branchId` as query parameters.
+   * @param res The Express response object used to send back the result.
+   */
   getAllCreditNotes = async (req: Request, res: Response) => {
     try {
       const authUser = req.user as { id: string };
