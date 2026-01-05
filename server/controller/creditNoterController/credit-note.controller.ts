@@ -280,11 +280,43 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
+  /**
+   * Retrieves a single credit note by ID.
+   * @description This method retrieves a single credit note by its ID from the database.
+   * It first validates the credit note ID, then fetches the credit note along with its related branch, customer, and sales person details.
+   *   * @summary Deletes a credit note by ID.
+   * @description This method deletes a credit note by its ID from the database.
+   * It first validates the credit note ID, then updates the record to mark it as deleted.
+   * @param req The Express request object, containing the credit note ID in `req.params.id`.
+   * @param res The Express response object used to send back the result.
+   */
+  deleteCreditNote = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { id } = req.params;
+      const result = await this.genericDeleteOneById(id);
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+        statusCode: result.statusCode,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete credit note", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to delete credit note", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to delete credit note",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
 
-  getCreditNoteById = async (
-    req: Request<{ id: string }>,
-    res: Response
-  ) => {
+  getCreditNoteById = async (req: Request<{ id: string }>, res: Response) => {
     try {
       const { id } = req.params;
 
