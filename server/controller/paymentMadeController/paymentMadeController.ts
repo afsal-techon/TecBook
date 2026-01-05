@@ -1,4 +1,4 @@
-import { Model, Types } from "mongoose";
+import { HydratedDocument, Model, Types } from "mongoose";
 import { Request, Response } from "express";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import paymentMadeModel, {
@@ -26,6 +26,8 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import { imagekit } from "../../config/imageKit";
 import { IBillingRecords } from "../../Interfaces/billing-records.interface";
 import { BillingSchemaModel } from "../../models/BillingRecordsModel";
+import { BillingRecordsStatus, commonStatus } from "../../types/enum.types";
+import billingRecordsController from "../billingController/billing-records.controller";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -34,6 +36,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
   private readonly paymentModeModel: Model<IPaymentModes>;
   private readonly accountModel: Model<IAccounts>;
   private readonly billingModel: Model<IBillingRecords>;
+  private readonly billingRecordService = billingRecordsController;
 
   constructor(
     userModel: Model<IUser>,
@@ -76,7 +79,13 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
-      if (dto.billId) await this.validateBill(dto.billId);
+
+      let billingRecord: HydratedDocument<IBillingRecords> | null = null;
+
+      if (dto.billId) {
+        const validateBillingRecord = await this.validateBill(dto.billId);
+        billingRecord = validateBillingRecord;
+      }
       const uploadedFiles: string[] = [];
       if (req.files && Array.isArray(req.files)) {
         for (const file of req.files) {
@@ -100,6 +109,30 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         documents: uploadedFiles,
         billId: dto.billId ? new Types.ObjectId(dto.billId) : undefined,
       };
+
+      if (
+        billingRecord &&
+        billingRecord._id &&
+        dto.status === commonStatus.PAID &&
+        typeof dto.amount === "number"
+      ) {
+        let finalStatus: BillingRecordsStatus;
+
+        if (dto.amount >= billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PAID;
+        } else if (dto.amount > 0 && dto.amount < billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PARTIALLY_PAID;
+        } else {
+          return;
+        }
+
+        await this.billingRecordService.genericUpdateOneById(
+          billingRecord._id.toString(),
+          {
+            status: finalStatus,
+          }
+        );
+      }
 
       await this.genericCreateOne(payload);
 
@@ -219,12 +252,12 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           },
         },
         {
-          $lookup:{
+          $lookup: {
             from: "branches",
             localField: "branchId",
             foreignField: "_id",
             as: "branch",
-          }
+          },
         },
         {
           $unwind: {
@@ -295,7 +328,6 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
             "branch.address": 1,
             "branch.email": 1,
             "branch.phone": 1,
-
           },
         },
       ]);
@@ -578,14 +610,16 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     return account;
   }
 
-  private async validateBill(id:string) {
+  private async validateBill(
+    id: string
+  ): Promise<HydratedDocument<IBillingRecords>> {
     if (!this.isValidMongoId(id)) {
       throw new Error("Invalid bill ID");
     }
-    const validate = await this.billingModel.findById(id,{isDeleted:false});
+    const validate = await this.billingModel.findById(id, { isDeleted: false });
     if (!validate) throw new Error("Bill not found");
     return validate;
-  } 
+  }
 }
 
 export const paymentMadeController = new PaymentMadeController(
@@ -594,5 +628,5 @@ export const paymentMadeController = new PaymentMadeController(
   branchModel,
   paymentModel,
   accountModel,
-  BillingSchemaModel,
+  BillingSchemaModel
 );
