@@ -102,14 +102,16 @@ function getDefaultPrefix(docType: string) {
       return "SO-";
     case "INVOICE":
       return "INV-";
-        case "PAYMENT":
+    case "PAYMENT":
       return "PAY-";
     case "PURCHASE_ORDER":
       return "PO-";  
     case "BILL":
       return "BILL-";
-     case "EXPENSE":
+    case "EXPENSE":
       return "EXP-";  
+    case "CREDIT_NOTE":
+      return "CN-";
     default:
       return "DOC-";
   }
