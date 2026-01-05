@@ -280,6 +280,60 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     }
   };
 
+
+  getCreditNoteById = async (
+    req: Request<{ id: string }>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid credit note id",
+        });
+      }
+
+      await this.genericFindOneByIdOrNotFound(id);
+
+      const creditNote = await CreditNoteModel.findOne({
+        _id: id,
+        isDeleted: false,
+      })
+        .populate(CreditNoteModelConstants.customerId)
+        .populate(CreditNoteModelConstants.salesPersonId)
+        .populate(CreditNoteModelConstants.branchId);
+
+      if (!creditNote) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Credit Note not found",
+        });
+      }
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: creditNote,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Failed to fetch Credit Note", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+          statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        });
+      }
+      console.log("Failed to fetch Credit Note", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch Credit Note",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
   private async validateBranch(id: string) {
     if (!this.isValidMongoId(id)) {
       throw new Error("Invalid branch Id");
