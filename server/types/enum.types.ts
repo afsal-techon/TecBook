@@ -8,7 +8,6 @@ export enum TaxPreferences {
   NON_VAT = "Non-VAT",
 }
 
-
 export enum commonStatus {
   DRAFT = "Draft",
   SENT = "Sent",
@@ -17,11 +16,11 @@ export enum commonStatus {
   INVOICED = "Invoiced",
   PENDING = "Pending",
   DECLINED = "Declined",
-  PAID ='Paid',
-  BILLED ='Billed',
-  CLOSED ='Closed',
-  ISSUED ='Issued',
-  OPEN = 'Open',
+  PAID = "Paid",
+  BILLED = "Billed",
+  CLOSED = "Closed",
+  ISSUED = "Issued",
+  OPEN = "Open",
 }
 
 export enum numberSettingsDocumentType {
@@ -44,23 +43,22 @@ export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
   [numberSettingsDocumentType.EXPENSE]: "EXP-",
 };
 
-
 export enum PurchaseOrderStatus {
   DRAFT = "Draft",
   ISSUED = "Issued",
   CLOSED = "Closed",
   PENDING_APPROVAL = "Pending Approval",
   APPROVED = "Approved",
-  BILLED ='Billed',
-  PARTIALLY_BILLED = 'Partially Billed',
-  CANCELLED = 'Cancelled',
-  RECEIVED = 'Received',
-  YET_TO_BE_BILLED ='Yet to be Billed',
+  BILLED = "Billed",
+  PARTIALLY_BILLED = "Partially Billed",
+  CANCELLED = "Cancelled",
+  RECEIVED = "Received",
+  YET_TO_BE_BILLED = "Yet to be Billed",
 }
 
-  export enum BillingRecordsStatus {
-    DRAFT ='Draft',
-    OPEN = 'Open',
-    PAID = 'Paid',
-    PARTIALLY_PAID = 'Partially Paid',
-  }
+export enum BillingRecordsStatus {
+  DRAFT = "Draft",
+  OPEN = "Open",
+  PAID = "Paid",
+  PARTIALLY_PAID = "Partially Paid",
+}
