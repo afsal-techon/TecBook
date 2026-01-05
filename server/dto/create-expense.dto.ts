@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsMongoId,
@@ -101,6 +102,14 @@ export class CreateExpenseDto {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+  @IsOptional()
+  @IsMongoId()
+  projectId?:string
+
+  @IsOptional()
+  @IsBoolean()
+  isBillable?:boolean
 }
 
 export class UpdateExpenseDto {
@@ -187,4 +196,12 @@ export class UpdateExpenseDto {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+    @IsOptional()
+  @IsMongoId()
+  projectId?:string
+
+  @IsOptional()
+  @IsBoolean()
+  isBillable?:boolean
 }
