@@ -14,6 +14,7 @@ router.put("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_updat
 router.get("/", verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,purchaseOrderController.getAllPurchaseOrders);
 router.get("/:id",verifyUser, checkPermission('admin','PurchaseOrder','can_read') ,purchaseOrderController.getPurchaseOrderById);
 router.delete("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_delete') , purchaseOrderController.deletePurchaseOrder);
+router.patch("/:id",verifyUser,checkPermission('admin','PurchaseOrder','can_update') ,purchaseOrderController.updatePurchaseOrderStatus)
 
 
 

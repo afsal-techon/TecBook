@@ -214,6 +214,8 @@ class BillingRecordsController extends GenericDatabaseService<
         });
       }
 
+      const billingRecord = await this.genericFindOneByIdOrNotFound(id);
+
       const dto: updateBillingRecordsDTO = req.body;
 
       let billDate: Date | undefined;
@@ -250,6 +252,14 @@ class BillingRecordsController extends GenericDatabaseService<
       if (dto.paymentTermsId)
         await this.validatePaymenetTerms(dto.paymentTermsId);
 
+      let purchaseOrderDoc: HydratedDocument<IPurchaseOrder> | null = null;
+
+      if (dto.purchaseOrderNumber) {
+        purchaseOrderDoc = await this.validatePurchaseOrder(
+          dto.purchaseOrderNumber
+        );
+      }
+
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
       const payload: Partial<IBillingRecords> = {
@@ -267,6 +277,16 @@ class BillingRecordsController extends GenericDatabaseService<
         items,
         documents: dto.existingDocuments ?? [],
       };
+
+      if (purchaseOrderDoc && dto.status === BillingRecordsStatus.OPEN) {
+        await this.purchaseOrderService.genericUpdateOneById(
+          purchaseOrderDoc._id as string,
+          {
+            status: PurchaseOrderStatus.CLOSED,
+            billedStatus: PurchaseOrderStatus.BILLED,
+          }
+        );
+      }
 
       await this.genericUpdateOneById(id, payload);
 

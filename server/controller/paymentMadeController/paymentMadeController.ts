@@ -1,4 +1,4 @@
-import { Model, Types } from "mongoose";
+import { HydratedDocument, Model, Types } from "mongoose";
 import { Request, Response } from "express";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import paymentMadeModel, {
@@ -24,6 +24,10 @@ import accountModel from "../../models/accounts";
 import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { imagekit } from "../../config/imageKit";
+import { IBillingRecords } from "../../Interfaces/billing-records.interface";
+import { BillingSchemaModel } from "../../models/BillingRecordsModel";
+import { BillingRecordsStatus, commonStatus } from "../../types/enum.types";
+import billingRecordsController from "../billingController/billing-records.controller";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -31,13 +35,16 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
   private readonly branchModel: Model<IBranch>;
   private readonly paymentModeModel: Model<IPaymentModes>;
   private readonly accountModel: Model<IAccounts>;
+  private readonly billingModel: Model<IBillingRecords>;
+  private readonly billingRecordService = billingRecordsController;
 
   constructor(
     userModel: Model<IUser>,
     vendorModel: Model<IVendor>,
     branchModel: Model<IBranch>,
     paymentModeModel: Model<IPaymentModes>,
-    accountModel: Model<IAccounts>
+    accountModel: Model<IAccounts>,
+    billingModel: Model<IBillingRecords>
   ) {
     super(paymentMadeModel);
     this.userModel = userModel;
@@ -45,6 +52,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     this.branchModel = branchModel;
     this.paymentModeModel = paymentModeModel;
     this.accountModel = accountModel;
+    this.billingModel = BillingSchemaModel;
   }
 
   /**
@@ -71,6 +79,13 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
+
+      let billingRecord: HydratedDocument<IBillingRecords> | null = null;
+
+      if (dto.billId) {
+        const validateBillingRecord = await this.validateBill(dto.billId);
+        billingRecord = validateBillingRecord;
+      }
       const uploadedFiles: string[] = [];
       if (req.files && Array.isArray(req.files)) {
         for (const file of req.files) {
@@ -92,7 +107,32 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         isDeleted: false,
         date: new Date(dto.date),
         documents: uploadedFiles,
+        billId: dto.billId ? new Types.ObjectId(dto.billId) : undefined,
       };
+
+      if (
+        billingRecord &&
+        billingRecord._id &&
+        dto.status === commonStatus.PAID &&
+        typeof dto.amount === "number"
+      ) {
+        let finalStatus: BillingRecordsStatus;
+
+        if (dto.amount >= billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PAID;
+        } else if (dto.amount > 0 && dto.amount < billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PARTIALLY_PAID;
+        } else {
+          return;
+        }
+
+        await this.billingRecordService.genericUpdateOneById(
+          billingRecord._id.toString(),
+          {
+            status: finalStatus,
+          }
+        );
+      }
 
       await this.genericCreateOne(payload);
 
@@ -142,6 +182,33 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
+      let billingRecord: HydratedDocument<IBillingRecords> | null = null;
+
+      if (dto.billId) {
+        billingRecord = await this.validateBill(dto.billId);
+      }
+
+      if (
+        billingRecord &&
+        billingRecord._id &&
+        dto.status === commonStatus.PAID &&
+        typeof dto.amount === "number"
+      ) {
+        let finalStatus: BillingRecordsStatus | null = null;
+
+        if (dto.amount >= billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PAID;
+        } else if (dto.amount > 0 && dto.amount < billingRecord.total) {
+          finalStatus = BillingRecordsStatus.PARTIALLY_PAID;
+        }
+
+        if (finalStatus) {
+          await this.billingRecordService.genericUpdateOneById(
+            billingRecord._id.toString(),
+            { status: finalStatus }
+          );
+        }
+      }
 
       const updatedPayload: Partial<IPaymentMade> = {
         ...dto,
@@ -152,6 +219,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
         documents: dto.existingDocuments ?? [],
+        billId: dto.billId ? new Types.ObjectId(dto.billId) : undefined,
       };
       await this.genericUpdateOneById(id, updatedPayload);
 
@@ -210,12 +278,12 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           },
         },
         {
-          $lookup:{
+          $lookup: {
             from: "branches",
             localField: "branchId",
             foreignField: "_id",
             as: "branch",
-          }
+          },
         },
         {
           $unwind: {
@@ -286,7 +354,6 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
             "branch.address": 1,
             "branch.email": 1,
             "branch.phone": 1,
-
           },
         },
       ]);
@@ -568,6 +635,17 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     if (!account) throw new Error("Account not found");
     return account;
   }
+
+  private async validateBill(
+    id: string
+  ): Promise<HydratedDocument<IBillingRecords>> {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid bill ID");
+    }
+    const validate = await this.billingModel.findById(id, { isDeleted: false });
+    if (!validate) throw new Error("Bill not found");
+    return validate;
+  }
 }
 
 export const paymentMadeController = new PaymentMadeController(
@@ -575,5 +653,6 @@ export const paymentMadeController = new PaymentMadeController(
   vendorModel,
   branchModel,
   paymentModel,
-  accountModel
+  accountModel,
+  BillingSchemaModel
 );
