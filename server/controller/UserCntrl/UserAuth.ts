@@ -88,7 +88,7 @@ export const loginUser = async (
     const token = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       process.env.SECRET_KEY as string,
-      { expiresIn: "7d" }
+      { expiresIn: "1y" }
     );
 
     res.cookie("token", token, {
@@ -97,7 +97,7 @@ export const loginUser = async (
       sameSite: "lax",
       domain: ".tecbooks.online", // critical — share cookie across subdomains
       path: "/",
-      // maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year days
     });
 
     return res.status(200).json({
@@ -118,6 +118,27 @@ export const getUser = async (
   try {
     const userId = req.user?.id;
     return res.status(200).json({ message: "ok done" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const logoutHandle = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+       res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,            // must match your login cookie
+      sameSite: "lax",
+      domain: ".tecbooks.online", // same domain as login cookie
+      path: "/",
+    });
+        return res.status(200).json({ message: "Logged out successfully" });
+
   } catch (err) {
     next(err);
   }

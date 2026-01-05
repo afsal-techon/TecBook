@@ -54,9 +54,9 @@ export const createCategory = async (
     if (existCategories.length > 0) {
       existCategories.map((d) => d.name);
       return res.status(400).json({
-        message: `The following categories already exist: ${existCategories.join(
-          ", "
-        )}`,
+        message: `Categories already exist: ${existCategories
+          .map((d) => d.name)
+          .join(", ")}`,
       });
     }
 
@@ -1475,5 +1475,230 @@ export const deleteItems = async (
     });
   } catch (err) {
     next(err);
+  }
+};
+
+
+export const getItemsListPurchase = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { branchId } = req.params;
+    const userId = req.user?.id;
+
+    //  Validate user
+    const user = await USER.findOne({ _id: userId, isDeleted: false });
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+
+    //  Validate branchId
+    if (!branchId ||  !mongoose.Types.ObjectId.isValid(branchId)) {
+      return res.status(400).json({ message: "Branch Id is required!" });
+    }
+
+    const branchObjectId = new Types.ObjectId(branchId);
+
+    const pipeline: any[] = [
+      {
+        $match: {
+          branchId: branchObjectId,
+          isDeleted: false,
+          sellable:true
+        },
+      },
+
+      // Category
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Sales account
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "salesInfo.accountId",
+          foreignField: "_id",
+          as: "salesAccount",
+        },
+      },
+      {
+        $unwind: {
+          path: "$salesAccount",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Purchase account
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "purchaseInfo.accountId",
+          foreignField: "_id",
+          as: "purchaseAccount",
+        },
+      },
+      {
+        $unwind: {
+          path: "$purchaseAccount",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Inventory account
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "inventoryTracking.inventoryAccountId",
+          foreignField: "_id",
+          as: "inventoryAccount",
+        },
+      },
+      {
+        $unwind: {
+          path: "$inventoryAccount",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Sales tax
+      {
+        $lookup: {
+          from: "taxes",
+          localField: "salesInfo.taxId",
+          foreignField: "_id",
+          as: "salesTax",
+        },
+      },
+      {
+        $unwind: {
+          path: "$salesTax",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Purchase tax
+      {
+        $lookup: {
+          from: "taxes",
+          localField: "purchaseInfo.taxId",
+          foreignField: "_id",
+          as: "purchaseTax",
+        },
+      },
+      {
+        $unwind: {
+          path: "$purchaseTax",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Sales unit
+      {
+        $lookup: {
+          from: "units",
+          localField: "salesInfo.saleUnitId",
+          foreignField: "_id",
+          as: "saleUnit",
+        },
+      },
+      {
+        $unwind: {
+          path: "$saleUnit",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Purchase unit
+      {
+        $lookup: {
+          from: "units",
+          localField: "purchaseInfo.purchaseUnitId",
+          foreignField: "_id",
+          as: "purchaseUnit",
+        },
+      },
+      {
+        $unwind: {
+          path: "$purchaseUnit",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          branchId: 1,
+          categoryId: 1,
+          name: 1,
+          type: 1,
+          taxTreatment: 1,
+          // sellable: 1,
+          // inventoryTracking: 1,
+
+
+          // Category
+          categoryName: "$category.name", // adjust field name if different
+
+          // Sales info + joined fields
+          // "salesInfo.sellingPrice": 1,
+          // "salesInfo.accountId": 1,
+          // "salesInfo.saleUnitId": 1,
+          // "salesInfo.taxId": 1,
+          // salesAccountName: "$salesAccount.name", // adjust field name
+          // saleUnit: "$saleUnit.unit", // adjust field name
+          // salesTaxName: "$salesTax.name", // adjust field name
+          // salesVATRate: "$salesTax.vatRate",
+          // sellingPrice : "$salesInfo.sellingPrice",
+          //   salesSGST: "$salesTax.cgstRate", // or gst fields, depending on your model
+          //     salesCGST: "$salesTax.sgstRate",
+          //     taxId :"$salesInfo.taxId"
+
+          // Purchase info + joined fields
+          "purchaseInfo.costPrice": 1,
+          "purchaseInfo.description": 1,
+          "purchaseInfo.accountId": 1,
+          purchaseUnit: "$purchaseUnit.unit",
+          "purchaseInfo.purchaseUnitId": 1,
+          "purchaseInfo.taxId": 1,
+          taxId :"$purchaseInfo.taxId",
+          purchaseAccountName: "$purchaseAccount.name",
+          purchaseUnitName: "$purchaseUnit.name",
+          purchaseTaxName: "$purchaseTax.name",
+          purchaseTaxRate: "$purchaseTax.vatRate",
+          purchaseCGST: "$purchaseTax.sgstRate",
+           purchaseSgst: "$purchaseTax.cgstRate",
+           costPrice : "$purchaseInfo.costPrice",
+
+          // Inventory account
+          // inventoryAccountName: "$inventoryAccount.name",
+        },
+      },
+
+      { $sort: { createdAt: -1 } },
+    ];
+
+    const items = await ITEMS.aggregate(pipeline);
+
+    return res.status(200).json({
+      data: items,
+    });
+  } catch (err) {
+    next(err); 
   }
 };

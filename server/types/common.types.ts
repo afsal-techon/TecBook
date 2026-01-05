@@ -1,4 +1,5 @@
 import { Types, Document } from "mongoose";
+import { numberSettingsDocumentType } from "./enum.types";
 
 export interface IBranch extends Document {
   companyAdminId?: Types.ObjectId | null;
@@ -326,7 +327,10 @@ export interface IVendor extends Document {
   branchId?: Types.ObjectId | null;
   name?: string;
   phone?: number;
+  email?: string;
+  currency?: string;
   openingBalance?: number;
+  paymentTerms?: string;
   note?: string;
   billingInfo?: {
     country?: string | null;
@@ -340,6 +344,14 @@ export interface IVendor extends Document {
     city?: Types.ObjectId | null;
     zipCode?: Date | null;
   };
+    documents?: {
+    doc_name: string | null;
+    doc_file: string | null;
+    doc_typeId: Types.ObjectId | null;
+    startDate: Date | null;
+    endDate: Date | null;
+  }[];
+
   taxTreatment?: string | null;
   trn?: string | null;
   placeOfSupplay?: string | null;
@@ -372,7 +384,7 @@ export interface ITax extends Document {
 
 export interface INumberSetting extends Document {
   branchId: Types.ObjectId | null;
-  docType: "QUOTE" | "SALE_ORDER" | "INVOICE" | "PAYMENT";
+  docType: numberSettingsDocumentType;
   prefix: string; // e.g. "QT-"
   nextNumber: number; // e.g. 8  (for 000008)
   nextNumberRaw: string; // e.g. 6  (number of digits)
@@ -489,6 +501,7 @@ export interface IInvoice extends Document {
   orderNumber?: string;
   invoiceDate?: Date | null;
   dueDate?:Date | null;
+  quoteId?: Types.ObjectId | null;
   salesPersonId?: Types.ObjectId | null;
   projectId?: Types.ObjectId | null;
   paymentTerms?: {

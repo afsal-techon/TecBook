@@ -169,9 +169,11 @@ export const getCustomers = async (
     const search = ((req.query.search as string) || "").trim();
 
     // Pagination
-    const limit = parseInt(req.query.limit as string) || 20;
-    const page = parseInt(req.query.page as string) || 1;
-    const skip = (page - 1) * limit;
+    const paginate = req.query.paginate !== "false";
+
+    const limit = paginate ? parseInt(req.query.limit as string) || 20 : 0;
+    const page = paginate ? parseInt(req.query.page as string) || 1 : 1;
+    const skip = paginate ? (page - 1) * limit : 0;
 
     // 🔹 Determine allowed branches
     let allowedBranchIds: mongoose.Types.ObjectId[] = [];
@@ -280,30 +282,37 @@ export const getCustomers = async (
     const countResult = await CUSTOMER.aggregate(countPipeline);
     const totalCount = countResult[0]?.total || 0;
 
-    // 🔹 Pagination & projection
+    const projectStage = paginate
+      ? {
+          _id: 1,
+          branchId: 1,
+          name: 1,
+          phone: 1,
+          openingBalance: 1,
+          billingInfo: 1,
+          shippingInfo: 1,
+          taxTreatment: 1,
+          trn: 1,
+          currency: 1,
+          paymentTerms: 1,
+          email: 1,
+          placeOfSupplay: 1,
+          documents: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        }
+      : {
+          _id: 1,
+          name: 1,
+        };
+
     pipeline.push({ $sort: { createdAt: -1 } });
-    pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: limit });
-    pipeline.push({
-      $project: {
-        _id: 1,
-        branchId: 1,
-        name: 1,
-        phone: 1,
-        openingBalance: 1,
-        billingInfo: 1,
-        shippingInfo: 1,
-        taxTreatment: 1,
-        trn: 1,
-        currency:1,
-        paymentTerms:1,
-        email:1,
-        placeOfSupplay: 1,
-        documents: 1,
-        createdAt: 1,
-        updatedAt: 1,
-      },
-    });
+
+    if (paginate) {
+      pipeline.push({ $skip: skip }, { $limit: limit });
+    }
+
+    pipeline.push({ $project: projectStage });
 
     // 🔹 Execute
     const customers = await CUSTOMER.aggregate(pipeline);
@@ -313,6 +322,7 @@ export const getCustomers = async (
       totalCount,
       page,
       limit,
+      paginate,
     });
   } catch (err) {
     next(err);

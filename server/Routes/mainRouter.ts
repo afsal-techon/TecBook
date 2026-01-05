@@ -1,5 +1,5 @@
 import express from 'express';
-import { createAdmin, createUser, deleteUser, getAllUsers, getUser, loginUser, updateUser } from '../controller/UserCntrl/UserAuth';
+import { createAdmin, createUser, deleteUser, getAllUsers, getUser, loginUser, logoutHandle, updateUser } from '../controller/UserCntrl/UserAuth';
 import { verifyUser } from '../middleware/auth';
 import { createBranch, deleteBranch, getAllBranches, getAllBranchesForDropdown, updateBranch } from '../controller/branchCntrl/branch';
 import { createDepartment, createDocumentType, createEmployee, createPosition, deleteDepartment, deleteDocumentType, deleteEmployee, deletePosition, getAllDepartment, getAllDocumentTypes, getALLPosition, getEmployees, updateDepartment, updateDocument, updateEmployee, updatePosition } from '../controller/EmployeeCntrl/Employee';
@@ -8,7 +8,7 @@ import { createUserGroup, deletePermission, getAlluserGroups, getOneUserGroups, 
 import checkPermission from '../middleware/checkPermission';
 import { createAccounts, deleteAcccount, getAccounts, updateAccount } from '../controller/AccountsControle/accountCntrl';
 import { createCustomer, deleteCustomer, getCustomers, getCustomersDetails, updateCustomer } from '../controller/saleController/customerCntrl';
-import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
+import { createCategory, createItem, createUnit, deleteCategory, deleteItems, deleteUnit, getAllCategories, getAllItems, getAllUnits, getItemsList, getItemsListPurchase, getOneItem, updateCategory, updateItem, updateUnit } from '../controller/InventoryController/Inventory';
 import { CreateVendor, deleteVendor, getVendors, updateVendor } from '../controller/purchaseController/vendorCntrl';
 import { getNextQuotePreview, upsertDocumentNumberSetting } from '../settings/quoteStting';
 import { createQuotes, deleteQuotation, getAllQuotes, getOneQuotation, markAcceptOrReject, updateQuotes } from '../controller/saleController/quotationCntrl';
@@ -17,7 +17,7 @@ import { getAllPaymenModes, getAllPaymentTerms, upsertPaymentModes, upsertPaymen
 import { createSaleOrder, deleteSaleOrder, getAllSaleOrder, getOneSaleOrder, updateSaleOrder } from '../controller/saleController/saleOrderCntls';
 import { createLogEntry, createProject, deleteLogEntry, getAllLogEntries, getAllProjects, getOneProject, getProjects, getTimesheetsByDate, updateLogEntry, updateProject } from '../controller/projectController/projectCntrl';
 import { createSalesPerson, deleteSalesPerson, getSalesPerson, updateSalesPerson } from '../controller/commonCntroller/salesPerson';
-import { createInvoice, deleteInvoice, getALLInvoices, getOneInvoice, updateInvoice } from '../controller/saleController/invoiceCntrl';
+import { createInvoice, deleteInvoice, getALLInvoices, getOneInvoice, markAsSent, updateInvoice } from '../controller/saleController/invoiceCntrl';
 import { createPaymentReceived, getAllPaymentReceived, getOnePaymentReceived, updatePaymentReceived } from '../controller/saleController/paymentCntrl';
 const router = express.Router();
 
@@ -26,6 +26,7 @@ const router = express.Router();
 router.post('/create-admin',createAdmin)
 router.post('/login',loginUser);
 router.get('/user',verifyUser,getUser);
+router.post('/logout',verifyUser,logoutHandle)
 
 
 //branch
@@ -112,11 +113,13 @@ router.get('/item/one/:itemId',verifyUser,checkPermission('admin','Item','can_re
 router.put('/item',verifyUser,checkPermission('admin','Item','can_update'),updateItem)
 router.delete('/item/:itemId',verifyUser,checkPermission('admin','Item','can_delete'),deleteItems)
 
+//purchase items
+router.get('/items/purchase/:branchId',verifyUser,getItemsListPurchase)
 
 //vendor
-router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),CreateVendor)
+router.post('/vendor',verifyUser,checkPermission('admin','Vendor','can_create'),upload.array('documents',10),CreateVendor)
 router.get('/vendor',verifyUser,checkPermission('admin','Vendor','can_read'),getVendors)
-router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),updateVendor)
+router.put('/vendor',verifyUser,checkPermission('admin','Vendor','can_update'),upload.array('documents',10),updateVendor)
 router.delete('/vendor/:vendorId',verifyUser,checkPermission('admin','Vendor','can_delete'),deleteVendor)
 
 
@@ -156,6 +159,7 @@ router.get('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOr
 router.delete('/sale-order/:saleOrderId',verifyUser,checkPermission('admin','SaleOrder','can_delete'),deleteSaleOrder);
 
 
+
 router.post('/project',verifyUser,checkPermission('admin','Project','can_create'),createProject)
 router.put('/project/:projectIid',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
@@ -174,6 +178,8 @@ router.put('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','c
 router.get('/invoice',verifyUser,checkPermission('admin','Invoice','can_read'),getALLInvoices)
 router.get('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_read'),getOneInvoice)
 router.delete('/invoice/:invoiceId',verifyUser,checkPermission('admin','Invoice','can_delete'),deleteInvoice);
+router.post('/invoice/sent',verifyUser,checkPermission('admin','Invoice','can_create'),markAsSent);
+
 
 //tune log entry
 router.post('/log-entry',verifyUser,checkPermission('admin','LogEntry','can_create'),createLogEntry)
@@ -186,16 +192,18 @@ router.get('/timesheets',verifyUser,checkPermission('admin','LogEntry','can_read
 
 
 //payment Recieved
-router.post('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_create'),createPaymentReceived)
+router.post('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_create'),upload.array('documents',10),createPaymentReceived)
 router.get('/payment-received',verifyUser,checkPermission('admin','PaymentReceived','can_read'),getAllPaymentReceived)
 router.get('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_read'),getOnePaymentReceived)
-router.put('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_update'),updatePaymentReceived)
+router.put('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_update'),upload.array('documents',10),updatePaymentReceived)
 // router.delete('/payment-received/:paymentId',verifyUser,checkPermission('admin','PaymentReceived','can_delete'),deletePaymentReceived)
 
 
 //payent modes 
 router.post('/payment-mode',verifyUser,checkPermission('admin','PaymentMode','can_create'),upsertPaymentModes)
 router.get('/payment-mode/:branchId',verifyUser,checkPermission('admin','PaymentMode','can_read'),getAllPaymenModes)
+
+
 
 
 export default router;

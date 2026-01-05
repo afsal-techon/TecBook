@@ -6,7 +6,9 @@ const vendorSchema = new Schema<IVendor>(
     branchId: { type: Schema.Types.ObjectId, ref: "Branch", default: null },
     name: { type: String, default: null },
     phone: { type: String, default: null},
+    email: { type: String, default: null},
     openingBalance: { type: Number, default:0 },
+    paymentTerms: { type: String, default:false},
     billingInfo: {
         country: { type: String, default: null },
         billingAddress :{ type:String, default:null},
@@ -19,6 +21,20 @@ const vendorSchema = new Schema<IVendor>(
         city:{ type:String,default:null},
         zipCode:{ type:String,default:null}
     },
+        documents: [
+      {
+        doc_name: { type: String, default: null },
+        doc_file: { type: String, default: null },
+        doc_typeId: {
+          type: Schema.Types.ObjectId,
+          ref: "DocumentType",
+          default: null,
+        },
+        startDate :{ type:Date, default:null},
+        endDate:{ type:Date,default:null}
+      },
+    ],
+    
     taxTreatment:{ type:String,default:null},
     trn:{type:String, default:null},
     placeOfSupplay:{ type:String, default: null},
@@ -37,9 +53,9 @@ vendorSchema.index({ branchId: 1, name: 1 });
 vendorSchema.index({ branchId: 1,phone: 1 });
 vendorSchema.index({ branchId: 1,phone: 1 ,isDeleted:1 });
 
-const employeeModel: Model<IVendor> = mongoose.model<IVendor>(
+const vendorModel: Model<IVendor> = mongoose.model<IVendor>(
   "Vendor",
   vendorSchema
 );
 
-export default employeeModel;
+export default vendorModel;
