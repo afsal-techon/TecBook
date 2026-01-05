@@ -13,6 +13,19 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
     super(CreditNoteModel);
     this.branchModel = branchModel;
   }
+
+  private async validateBranch(id: string) {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid branch Id");
+    }
+    const validateBranch = await this.branchModel.findById(id, {
+      isDeleted: false,
+    });
+    if (!validateBranch) {
+      throw new Error("Branch not found");
+    }
+    return validateBranch;
+  }
 }
 
 export const creditNoteController = new CreditNoteController(branchModel);
