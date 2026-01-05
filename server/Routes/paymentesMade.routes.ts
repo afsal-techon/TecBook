@@ -3,7 +3,7 @@ import { verifyUser } from "../middleware/auth";
 import checkPermission from "../middleware/checkPermission";
 import { validateDto } from "../middleware/validate-dto.middleware";
 import { CreatePaymentMadeDto, UpdatePaymentMadeDto } from "../dto/paymentMade.dto";
-import { paymentMadeController } from "../controller/paymentMadeController/paymentMadeController";
+import { paymentMadeController } from "../controller/paymentMadeController/paymentMade.Controller";
 import { upload } from "../middleware/imgUpload";
 
 const router = Router()
