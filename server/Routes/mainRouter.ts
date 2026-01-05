@@ -164,7 +164,7 @@ router.post('/project',verifyUser,checkPermission('admin','Project','can_create'
 router.put('/project/:projectIid',verifyUser,checkPermission('admin','Project','can_update'),updateProject)
 router.get('/project',verifyUser,checkPermission('admin','Project','can_read'),getAllProjects)
 router.get('/project/:projectId',verifyUser,checkPermission('admin','Project','can_read'),getOneProject)
-router.get('/projects/:branchId',verifyUser,checkPermission('admin','Project','can_read'),getProjects)
+router.get('/projects',verifyUser,checkPermission('admin','Project','can_read'),getProjects)
 
 router.post('/sales-person',verifyUser,checkPermission('admin','SalesPerson','can_create'),createSalesPerson)
 router.get('/sales-person/:branchId',verifyUser,checkPermission('admin','SalesPerson','can_read'),getSalesPerson)
