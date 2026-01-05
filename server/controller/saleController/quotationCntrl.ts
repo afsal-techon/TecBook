@@ -8,7 +8,8 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import QuoteNumberSetting from "../../models/numberSetting";
 import SALSE_PERSON from "../../models/salesPerson";
-import TAX from '../../models/tax'
+import TAX from "../../models/tax";
+import PROJECT from "../../models/project";
 
 export const createQuotes = async (
   req: Request,
@@ -88,7 +89,8 @@ export const createQuotes = async (
 
     if (isNaN(Number(subTotal)))
       return res.status(400).json({ message: "Invalid subTotal" });
-    if (isNaN(Number(total))) return res.status(400).json({ message: "Invalid total" });
+    if (isNaN(Number(total)))
+      return res.status(400).json({ message: "Invalid total" });
     if (isNaN(Number(taxTotal)))
       return res.status(400).json({ message: "Invalid taxTotal" });
 
@@ -163,11 +165,15 @@ export const createQuotes = async (
     }
 
     for (let item of parsedItems) {
-      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+      if (
+        !item.itemName ||
+        !item.qty ||
+        !item.rate ||
+        !item.amount ||
+        !item.unit
+      ) {
         return res.status(400).json({ message: "Invalid item data!" });
       }
-
-      
 
       let taxAmount = 0;
 
@@ -184,7 +190,7 @@ export const createQuotes = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-         const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+        const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -201,6 +207,13 @@ export const createQuotes = async (
       // let finalItemAmount = itemAmount - itemDiscount;
 
       item.tax = Number(taxAmount.toFixed(2));
+    }
+
+    if (projectId) {
+      const project = await PROJECT.findById(projectId);
+      if (!project) {
+        return res.status(400).json({ message: "Project not found!" });
+      }
     }
 
     const newQuote = new QUOTATION({
@@ -223,7 +236,6 @@ export const createQuotes = async (
       reference,
       note,
       createdById: userId,
-      
     });
 
     await newQuote.save();
@@ -373,12 +385,17 @@ export const updateQuotes = async (
       }
     }
 
-       for (let item of parsedItems) {
-      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+    for (let item of parsedItems) {
+      if (
+        !item.itemName ||
+        !item.qty ||
+        !item.rate ||
+        !item.amount ||
+        !item.unit
+      ) {
         return res.status(400).json({ message: "Invalid item data!" });
       }
 
-    
       let taxAmount = 0;
 
       // TAX CALCULATION (Backend Controlled)
@@ -394,7 +411,7 @@ export const updateQuotes = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-          const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+        const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -406,8 +423,13 @@ export const updateQuotes = async (
         }
       }
 
-
       item.tax = Number(taxAmount.toFixed(2));
+    }
+    if (projectId) {
+      const project = await PROJECT.findById(projectId);
+      if (!project) {
+        return res.status(400).json({ message: "Project not found!" });
+      }
     }
 
     //  Update quote fields (do NOT change auto-generated quoteId)
@@ -721,7 +743,7 @@ export const getOneQuotation = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
-                taxId : "$$it.taxId",
+                taxId: "$$it.taxId",
                 itemName: "$$it.itemName", // <-- DIRECTLY FROM SAVED DATA
                 qty: "$$it.qty",
                 tax: "$$it.tax",

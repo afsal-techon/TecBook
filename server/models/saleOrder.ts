@@ -22,6 +22,11 @@ const saleOrderSchema = new Schema<ISaleOrder>(
       ref: "Employee",
       default: null,
     },
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+    },
     saleOrderDate: {
       type: Date,
       default: null,
@@ -32,7 +37,15 @@ const saleOrderSchema = new Schema<ISaleOrder>(
     },
     status: {
       type: String,
-      enum: ["Draft", "Closed","Confirmed", "Accepted", "Approved", "Invoiced", "Pending"],
+      enum: [
+        "Draft",
+        "Closed",
+        "Confirmed",
+        "Accepted",
+        "Approved",
+        "Invoiced",
+        "Pending",
+      ],
     },
     items: [
       {
@@ -61,7 +74,7 @@ const saleOrderSchema = new Schema<ISaleOrder>(
       type: Number,
       default: 0,
     },
-     reference: {
+    reference: {
       type: String,
       default: null,
     },
@@ -69,14 +82,14 @@ const saleOrderSchema = new Schema<ISaleOrder>(
       type: [String],
       default: [],
     },
-        paymentTerms: {
-         _id:{type:String , default:null},
-        termName: { type: String, default: null },
-        days :{ type:Number, default:0},
+    paymentTerms: {
+      _id: { type: String, default: null },
+      termName: { type: String, default: null },
+      days: { type: Number, default: 0 },
     },
-    terms:{
-      type:String,
-      default:false
+    terms: {
+      type: String,
+      default: false,
     },
     note: {
       type: String,

@@ -11,6 +11,7 @@ import PAYMENT_TEMRS from "../../models/paymentTerms";
 import SALSE_PERSON from "../../models/salesPerson";
 import TAX from "../../models/tax";
 import QUATATION from "../../models/quotation";
+import PROJECT from "../../models/project";
 
 export const createInvoice = async (
   req: Request,
@@ -229,6 +230,13 @@ export const createInvoice = async (
       quotation = await QUATATION.findById(quoteId);
       if (!quotation) {
         return res.status(400).json({ message: "Quotation not found!" });
+      }
+    }
+
+    if (projectId) {
+      const project = await PROJECT.findById(projectId);
+      if (!project) {
+        return res.status(400).json({ message: "Project not found!" });
       }
     }
 
@@ -459,11 +467,17 @@ export const updateInvoice = async (
       item.tax = Number(taxAmount.toFixed(2));
     }
 
-        let quotation;
+    let quotation;
     if (quoteId) {
       quotation = await QUATATION.findById(quoteId);
       if (!quotation) {
         return res.status(400).json({ message: "Quotation not found!" });
+      }
+    }
+    if (projectId) {
+      const project = await PROJECT.findById(projectId);
+      if (!project) {
+        return res.status(400).json({ message: "Project not found!" });
       }
     }
 
@@ -488,7 +502,7 @@ export const updateInvoice = async (
     invoice.note = note;
 
     await invoice.save();
-     if (quotation) {
+    if (quotation) {
       quotation.status = "Invoiced";
       await quotation.save();
     }

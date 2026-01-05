@@ -290,7 +290,7 @@ export interface IItem extends Document {
 export interface IQuotes extends Document {
   branchId?: Types.ObjectId | null;
   customerId?: Types.ObjectId | null;
-  projectId?: string;
+  projectId?: Types.ObjectId | null;
   quoteId: string;
   quoteDate: Date | null;
   expDate: Date | null;
@@ -397,6 +397,7 @@ export interface ISaleOrder extends Document {
   saleOrderId?: string;
   saleOrderDate?: Date | null;
   deliveryDate?: Date | null;
+  projectId?: Types.ObjectId | null;
   salesPersonId?: Types.ObjectId | null;
   paymentTerms?: {
     termName?: string | null;

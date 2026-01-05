@@ -8,9 +8,10 @@ import BRANCH from "../../models/branch";
 import mongoose from "mongoose";
 import saleNumberSetting from "../../models/numberSetting";
 import PAYMENT_TEMRS from "../../models/paymentTerms";
-import SALSE_PERSON from '../../models/salesPerson'
-import TAX from '../../models/tax'
+import SALSE_PERSON from "../../models/salesPerson";
+import TAX from "../../models/tax";
 import { escapeRegex } from "../../Helper/searchHelper";
+import PROJECT from "../../models/project";
 
 export const createSaleOrder = async (
   req: Request,
@@ -25,6 +26,7 @@ export const createSaleOrder = async (
       salesPersonId,
       saleOrderDate,
       deliveryDate,
+      projectId,
       status,
       reference,
       items,
@@ -63,11 +65,10 @@ export const createSaleOrder = async (
       return res.status(400).json({ message: "Customer not found!" });
     }
 
-    
-    if(salesPersonId){
+    if (salesPersonId) {
       const salesPerson = await SALSE_PERSON.findById(salesPersonId);
-      if(!salesPerson){
-        return res.status(400).json({ message:'Sales person not found!'})
+      if (!salesPerson) {
+        return res.status(400).json({ message: "Sales person not found!" });
       }
     }
 
@@ -180,13 +181,17 @@ export const createSaleOrder = async (
       }
     }
 
-
-     for (let item of parsedItems) {
-      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+    for (let item of parsedItems) {
+      if (
+        !item.itemName ||
+        !item.qty ||
+        !item.rate ||
+        !item.amount ||
+        !item.unit
+      ) {
         return res.status(400).json({ message: "Invalid item data!" });
       }
 
-    
       let taxAmount = 0;
 
       // TAX CALCULATION (Backend Controlled)
@@ -202,7 +207,7 @@ export const createSaleOrder = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-         const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+        const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -214,15 +219,20 @@ export const createSaleOrder = async (
         }
       }
 
-
       item.tax = Number(taxAmount.toFixed(2));
+    }
+    if (projectId) {
+      const project = await PROJECT.findById(projectId);
+      if (!project) {
+        return res.status(400).json({ message: "Project not found!" });
+      }
     }
 
     const saleOrder = new SALES_ORDER({
       branchId: new Types.ObjectId(branchId),
       saleOrderId: finalQuoteId, //  always use this
       customerId: new Types.ObjectId(customerId),
-      // projectId: projectId ? new Types.ObjectId(projectId) : null,
+      projectId: projectId ? new Types.ObjectId(projectId) : null,
       salesPersonId: salesPersonId ? new Types.ObjectId(salesPersonId) : null,
       saleOrderDate,
       deliveryDate,
@@ -268,6 +278,7 @@ export const updateSaleOrder = async (
       status,
       items,
       subTotal,
+      projectId,
       terms,
       paymentTerms,
       reference,
@@ -398,13 +409,17 @@ export const updateSaleOrder = async (
       }
     }
 
-
-     for (let item of parsedItems) {
-      if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+    for (let item of parsedItems) {
+      if (
+        !item.itemName ||
+        !item.qty ||
+        !item.rate ||
+        !item.amount ||
+        !item.unit
+      ) {
         return res.status(400).json({ message: "Invalid item data!" });
       }
 
-    
       let taxAmount = 0;
 
       // TAX CALCULATION (Backend Controlled)
@@ -420,7 +435,7 @@ export const updateSaleOrder = async (
             message: `Invalid tax selected for item ${item.itemName}`,
           });
         }
-          const taxableAmount = Number(item.rate) * Number(item.qty || 1);
+        const taxableAmount = Number(item.rate) * Number(item.qty || 1);
 
         if (taxDoc.type === "VAT") {
           taxAmount = (taxableAmount * (taxDoc.vatRate || 0)) / 100;
@@ -432,8 +447,14 @@ export const updateSaleOrder = async (
         }
       }
 
-
       item.tax = Number(taxAmount.toFixed(2));
+    }
+
+    if (projectId) {
+      const project = await PROJECT.findById(projectId);
+      if (!project) {
+        return res.status(400).json({ message: "Project not found!" });
+      }
     }
 
     // -----------------------------
@@ -444,6 +465,7 @@ export const updateSaleOrder = async (
     saleOrder.salesPersonId = salesPersonId || null;
     saleOrder.saleOrderDate = saleOrderDate;
     saleOrder.deliveryDate = deliveryDate;
+    saleOrder.projectId = projectId || null
     saleOrder.status = status;
     saleOrder.items = parsedItems;
     saleOrder.paymentTerms = parsedTerms; // now always assigned
@@ -481,7 +503,7 @@ export const getAllSaleOrder = async (
     const userRole = user.role; // "CompanyAdmin" or "User"
     const filterBranchId = req.query.branchId as string;
     let search = ((req.query.search as string) || "").trim();
-    search = escapeRegex(search)
+    search = escapeRegex(search);
 
     // Date filters
     const startDate = req.query.startDate as string;
@@ -588,7 +610,6 @@ export const getAllSaleOrder = async (
 
     // 🔹 Search
     if (search.length > 0) {
-    
       pipeline.push({
         $match: {
           $or: [
@@ -635,7 +656,7 @@ export const getAllSaleOrder = async (
         "customer.name": 1,
         "customer.email": 1,
         "salesPerson.name": 1,
-          "salesPerson.email": 1,
+        "salesPerson.email": 1,
       },
     });
 
@@ -779,7 +800,7 @@ export const getOneSaleOrder = async (
               as: "it",
               in: {
                 itemId: "$$it.itemId",
-                 taxId : "$$it.taxId",
+                taxId: "$$it.taxId",
                 qty: "$$it.qty",
                 tax: "$$it.tax",
                 rate: "$$it.rate",
@@ -819,7 +840,7 @@ export const getOneSaleOrder = async (
           },
 
           // sales person fields
-         salesPerson: {
+          salesPerson: {
             _id: "$salesPerson._id",
             name: "$salesPerson.name",
             email: "$salesPerson.email",
