@@ -567,6 +567,9 @@ class BillingRecordsController extends GenericDatabaseService<
       accountId: item.accountId
         ? new Types.ObjectId(item.accountId)
         : undefined,
+      projectId: item.projectId
+        ? new Types.ObjectId(item.projectId)
+        : undefined,
     }));
   }
 }

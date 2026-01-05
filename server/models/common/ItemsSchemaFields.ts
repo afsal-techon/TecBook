@@ -57,6 +57,11 @@ export const ItemsSchemaFields = {
         type: Schema.Types.ObjectId,
         ref: "Account",
         default: null,
+      },
+      projectId:{
+        type: Schema.Types.ObjectId,
+        ref: "Project",
+        default: null,
       }
     },
   ],

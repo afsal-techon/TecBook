@@ -12,4 +12,5 @@ export interface IItem {
   discount?: number;
   customerId?: Types.ObjectId | null;
   accountId?: Types.ObjectId | null;
+  projectId?: Types.ObjectId  | null;
 }

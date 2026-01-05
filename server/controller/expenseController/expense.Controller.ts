@@ -14,7 +14,7 @@ import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import branchModel from "../../models/branch";
 import vendorModel from "../../models/vendor";
-import { IBranch, ICustomer, IVendor } from "../../types/common.types";
+import { IBranch, ICustomer, IProject, IVendor } from "../../types/common.types";
 import { HTTP_STATUS } from "../../constants/http-status";
 import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
@@ -25,12 +25,14 @@ import { imagekit } from "../../config/imageKit";
 import numberSettingModel from "../../models/numberSetting";
 import { numberSettingsDocumentType } from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
+import projectModel from "../../models/project";
 
 class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   private readonly userModel: Model<IUser>;
   private readonly branchModel: Model<IBranch>;
   private readonly vendorModel: Model<IVendor>;
   private readonly customerModel: Model<ICustomer>;
+  private readonly projectModel:Model<IProject>
 
   constructor() {
     super(ExpenseModel);
@@ -38,6 +40,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     this.branchModel = branchModel;
     this.vendorModel = vendorModel;
     this.customerModel = customerModel;
+    this.projectModel = projectModel
   }
 
   /**
@@ -82,6 +85,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       await this.validateVendor(dto.vendorId);
       await this.validateBranch(dto.branchId);
       await this.validateCustomer(dto.customerId);
+      if(dto.projectId){
+        await this.validateProject(dto.projectId)
+      }
+
 
       const items: IItem[] = this.mapItems(dto.items);
 
@@ -130,6 +137,8 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         items,
         createdBy: new Types.ObjectId(userId),
         documents: uploadedFiles,
+        projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : undefined,
+
       };
 
       const expense = await this.genericCreateOne(payload);
@@ -190,6 +199,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       if (req.body.customerId) {
         await this.validateCustomer(req.body.customerId);
       }
+      if(req.body.projectId){
+        await this.validateProject(req.body.projectId)
+      }
+
 
       const items: IItem[] = req.body.items
         ? this.mapItems(req.body.items)
@@ -212,6 +225,9 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
           ? new Types.ObjectId(req.body.vendorId)
           : undefined,
         items,
+        projectId: req.body.projectId
+          ? new Types.ObjectId(req.body.projectId)
+          : undefined,
       };
 
       await this.genericUpdateOneById(id, payload);
@@ -518,6 +534,15 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         ? new Types.ObjectId(item.accountId)
         : undefined,
     }));
+  }
+  private async validateProject(projectId: string) {
+    if(!this.isValidMongoId(projectId)) throw new Error("Invalid project id")
+    const project = await this.projectModel.findOne({
+      _id: projectId,
+      isDeleted: false,
+    });
+    if (!project) throw new Error("Project not found");
+    return project;
   }
 }
 
