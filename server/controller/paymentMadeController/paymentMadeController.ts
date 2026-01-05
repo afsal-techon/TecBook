@@ -24,6 +24,8 @@ import accountModel from "../../models/accounts";
 import { IPaymentMade } from "../../Interfaces/paymentMade.interface";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { imagekit } from "../../config/imageKit";
+import { IBillingRecords } from "../../Interfaces/billing-records.interface";
+import { BillingSchemaModel } from "../../models/BillingRecordsModel";
 
 class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocument> {
   private readonly userModel: Model<IUser>;
@@ -31,13 +33,15 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
   private readonly branchModel: Model<IBranch>;
   private readonly paymentModeModel: Model<IPaymentModes>;
   private readonly accountModel: Model<IAccounts>;
+  private readonly billingModel: Model<IBillingRecords>;
 
   constructor(
     userModel: Model<IUser>,
     vendorModel: Model<IVendor>,
     branchModel: Model<IBranch>,
     paymentModeModel: Model<IPaymentModes>,
-    accountModel: Model<IAccounts>
+    accountModel: Model<IAccounts>,
+    billingModel: Model<IBillingRecords>
   ) {
     super(paymentMadeModel);
     this.userModel = userModel;
@@ -45,6 +49,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     this.branchModel = branchModel;
     this.paymentModeModel = paymentModeModel;
     this.accountModel = accountModel;
+    this.billingModel = BillingSchemaModel;
   }
 
   /**
@@ -71,6 +76,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
+      if (dto.billId) await this.validateBill(dto.billId);
       const uploadedFiles: string[] = [];
       if (req.files && Array.isArray(req.files)) {
         for (const file of req.files) {
@@ -92,6 +98,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
         isDeleted: false,
         date: new Date(dto.date),
         documents: uploadedFiles,
+        billId: dto.billId ? new Types.ObjectId(dto.billId) : undefined,
       };
 
       await this.genericCreateOne(payload);
@@ -142,6 +149,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
       if (dto.vendorId) await this.validateVendor(dto.vendorId);
       if (dto.branchId) await this.validateBranch(dto.branchId);
       if (dto.accountId) await this.validateAccount(dto.accountId);
+      if (dto.billId) await this.validateBill(dto.billId);
 
       const updatedPayload: Partial<IPaymentMade> = {
         ...dto,
@@ -152,6 +160,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
         documents: dto.existingDocuments ?? [],
+        billId: dto.billId ? new Types.ObjectId(dto.billId) : undefined,
       };
       await this.genericUpdateOneById(id, updatedPayload);
 
@@ -568,6 +577,15 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
     if (!account) throw new Error("Account not found");
     return account;
   }
+
+  private async validateBill(id:string) {
+    if (!this.isValidMongoId(id)) {
+      throw new Error("Invalid bill ID");
+    }
+    const validate = await this.billingModel.findById(id,{isDeleted:false});
+    if (!validate) throw new Error("Bill not found");
+    return validate;
+  } 
 }
 
 export const paymentMadeController = new PaymentMadeController(
@@ -575,5 +593,6 @@ export const paymentMadeController = new PaymentMadeController(
   vendorModel,
   branchModel,
   paymentModel,
-  accountModel
+  accountModel,
+  BillingSchemaModel,
 );
