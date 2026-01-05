@@ -7,7 +7,10 @@ import {
 } from "../../models/credtiNoteModel";
 import { IBranch, ICustomer, ISalesPerson } from "../../types/common.types";
 import branchModel from "../../models/branch";
-import { CreateCreditNoteDto } from "../../dto/credit-note.dto";
+import {
+  CreateCreditNoteDto,
+  UpdateCreditNoteDto,
+} from "../../dto/credit-note.dto";
 import { Request, Response } from "express";
 import { HTTP_STATUS } from "../../constants/http-status";
 import customerModel from "../../models/customer";
@@ -127,6 +130,69 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to create Credit Note",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
+  updateCreditNoteById = async (
+    req: Request<{ id: string }, {}, UpdateCreditNoteDto>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid credit note id",
+        });
+      }
+
+      await this.genericFindOneByIdOrNotFound(id);
+
+      const dto: UpdateCreditNoteDto = req.body;
+
+      if (dto.branchId) await this.validateBranch(dto.branchId);
+      if (dto.customerId) await this.validateCustomer(dto.customerId);
+      if (dto.salesPersonId) await this.validateSalesPerson(dto.salesPersonId);
+
+      const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
+
+      const payload: Partial<ICreditNote> = {
+        ...dto,
+        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        customerId: dto.customerId
+          ? new Types.ObjectId(dto.customerId)
+          : undefined,
+        salesPersonId: dto.salesPersonId
+          ? new Types.ObjectId(dto.salesPersonId)
+          : undefined,
+        date: dto.date ? new Date(dto.date) : undefined,
+        items,
+        documents: dto.existingDocuments ?? [],
+      };
+
+      await this.genericUpdateOneById(id, payload);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Credit Note updated successfully",
+        statusCode: HTTP_STATUS.OK,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Failed to update Credit Note", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+          statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        });
+      }
+      console.log("Failed to update Credit Note", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to update Credit Note",
         statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       });
     }
