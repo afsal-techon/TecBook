@@ -7,8 +7,8 @@ exports.verifyUser = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const verifyUser = (req, res, next) => {
     try {
-        const token = req.header("Authorization");
-        // const token = req.cookies.token;
+        // const token = req.header("Authorization");
+        const token = req.cookies.token;
         if (!token) {
             return res
                 .status(401)
