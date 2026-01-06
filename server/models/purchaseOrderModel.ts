@@ -103,6 +103,10 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     billedStatus:{
       type:String,
       enum:PurchaseOrderStatus,
+    },
+    receivedStatus:{
+      type:String,
+      enum:PurchaseOrderStatus,
     }
   },
   { timestamps: true }
@@ -141,6 +145,8 @@ export const PurchaseOrderModelConstants = {
   taxTotal: "taxTotal",
   total: "total",
   paymentTermsId: "paymentTermsId",
+  billedStatus: "billedStatus",
+  receivedStatus: "receivedStatus",
 } as const;
 
 export type PurchaseOrderField = keyof typeof PurchaseOrderModelConstants;
