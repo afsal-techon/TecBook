@@ -57,6 +57,7 @@ export enum PurchaseOrderStatus {
   RECEIVED = "Received",
   YET_TO_BE_BILLED = "Yet to be Billed",
   YET_TO_BE_RECEIVED = "Yet to be Received",
+  UNRECEIVED = "Unreceived",
 }
 
 export enum BillingRecordsStatus {
