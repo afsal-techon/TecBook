@@ -68,7 +68,7 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: enum_types_1.commonStatus
+        enum: enum_types_1.PurchaseOrderStatus
     },
     documents: {
         type: [String],
@@ -95,6 +95,10 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
         default: null,
     },
     billedStatus: {
+        type: String,
+        enum: enum_types_1.PurchaseOrderStatus,
+    },
+    receivedStatus: {
         type: String,
         enum: enum_types_1.PurchaseOrderStatus,
     }
@@ -125,4 +129,6 @@ exports.PurchaseOrderModelConstants = {
     taxTotal: "taxTotal",
     total: "total",
     paymentTermsId: "paymentTermsId",
+    billedStatus: "billedStatus",
+    receivedStatus: "receivedStatus",
 };

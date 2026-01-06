@@ -138,6 +138,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         ? new mongoose_1.Types.ObjectId(dto.paymentTermsId)
                         : undefined,
                     billedStatus: enum_types_1.PurchaseOrderStatus.YET_TO_BE_BILLED,
+                    receivedStatus: enum_types_1.PurchaseOrderStatus.YET_TO_BE_RECEIVED,
                 };
                 const purchaseOrder = await this.genericCreateOne(payload);
                 res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -462,11 +463,23 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         message: "Invalid status provided",
                     });
                 }
-                const result = await this.genericUpdateOneById(id, { status });
-                return res.status(result.data.statusCode).json({
+                const updatePayload = {
+                    status,
+                };
+                if (status === enum_types_1.PurchaseOrderStatus.CANCELED) {
+                    updatePayload.billedStatus = null;
+                }
+                if (status === enum_types_1.PurchaseOrderStatus.RECEIVED) {
+                    updatePayload.receivedStatus = enum_types_1.PurchaseOrderStatus.RECEIVED;
+                }
+                if (status === enum_types_1.PurchaseOrderStatus.UNRECEIVED) {
+                    updatePayload.receivedStatus = enum_types_1.PurchaseOrderStatus.YET_TO_BE_RECEIVED;
+                }
+                const result = await this.genericUpdateOneById(id, updatePayload);
+                return res.status(http_status_1.HTTP_STATUS.OK).json({
                     success: result.data.success,
                     message: result.data.message,
-                    statusCode: result.data.statusCode,
+                    statusCode: http_status_1.HTTP_STATUS.OK,
                 });
             }
             catch (error) {

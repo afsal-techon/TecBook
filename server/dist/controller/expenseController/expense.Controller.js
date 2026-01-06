@@ -57,10 +57,6 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 await this.validateUser(userId);
                 await this.validateVendor(dto.vendorId);
                 await this.validateBranch(dto.branchId);
-                await this.validateCustomer(dto.customerId);
-                if (dto.projectId) {
-                    await this.validateProject(dto.projectId);
-                }
                 const items = this.mapItems(dto.items);
                 const uploadedFiles = [];
                 if (req.files && Array.isArray(req.files)) {
@@ -93,7 +89,6 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                     ...dto,
                     date: dto.date ? new Date(dto.date) : new Date(),
                     expenseNumber,
-                    customerId: new mongoose_1.Types.ObjectId(dto.customerId),
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
                     taxPreference: dto.taxPreference,
                     paidAccount: new mongoose_1.Types.ObjectId(dto.paidAccount),
@@ -101,7 +96,6 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                     items,
                     createdBy: new mongoose_1.Types.ObjectId(userId),
                     documents: uploadedFiles,
-                    projectId: dto.projectId ? new mongoose_1.Types.ObjectId(dto.projectId) : undefined,
                 };
                 const expense = await this.genericCreateOne(payload);
                 res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -151,21 +145,12 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 if (req.body.branchId) {
                     await this.validateBranch(req.body.branchId);
                 }
-                if (req.body.customerId) {
-                    await this.validateCustomer(req.body.customerId);
-                }
-                if (req.body.projectId) {
-                    await this.validateProject(req.body.projectId);
-                }
                 const items = req.body.items
                     ? this.mapItems(req.body.items)
                     : [];
                 const payload = {
                     ...dto,
                     date: req.body.date ? new Date(req.body.date) : undefined,
-                    customerId: req.body.customerId
-                        ? new mongoose_1.Types.ObjectId(req.body.customerId)
-                        : undefined,
                     branchId: req.body.branchId
                         ? new mongoose_1.Types.ObjectId(req.body.branchId)
                         : undefined,
@@ -177,9 +162,6 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                         ? new mongoose_1.Types.ObjectId(req.body.vendorId)
                         : undefined,
                     items,
-                    projectId: req.body.projectId
-                        ? new mongoose_1.Types.ObjectId(req.body.projectId)
-                        : undefined,
                 };
                 await this.genericUpdateOneById(id, payload);
                 res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -341,10 +323,6 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                     .populate({
                     path: ExpenseModel_1.ExpenseModelConstants.paidAccount,
                     select: "accountName",
-                })
-                    .populate({
-                    path: ExpenseModel_1.ExpenseModelConstants.customerId,
-                    select: "name",
                 });
                 if (!expense) {
                     return res.status(http_status_1.HTTP_STATUS.NOT_FOUND).json({
@@ -470,18 +448,11 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
             accountId: item.accountId
                 ? new mongoose_1.Types.ObjectId(item.accountId)
                 : undefined,
+            projectId: item.projectId
+                ? new mongoose_1.Types.ObjectId(item.projectId)
+                : undefined,
+            billable: item?.billable ?? false,
         }));
-    }
-    async validateProject(projectId) {
-        if (!this.isValidMongoId(projectId))
-            throw new Error("Invalid project id");
-        const project = await this.projectModel.findOne({
-            _id: projectId,
-            isDeleted: false,
-        });
-        if (!project)
-            throw new Error("Project not found");
-        return project;
     }
 }
 exports.expenseController = new ExpenseController();

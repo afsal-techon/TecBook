@@ -16,11 +16,6 @@ const ExpenseModelSchema = new mongoose_1.Schema({
         required: true,
         unique: true,
     },
-    customerId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Customer",
-        required: true,
-    },
     branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Branch",
@@ -85,15 +80,6 @@ const ExpenseModelSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
-    projectId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Project',
-        default: null
-    },
-    isBillable: {
-        type: Boolean,
-        default: false
-    }
 }, {
     timestamps: true,
 });
@@ -103,7 +89,6 @@ exports.ExpenseModel = (0, mongoose_1.model)("ExpenseModel", ExpenseModelSchema)
 exports.ExpenseModelConstants = {
     date: "date",
     expenseNumber: "expenseNumber",
-    customerId: "customerId",
     branchId: "branchId",
     taxPreference: "taxPreference",
     paidAccount: "paidAccount",
@@ -121,7 +106,5 @@ exports.ExpenseModelConstants = {
     subTotal: "subTotal",
     taxTotal: "taxTotal",
     total: "total",
-    projectId: 'projectId',
-    isBillable: 'isBillable'
 };
 // export type ExpenseModelField = keyof typeof ExpenseModelConstants;

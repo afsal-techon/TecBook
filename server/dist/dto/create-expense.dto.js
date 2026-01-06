@@ -31,11 +31,6 @@ __decorate([
     (0, class_validator_1.IsMongoId)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreateExpenseDto.prototype, "customerId", void 0);
-__decorate([
-    (0, class_validator_1.IsMongoId)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", String)
 ], CreateExpenseDto.prototype, "branchId", void 0);
 __decorate([
     (0, class_validator_1.IsEnum)(enum_types_1.TaxPreferences),
@@ -117,16 +112,6 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreateExpenseDto.prototype, "total", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", String)
-], CreateExpenseDto.prototype, "projectId", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], CreateExpenseDto.prototype, "isBillable", void 0);
 class UpdateExpenseDto {
 }
 exports.UpdateExpenseDto = UpdateExpenseDto;
@@ -140,11 +125,6 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateExpenseDto.prototype, "expenseNumber", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", String)
-], UpdateExpenseDto.prototype, "customerId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsMongoId)(),
@@ -231,13 +211,3 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], UpdateExpenseDto.prototype, "total", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", String)
-], UpdateExpenseDto.prototype, "projectId", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], UpdateExpenseDto.prototype, "isBillable", void 0);

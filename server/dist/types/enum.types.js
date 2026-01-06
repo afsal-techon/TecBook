@@ -56,9 +56,11 @@ var PurchaseOrderStatus;
     PurchaseOrderStatus["APPROVED"] = "Approved";
     PurchaseOrderStatus["BILLED"] = "Billed";
     PurchaseOrderStatus["PARTIALLY_BILLED"] = "Partially Billed";
-    PurchaseOrderStatus["CANCELLED"] = "Cancelled";
+    PurchaseOrderStatus["CANCELED"] = "Canceled";
     PurchaseOrderStatus["RECEIVED"] = "Received";
     PurchaseOrderStatus["YET_TO_BE_BILLED"] = "Yet to be Billed";
+    PurchaseOrderStatus["YET_TO_BE_RECEIVED"] = "Yet to be Received";
+    PurchaseOrderStatus["UNRECEIVED"] = "Unreceived";
 })(PurchaseOrderStatus || (exports.PurchaseOrderStatus = PurchaseOrderStatus = {}));
 var BillingRecordsStatus;
 (function (BillingRecordsStatus) {

@@ -118,4 +118,5 @@ exports.BillingSchemaModelConstants = {
     subTotal: "subTotal",
     taxTotal: "taxTotal",
     total: "total",
+    balanceDue: "balanceDue",
 };

@@ -56,6 +56,10 @@ exports.ItemsSchemaFields = {
                 type: mongoose_1.Schema.Types.ObjectId,
                 ref: "Project",
                 default: null,
+            },
+            billable: {
+                type: Boolean,
+                default: false
             }
         },
     ],

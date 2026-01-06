@@ -485,6 +485,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
             projectId: item.projectId
                 ? new mongoose_1.Types.ObjectId(item.projectId)
                 : undefined,
+            billable: item?.billable ?? false,
         }));
     }
 }
