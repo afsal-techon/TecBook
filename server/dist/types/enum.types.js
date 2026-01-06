@@ -1,12 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PREFIX_MAP = exports.numberSettingsDocumentType = exports.commonStatus = exports.TaxPreferences = exports.PurchaseOrderDiscountType = exports.BillingPaymentStatus = void 0;
-var BillingPaymentStatus;
-(function (BillingPaymentStatus) {
-    BillingPaymentStatus["SALES"] = " sales";
-    BillingPaymentStatus["COST_OF_GOODS_SOLD"] = "cost of goods sold";
-    BillingPaymentStatus["CASH"] = "cash";
-})(BillingPaymentStatus || (exports.BillingPaymentStatus = BillingPaymentStatus = {}));
+exports.CreditNoteStatus = exports.BillingRecordsStatus = exports.PurchaseOrderStatus = exports.PREFIX_MAP = exports.numberSettingsDocumentType = exports.commonStatus = exports.TaxPreferences = exports.PurchaseOrderDiscountType = void 0;
 var PurchaseOrderDiscountType;
 (function (PurchaseOrderDiscountType) {
     PurchaseOrderDiscountType["PERCENTAGE"] = "%";
@@ -27,6 +21,10 @@ var commonStatus;
     commonStatus["PENDING"] = "Pending";
     commonStatus["DECLINED"] = "Declined";
     commonStatus["PAID"] = "Paid";
+    commonStatus["BILLED"] = "Billed";
+    commonStatus["CLOSED"] = "Closed";
+    commonStatus["ISSUED"] = "Issued";
+    commonStatus["OPEN"] = "Open";
 })(commonStatus || (exports.commonStatus = commonStatus = {}));
 var numberSettingsDocumentType;
 (function (numberSettingsDocumentType) {
@@ -37,6 +35,7 @@ var numberSettingsDocumentType;
     numberSettingsDocumentType["PURCHASE_ORDER"] = "PURCHASE_ORDER";
     numberSettingsDocumentType["BILL"] = "BILL";
     numberSettingsDocumentType["EXPENSE"] = "EXPENSE";
+    numberSettingsDocumentType["CREDIT_NOTE"] = "CREDIT_NOTE";
 })(numberSettingsDocumentType || (exports.numberSettingsDocumentType = numberSettingsDocumentType = {}));
 exports.PREFIX_MAP = {
     [numberSettingsDocumentType.QUOTE]: "QT-",
@@ -46,4 +45,31 @@ exports.PREFIX_MAP = {
     [numberSettingsDocumentType.PURCHASE_ORDER]: "PO-",
     [numberSettingsDocumentType.BILL]: "BILL-",
     [numberSettingsDocumentType.EXPENSE]: "EXP-",
+    [numberSettingsDocumentType.CREDIT_NOTE]: "CN-",
 };
+var PurchaseOrderStatus;
+(function (PurchaseOrderStatus) {
+    PurchaseOrderStatus["DRAFT"] = "Draft";
+    PurchaseOrderStatus["ISSUED"] = "Issued";
+    PurchaseOrderStatus["CLOSED"] = "Closed";
+    PurchaseOrderStatus["PENDING_APPROVAL"] = "Pending Approval";
+    PurchaseOrderStatus["APPROVED"] = "Approved";
+    PurchaseOrderStatus["BILLED"] = "Billed";
+    PurchaseOrderStatus["PARTIALLY_BILLED"] = "Partially Billed";
+    PurchaseOrderStatus["CANCELLED"] = "Cancelled";
+    PurchaseOrderStatus["RECEIVED"] = "Received";
+    PurchaseOrderStatus["YET_TO_BE_BILLED"] = "Yet to be Billed";
+})(PurchaseOrderStatus || (exports.PurchaseOrderStatus = PurchaseOrderStatus = {}));
+var BillingRecordsStatus;
+(function (BillingRecordsStatus) {
+    BillingRecordsStatus["DRAFT"] = "Draft";
+    BillingRecordsStatus["OPEN"] = "Open";
+    BillingRecordsStatus["PAID"] = "Paid";
+    BillingRecordsStatus["PARTIALLY_PAID"] = "Partially Paid";
+})(BillingRecordsStatus || (exports.BillingRecordsStatus = BillingRecordsStatus = {}));
+var CreditNoteStatus;
+(function (CreditNoteStatus) {
+    CreditNoteStatus["DRAFT"] = "Draft";
+    CreditNoteStatus["OPEN"] = "Open";
+    CreditNoteStatus["CLOSED"] = "Closed";
+})(CreditNoteStatus || (exports.CreditNoteStatus = CreditNoteStatus = {}));

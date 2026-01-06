@@ -52,7 +52,7 @@ const enum_types_1 = require("../../types/enum.types");
 const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 const paymentTerms_1 = __importDefault(require("../../models/paymentTerms"));
 class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService {
-    constructor(dbModel, vendorModel, userModel, branchModel, purchaseOrderService = purchase_order_controller_1.default, paymentTermModel) {
+    constructor(dbModel, vendorModel, userModel, branchModel, purchaseOrderService = purchase_order_controller_1.default, paymentTermModel, purchaseOrderModel) {
         super(dbModel);
         this.purchaseOrderService = purchaseOrderService;
         /**
@@ -74,7 +74,6 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
         this.createBillingRecords = async (req, res) => {
             try {
                 const dto = req.body;
-                console.log(" ~ dto:", dto);
                 const userId = req.user?.id;
                 if (!this.isValidMongoId(userId)) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
@@ -95,14 +94,9 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     });
                 }
                 const items = this.mapItems(dto.items);
+                let purchaseOrderDoc = null;
                 if (dto.purchaseOrderNumber) {
-                    await this.purchaseOrderService.genericFindOneByIdOrNotFound(dto.purchaseOrderNumber);
-                }
-                if (!userId) {
-                    return res.status(http_status_1.HTTP_STATUS.UNAUTHORIZED).json({
-                        success: false,
-                        message: "Unauthorized",
-                    });
+                    purchaseOrderDoc = await this.validatePurchaseOrder(dto.purchaseOrderNumber);
                 }
                 const uploadedFiles = [];
                 if (req.files && Array.isArray(req.files)) {
@@ -119,14 +113,15 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
                     docType: enum_types_1.numberSettingsDocumentType.BILL,
                 });
-                if (!numberSetting)
+                if (!numberSetting) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
                         success: false,
                         message: "Number setting is not configured. Please configure it first.",
                     });
+                }
                 const billNumber = await (0, generateDocumentNumber_1.generateDocumentNumber)({
                     branchId: dto.branchId,
-                    manualId: numberSetting?.mode !== 'Auto' ? dto.billNumber : undefined,
+                    manualId: numberSetting.mode !== "Auto" ? dto.billNumber : undefined,
                     docType: enum_types_1.numberSettingsDocumentType.BILL,
                     Model: BillingRecordsModel_1.BillingSchemaModel,
                     idField: BillingRecordsModel_1.BillingSchemaModelConstants.billNumber,
@@ -134,19 +129,24 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 const payload = {
                     ...dto,
                     createdBy: new mongoose_1.Types.ObjectId(userId),
-                    items: items,
-                    isDeleted: false,
                     vendorId: new mongoose_1.Types.ObjectId(dto.vendorId),
-                    purchaseOrderNumber: new mongoose_1.Types.ObjectId(dto.purchaseOrderNumber),
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
-                    billDate: new Date(dto.billDate),
-                    dueDate: new Date(dto.dueDate),
-                    documents: uploadedFiles,
+                    paymentTermsId: new mongoose_1.Types.ObjectId(dto.paymentTermsId),
+                    purchaseOrderNumber: purchaseOrderDoc?._id,
+                    billDate,
+                    dueDate,
                     billNumber,
-                    paymentTermsId: dto.paymentTermsId
-                        ? new mongoose_1.Types.ObjectId(dto.paymentTermsId)
-                        : undefined,
+                    items,
+                    documents: uploadedFiles,
+                    isDeleted: false,
+                    balanceDue: dto.total,
                 };
+                if (purchaseOrderDoc && dto.status === enum_types_1.BillingRecordsStatus.OPEN) {
+                    await this.purchaseOrderService.genericUpdateOneById(purchaseOrderDoc._id, {
+                        status: enum_types_1.PurchaseOrderStatus.CLOSED,
+                        billedStatus: enum_types_1.PurchaseOrderStatus.BILLED,
+                    });
+                }
                 const data = await this.genericCreateOne(payload);
                 return res.status(http_status_1.HTTP_STATUS.CREATED).json({
                     success: true,
@@ -155,17 +155,9 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 });
             }
             catch (error) {
-                if (error instanceof Error) {
-                    console.log("Error while creating billing record", error.message);
-                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                        success: false,
-                        message: error.message,
-                    });
-                }
-                console.log("Error while creating billing record", error);
                 return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                     success: false,
-                    message: "Error while creating billing record",
+                    message: error.message || "Error while creating billing record",
                 });
             }
         };
@@ -189,6 +181,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                         message: "Invalid billing record id",
                     });
                 }
+                const billingRecord = await this.genericFindOneByIdOrNotFound(id);
                 const dto = req.body;
                 let billDate;
                 let dueDate;
@@ -215,6 +208,10 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 }
                 if (dto.paymentTermsId)
                     await this.validatePaymenetTerms(dto.paymentTermsId);
+                let purchaseOrderDoc = null;
+                if (dto.purchaseOrderNumber) {
+                    purchaseOrderDoc = await this.validatePurchaseOrder(dto.purchaseOrderNumber);
+                }
                 const items = dto.items ? this.mapItems(dto.items) : [];
                 const payload = {
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
@@ -227,6 +224,12 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     items,
                     documents: dto.existingDocuments ?? [],
                 };
+                if (purchaseOrderDoc && dto.status === enum_types_1.BillingRecordsStatus.OPEN) {
+                    await this.purchaseOrderService.genericUpdateOneById(purchaseOrderDoc._id, {
+                        status: enum_types_1.PurchaseOrderStatus.CLOSED,
+                        billedStatus: enum_types_1.PurchaseOrderStatus.BILLED,
+                    });
+                }
                 await this.genericUpdateOneById(id, payload);
                 return res.status(http_status_1.HTTP_STATUS.OK).json({
                     success: true,
@@ -260,37 +263,49 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
         this.getAllBillingRecords = async (req, res, next) => {
             try {
                 const authUser = req.user;
-                const limit = parseInt(req.query.limit) || 20;
-                const page = parseInt(req.query.page) || 1;
+                const limit = Number(req.query.limit) || 20;
+                const page = Number(req.query.page) || 1;
                 const skip = (page - 1) * limit;
                 const search = req.query.search || "";
                 const filterBranchId = req.query.branchId;
-                const { user, allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
+                const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
                     userId: authUser.id,
                     userModel: this.userModel,
                     branchModel: this.branchModel,
                     requestedBranchId: filterBranchId,
                 });
-                // console.log("allowedBranchIds", allowedBranchIds);
-                const query = {
-                    isDeleted: false,
-                    branchId: { $in: allowedBranchIds },
-                };
+                const pipeline = [
+                    {
+                        $match: {
+                            isDeleted: false,
+                            branchId: { $in: allowedBranchIds },
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "vendors",
+                            localField: "vendorId",
+                            foreignField: "_id",
+                            as: "vendor",
+                        },
+                    },
+                    { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+                ];
                 if (search) {
-                    query.quoteNumber = { $regex: search, $options: "i" };
+                    pipeline.push({
+                        $match: {
+                            $or: [
+                                { billNumber: { $regex: search, $options: "i" } },
+                                { "vendor.name": { $regex: search, $options: "i" } },
+                            ],
+                        },
+                    });
                 }
-                const totalCount = await BillingRecordsModel_1.BillingSchemaModel.countDocuments(query);
-                // console.log('count', totalCount)
-                const billingRecords = await BillingRecordsModel_1.BillingSchemaModel.find(query)
-                    .sort({ createdAt: -1 })
-                    .populate(BillingRecordsModel_1.BillingSchemaModelConstants.vendorId)
-                    .populate({
-                    path: BillingRecordsModel_1.BillingSchemaModelConstants.purchaseOrderNumber,
-                    select: `${purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderId}`,
-                })
-                    .populate(BillingRecordsModel_1.BillingSchemaModelConstants.branchId)
-                    .skip(skip)
-                    .limit(limit);
+                const countPipeline = [...pipeline, { $count: "total" }];
+                const countResult = await BillingRecordsModel_1.BillingSchemaModel.aggregate(countPipeline);
+                const totalCount = countResult[0]?.total || 0;
+                pipeline.push({ $sort: { createdAt: -1 } }, { $skip: skip }, { $limit: limit });
+                const billingRecords = await BillingRecordsModel_1.BillingSchemaModel.aggregate(pipeline);
                 res.status(http_status_1.HTTP_STATUS.OK).json({
                     success: true,
                     data: billingRecords,
@@ -399,6 +414,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
         this.userModel = userModel;
         this.branchModel = branchModel;
         this.paymentTermModel = paymentTermModel;
+        this.purchaseOrderModel = purchaseOrderModel_1.PurchaseOrderModel;
     }
     async validateUser(id) {
         const user = await this.userModel.findOne({
@@ -436,6 +452,17 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
         if (!paymentTerms)
             throw new Error("Payment terms not found");
     }
+    async validatePurchaseOrder(id) {
+        if (!this.isValidMongoId(id))
+            throw new Error("Invalid purchase order");
+        const purchaseOrder = await this.purchaseOrderModel.findOne({
+            _id: id,
+            isDeleted: false,
+        });
+        if (!purchaseOrder)
+            throw new Error("Purchase order not found");
+        return purchaseOrder;
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
             itemId: new mongoose_1.Types.ObjectId(item.itemId),
@@ -455,7 +482,10 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
             accountId: item.accountId
                 ? new mongoose_1.Types.ObjectId(item.accountId)
                 : undefined,
+            projectId: item.projectId
+                ? new mongoose_1.Types.ObjectId(item.projectId)
+                : undefined,
         }));
     }
 }
-exports.default = new BillingRecordsController(BillingRecordsModel_1.BillingSchemaModel, vendor_1.default, user_1.default, branch_1.default, purchase_order_controller_1.default, paymentTerms_1.default);
+exports.default = new BillingRecordsController(BillingRecordsModel_1.BillingSchemaModel, vendor_1.default, user_1.default, branch_1.default, purchase_order_controller_1.default, paymentTerms_1.default, purchaseOrderModel_1.PurchaseOrderModel);

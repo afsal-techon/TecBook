@@ -15,10 +15,11 @@ const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
 const searchHelper_1 = require("../../Helper/searchHelper");
+const project_1 = __importDefault(require("../../models/project"));
 const createSaleOrder = async (req, res, next) => {
     try {
         const { branchId, saleOrderId, // may be null/ignored in auto mode
-        customerId, salesPersonId, saleOrderDate, deliveryDate, status, reference, items, paymentTerms, terms, note, subTotal, taxTotal, total, discountValue, } = req.body;
+        customerId, salesPersonId, saleOrderDate, deliveryDate, projectId, status, reference, items, paymentTerms, terms, note, subTotal, taxTotal, total, discountValue, } = req.body;
         const userId = req.user?.id;
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
@@ -44,7 +45,7 @@ const createSaleOrder = async (req, res, next) => {
         if (salesPersonId) {
             const salesPerson = await salesPerson_1.default.findById(salesPersonId);
             if (!salesPerson) {
-                return res.status(400).json({ message: 'Sales person not found!' });
+                return res.status(400).json({ message: "Sales person not found!" });
             }
         }
         let parsedItems = [];
@@ -142,7 +143,11 @@ const createSaleOrder = async (req, res, next) => {
             }
         }
         for (let item of parsedItems) {
-            if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+            if (!item.itemName ||
+                !item.qty ||
+                !item.rate ||
+                !item.amount ||
+                !item.unit) {
                 return res.status(400).json({ message: "Invalid item data!" });
             }
             let taxAmount = 0;
@@ -169,11 +174,17 @@ const createSaleOrder = async (req, res, next) => {
             }
             item.tax = Number(taxAmount.toFixed(2));
         }
+        if (projectId) {
+            const project = await project_1.default.findById(projectId);
+            if (!project) {
+                return res.status(400).json({ message: "Project not found!" });
+            }
+        }
         const saleOrder = new saleOrder_1.default({
             branchId: new mongoose_1.Types.ObjectId(branchId),
             saleOrderId: finalQuoteId, //  always use this
             customerId: new mongoose_1.Types.ObjectId(customerId),
-            // projectId: projectId ? new Types.ObjectId(projectId) : null,
+            projectId: projectId ? new mongoose_1.Types.ObjectId(projectId) : null,
             salesPersonId: salesPersonId ? new mongoose_1.Types.ObjectId(salesPersonId) : null,
             saleOrderDate,
             deliveryDate,
@@ -204,7 +215,7 @@ exports.createSaleOrder = createSaleOrder;
 const updateSaleOrder = async (req, res, next) => {
     try {
         const { saleOrderId } = req.params;
-        const { branchId, customerId, salesPersonId, deliveryDate, saleOrderDate, status, items, subTotal, terms, paymentTerms, reference, note, taxTotal, total, discountValue, existingDocuments, } = req.body;
+        const { branchId, customerId, salesPersonId, deliveryDate, saleOrderDate, status, items, subTotal, projectId, terms, paymentTerms, reference, note, taxTotal, total, discountValue, existingDocuments, } = req.body;
         const userId = req.user?.id;
         // Validate user
         const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
@@ -296,7 +307,11 @@ const updateSaleOrder = async (req, res, next) => {
             }
         }
         for (let item of parsedItems) {
-            if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+            if (!item.itemName ||
+                !item.qty ||
+                !item.rate ||
+                !item.amount ||
+                !item.unit) {
                 return res.status(400).json({ message: "Invalid item data!" });
             }
             let taxAmount = 0;
@@ -323,6 +338,12 @@ const updateSaleOrder = async (req, res, next) => {
             }
             item.tax = Number(taxAmount.toFixed(2));
         }
+        if (projectId) {
+            const project = await project_1.default.findById(projectId);
+            if (!project) {
+                return res.status(400).json({ message: "Project not found!" });
+            }
+        }
         // -----------------------------
         // Assign fields
         // -----------------------------
@@ -331,6 +352,7 @@ const updateSaleOrder = async (req, res, next) => {
         saleOrder.salesPersonId = salesPersonId || null;
         saleOrder.saleOrderDate = saleOrderDate;
         saleOrder.deliveryDate = deliveryDate;
+        saleOrder.projectId = projectId || null;
         saleOrder.status = status;
         saleOrder.items = parsedItems;
         saleOrder.paymentTerms = parsedTerms; // now always assigned

@@ -16,4 +16,5 @@ router.put("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'P
 router.get("/", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_read'), purchase_order_controller_1.default.getAllPurchaseOrders);
 router.get("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_read'), purchase_order_controller_1.default.getPurchaseOrderById);
 router.delete("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_delete'), purchase_order_controller_1.default.deletePurchaseOrder);
+router.patch("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'PurchaseOrder', 'can_update'), purchase_order_controller_1.default.updatePurchaseOrderStatus);
 exports.default = router;

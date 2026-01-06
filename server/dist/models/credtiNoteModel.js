@@ -1,32 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PurchaseOrderModelConstants = exports.PurchaseOrderModel = void 0;
+exports.CreditNoteModelConstants = exports.CreditNoteModel = void 0;
 const mongoose_1 = require("mongoose");
 const BaseSchemaFields_1 = require("./common/BaseSchemaFields");
 const ItemsSchemaFields_1 = require("./common/ItemsSchemaFields");
 const enum_types_1 = require("../types/enum.types");
-const PurchaseOrderSchema = new mongoose_1.Schema({
-    purchaseOrderId: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-    },
-    vendorId: {
+const creditNoteSchema = new mongoose_1.Schema({
+    branchId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Vendor",
-        default: null,
-    },
-    quote: {
-        type: String,
-        required: false,
-        trim: true,
-    },
-    purchaseOrderDate: {
-        type: Date,
+        ref: "Branch",
         required: true,
     },
-    expDate: {
+    customerId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Customer",
+        required: true,
+    },
+    date: {
         type: Date,
         required: true,
     },
@@ -35,15 +25,13 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
         ref: "SalesPeople",
         required: true,
     },
-    projectId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Project",
+    creditNoteNumber: {
+        type: String,
         required: false,
     },
-    branchId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Branch",
-        required: true,
+    subject: {
+        type: String,
+        required: false,
     },
     note: {
         type: String,
@@ -68,7 +56,7 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: enum_types_1.commonStatus
+        enum: enum_types_1.CreditNoteStatus,
     },
     documents: {
         type: [String],
@@ -89,31 +77,29 @@ const PurchaseOrderSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
-    paymentTermsId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "PaymentTerm",
-        default: null,
+    balanceAmount: {
+        type: Number,
+        required: false,
+        default: 0,
     },
-    billedStatus: {
-        type: String,
-        enum: enum_types_1.PurchaseOrderStatus,
-    }
-}, { timestamps: true });
-PurchaseOrderSchema.add(BaseSchemaFields_1.BaseSchemaFields);
-PurchaseOrderSchema.add(ItemsSchemaFields_1.ItemsSchemaFields);
-exports.PurchaseOrderModel = (0, mongoose_1.model)("PurchaseOrder", PurchaseOrderSchema);
-exports.PurchaseOrderModelConstants = {
-    purchaseOrderId: "purchaseOrderId",
-    vendorId: "vendorId",
-    quote: "quote",
-    purchaseOrderDate: "purchaseOrderDate",
-    expDate: "expDate",
-    salesPersonId: "salesPersonId",
-    projectId: "projectId",
+    receivedAmount: {
+        type: Number,
+        required: false,
+        default: 0,
+    },
+}, {
+    timestamps: true,
+});
+creditNoteSchema.add(BaseSchemaFields_1.BaseSchemaFields);
+creditNoteSchema.add(ItemsSchemaFields_1.ItemsSchemaFields);
+exports.CreditNoteModel = (0, mongoose_1.model)("CreditNote", creditNoteSchema);
+exports.CreditNoteModelConstants = {
     branchId: "branchId",
-    items: "items",
-    createdBy: "createdBy",
-    isDeleted: "isDeleted",
+    customerId: "customerId",
+    date: "date",
+    salesPersonId: "salessPersonId",
+    creditNoteNumber: "creditNoteNumber",
+    subject: "subject",
     note: "note",
     terms: "terms",
     discountType: "discountType",
@@ -124,5 +110,4 @@ exports.PurchaseOrderModelConstants = {
     subTotal: "subTotal",
     taxTotal: "taxTotal",
     total: "total",
-    paymentTermsId: "paymentTermsId",
 };

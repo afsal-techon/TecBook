@@ -66,12 +66,20 @@ __decorate([
     __metadata("design:type", Number)
 ], ItemDto.prototype, "discount", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => value === "" || value === null ? undefined : value),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], ItemDto.prototype, "customerId", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => value === "" || value === null ? undefined : value),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], ItemDto.prototype, "accountId", void 0);
+__decorate([
+    (0, class_transformer_1.Transform)(({ value }) => value === "" || value === null ? undefined : value),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], ItemDto.prototype, "projectId", void 0);

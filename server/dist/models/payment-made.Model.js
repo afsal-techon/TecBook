@@ -45,7 +45,7 @@ const paymentMadeSchmea = new mongoose_1.Schema({
     },
     reference: {
         type: String,
-        default: null
+        default: null,
     },
     documents: {
         type: [String],
@@ -53,8 +53,14 @@ const paymentMadeSchmea = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: enum_types_1.commonStatus
+        enum: enum_types_1.commonStatus,
     },
+    billId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'BillingRecords',
+        required: false,
+        default: null
+    }
 }, {
     timestamps: true,
 });
@@ -62,18 +68,18 @@ paymentMadeSchmea.add(BaseSchemaFields_1.BaseSchemaFields);
 const paymentMadeModel = (0, mongoose_1.model)("PaymentMade", paymentMadeSchmea);
 exports.default = paymentMadeModel;
 exports.PaymentMadeModelConstants = {
-    vendorId: 'vendorId',
-    branchId: 'branchId',
-    amount: 'amount',
-    date: 'date',
-    bankCharge: 'bankCharge',
-    paymentId: 'paymentId',
-    paymentMode: 'paymentMode',
-    accountId: 'accountId',
-    note: 'note',
-    createdBy: 'createdBy',
-    isDeleted: 'isDeleted',
-    reference: 'reference',
-    documents: 'documents',
-    status: 'status',
+    vendorId: "vendorId",
+    branchId: "branchId",
+    amount: "amount",
+    date: "date",
+    bankCharge: "bankCharge",
+    paymentId: "paymentId",
+    paymentMode: "paymentMode",
+    accountId: "accountId",
+    note: "note",
+    createdBy: "createdBy",
+    isDeleted: "isDeleted",
+    reference: "reference",
+    documents: "documents",
+    status: "status",
 };

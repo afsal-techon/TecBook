@@ -17,6 +17,7 @@ const purchase_order_routes_1 = __importDefault(require("./Routes/purchase-order
 const billing_records_routes_1 = __importDefault(require("./Routes/billing-records.routes"));
 const expense_routes_1 = __importDefault(require("./Routes/expense.routes"));
 const paymentesMade_routes_1 = __importDefault(require("./Routes/paymentesMade.routes"));
+const credit_note_routes_1 = __importDefault(require("./Routes/credit-note.routes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT;
@@ -42,6 +43,7 @@ app.use((err, req, res, next) => {
     app.use("/api/billing-records", billing_records_routes_1.default);
     app.use("/api/expenses", expense_routes_1.default);
     app.use("/api/payments-made", paymentesMade_routes_1.default);
+    app.use("/api/credit-note", credit_note_routes_1.default);
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);
     });

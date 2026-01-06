@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTimesheetsByDate = exports.deleteLogEntry = exports.updateLogEntry = exports.getAllLogEntries = exports.createLogEntry = exports.getProjects = exports.getOneProject = exports.updateProject = exports.getAllProjects = exports.createProject = void 0;
 const user_1 = __importDefault(require("../../models/user"));
+const customer_1 = __importDefault(require("../../models/customer"));
 const branch_1 = __importDefault(require("../../models/branch"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const project_1 = __importDefault(require("../../models/project"));
@@ -589,24 +590,56 @@ const getOneProject = async (req, res, next) => {
 exports.getOneProject = getOneProject;
 const getProjects = async (req, res, next) => {
     try {
-        const { branchId } = req.params;
         const userId = req.user?.id;
+        const branchId = req.query.branchId;
+        const customerId = req.query.customerId;
         if (!mongoose_1.default.isValidObjectId(userId)) {
             return res.status(400).json({ message: "User Id not valid!" });
         }
-        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        const user = await user_1.default.findOne({
+            _id: userId,
+            isDeleted: false,
+        });
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
         }
-        const branch = await branch_1.default.findById(branchId);
-        if (!branch) {
-            return res.status(400).json({ message: 'Branch not found!' });
+        if (!mongoose_1.default.isValidObjectId(branchId)) {
+            return res.status(400).json({ message: "Branch Id not valid!" });
         }
-        const projects = await project_1.default.find({ branchId, isDeleted: false });
-        return res.status(200).json({ data: projects });
+        const branch = await branch_1.default.findOne({
+            _id: branchId,
+            isDeleted: false,
+        });
+        if (!branch) {
+            return res.status(400).json({ message: "Branch not found!" });
+        }
+        if (customerId) {
+            if (!mongoose_1.default.isValidObjectId(customerId)) {
+                return res.status(400).json({ message: "Customer Id not valid!" });
+            }
+            const customer = await customer_1.default.findOne({
+                _id: customerId,
+                isDeleted: false,
+            });
+            if (!customer) {
+                return res.status(400).json({ message: "Customer not found!" });
+            }
+        }
+        const query = {
+            branchId,
+            isDeleted: false,
+        };
+        if (customerId) {
+            query.customerId = customerId;
+        }
+        const projects = await project_1.default.find(query).sort({ createdAt: -1 });
+        return res.status(200).json({
+            success: true,
+            data: projects,
+        });
     }
-    catch (err) {
-        next(err);
+    catch (error) {
+        next(error);
     }
 };
 exports.getProjects = getProjects;

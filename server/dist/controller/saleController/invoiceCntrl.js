@@ -15,6 +15,7 @@ const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
 const quotation_1 = __importDefault(require("../../models/quotation"));
+const project_1 = __importDefault(require("../../models/project"));
 const createInvoice = async (req, res, next) => {
     try {
         const { branchId, invoiceId, // may be null/ignored in auto mode
@@ -179,6 +180,12 @@ const createInvoice = async (req, res, next) => {
             quotation = await quotation_1.default.findById(quoteId);
             if (!quotation) {
                 return res.status(400).json({ message: "Quotation not found!" });
+            }
+        }
+        if (projectId) {
+            const project = await project_1.default.findById(projectId);
+            if (!project) {
+                return res.status(400).json({ message: "Project not found!" });
             }
         }
         const invoice = new invoice_1.default({
@@ -347,6 +354,12 @@ const updateInvoice = async (req, res, next) => {
             quotation = await quotation_1.default.findById(quoteId);
             if (!quotation) {
                 return res.status(400).json({ message: "Quotation not found!" });
+            }
+        }
+        if (projectId) {
+            const project = await project_1.default.findById(projectId);
+            if (!project) {
+                return res.status(400).json({ message: "Project not found!" });
             }
         }
         invoice.branchId = branchId;

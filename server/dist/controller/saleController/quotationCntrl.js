@@ -14,6 +14,7 @@ const mongoose_2 = __importDefault(require("mongoose"));
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
+const project_1 = __importDefault(require("../../models/project"));
 const createQuotes = async (req, res, next) => {
     try {
         const { branchId, quoteId, // may be null/ignored in auto mode
@@ -128,7 +129,11 @@ const createQuotes = async (req, res, next) => {
             }
         }
         for (let item of parsedItems) {
-            if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+            if (!item.itemName ||
+                !item.qty ||
+                !item.rate ||
+                !item.amount ||
+                !item.unit) {
                 return res.status(400).json({ message: "Invalid item data!" });
             }
             let taxAmount = 0;
@@ -157,6 +162,12 @@ const createQuotes = async (req, res, next) => {
             // let itemDiscount = item.discount || 0;
             // let finalItemAmount = itemAmount - itemDiscount;
             item.tax = Number(taxAmount.toFixed(2));
+        }
+        if (projectId) {
+            const project = await project_1.default.findById(projectId);
+            if (!project) {
+                return res.status(400).json({ message: "Project not found!" });
+            }
         }
         const newQuote = new quotation_1.default({
             branchId: new mongoose_1.Types.ObjectId(branchId),
@@ -289,7 +300,11 @@ const updateQuotes = async (req, res, next) => {
             }
         }
         for (let item of parsedItems) {
-            if (!item.itemName || !item.qty || !item.rate || !item.amount || !item.unit) {
+            if (!item.itemName ||
+                !item.qty ||
+                !item.rate ||
+                !item.amount ||
+                !item.unit) {
                 return res.status(400).json({ message: "Invalid item data!" });
             }
             let taxAmount = 0;
@@ -315,6 +330,12 @@ const updateQuotes = async (req, res, next) => {
                 }
             }
             item.tax = Number(taxAmount.toFixed(2));
+        }
+        if (projectId) {
+            const project = await project_1.default.findById(projectId);
+            if (!project) {
+                return res.status(400).json({ message: "Project not found!" });
+            }
         }
         //  Update quote fields (do NOT change auto-generated quoteId)
         quote.branchId = new mongoose_1.Types.ObjectId(branchId);
