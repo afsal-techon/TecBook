@@ -26,4 +26,5 @@ export interface IPurchaseOrder extends IBaseFIelds {
   total: number;
   paymentTermsId?: Types.ObjectId;
   billedStatus:PurchaseOrderStatus;
+  receivedStatus:PurchaseOrderStatus;
 }
