@@ -53,7 +53,7 @@ export enum PurchaseOrderStatus {
   APPROVED = "Approved",
   BILLED = "Billed",
   PARTIALLY_BILLED = "Partially Billed",
-  CANCELLED = "Cancelled",
+  CANCELED = "Canceled",
   RECEIVED = "Received",
   YET_TO_BE_BILLED = "Yet to be Billed",
 }
