@@ -56,7 +56,7 @@ export enum PurchaseOrderStatus {
   CANCELED = "Canceled",
   RECEIVED = "Received",
   YET_TO_BE_BILLED = "Yet to be Billed",
-  YET_TO_RECEIVED = "Yet to be Received",
+  YET_TO_BE_RECEIVED = "Yet to be Received",
 }
 
 export enum BillingRecordsStatus {
