@@ -62,6 +62,10 @@ export const ItemsSchemaFields = {
         type: Schema.Types.ObjectId,
         ref: "Project",
         default: null,
+      },
+      billable:{
+        type:Boolean,
+        default:false
       }
     },
   ],
