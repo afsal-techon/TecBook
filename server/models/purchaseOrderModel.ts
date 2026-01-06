@@ -72,7 +72,7 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     },
     status: {
       type: String,
-      enum: commonStatus
+      enum: PurchaseOrderStatus
     },
     documents: {
       type: [String],
