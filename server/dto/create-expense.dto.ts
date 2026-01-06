@@ -103,6 +103,7 @@ export class CreateExpenseDto {
   @IsOptional()
   total?: number;
 
+  @Transform(({value}) => value === "" || value === "undefined" || value === null ? undefined : value)
   @IsOptional()
   @IsMongoId()
   projectId?:string
@@ -197,7 +198,8 @@ export class UpdateExpenseDto {
   @IsOptional()
   total?: number;
 
-    @IsOptional()
+  @Transform(({value}) => value === "" || value === "undefined" || value === null ? undefined : value)
+  @IsOptional()
   @IsMongoId()
   projectId?:string
 
