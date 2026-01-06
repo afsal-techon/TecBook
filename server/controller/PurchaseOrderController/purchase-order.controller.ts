@@ -539,11 +539,11 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           message: "Invalid status provided",
         });
       }
-      const result = await this.genericUpdateOneById(id, { status });
-      return res.status(result.data.statusCode).json({
+      const result = await this.genericUpdateOneById(id, { status, billedStatus:null });
+      return res.status(HTTP_STATUS.OK).json({
         success: result.data.success,
         message: result.data.message,
-        statusCode: result.data.statusCode,
+        statusCode: HTTP_STATUS.OK,
       });
     } catch (error: unknown) {
       if (error instanceof Error) {
