@@ -533,6 +533,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       accountId: item.accountId
         ? new Types.ObjectId(item.accountId)
         : undefined,
+      projectId: item.projectId
+        ? new Types.ObjectId(item.projectId)
+        : undefined,
+      billable:item?.billable ?? false, 
     }));
   }
   private async validateProject(projectId: string) {
