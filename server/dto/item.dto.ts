@@ -63,7 +63,7 @@ export class ItemDto {
   @IsMongoId()
   accountId?: string;
 
-  @Transform(({ value }) => value === "" || value === null || value === undefined  ? undefined : value)
+  @Transform(({ value }) => value === "" || value === null ? undefined : value)
   @IsOptional()
   @IsMongoId()
   projectId?: string;
