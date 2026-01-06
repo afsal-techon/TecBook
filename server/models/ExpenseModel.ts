@@ -92,10 +92,6 @@ const ExpenseModelSchema = new Schema<IExpenses>(
       ref:'Project',
       default:null
     },
-    isBillable:{
-      type:Boolean,
-      default:false
-    }
   },
   {
     timestamps: true,
@@ -129,6 +125,5 @@ export const ExpenseModelConstants = {
   taxTotal: "taxTotal",
   total: "total",
   projectId:'projectId',
-  isBillable:'isBillable'
 };
 // export type ExpenseModelField = keyof typeof ExpenseModelConstants;

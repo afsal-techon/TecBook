@@ -108,9 +108,6 @@ export class CreateExpenseDto {
   @IsMongoId()
   projectId?:string
 
-  @IsOptional()
-  @IsBoolean()
-  isBillable?:boolean
 }
 
 export class UpdateExpenseDto {
@@ -203,7 +200,4 @@ export class UpdateExpenseDto {
   @IsMongoId()
   projectId?:string
 
-  @IsOptional()
-  @IsBoolean()
-  isBillable?:boolean
 }

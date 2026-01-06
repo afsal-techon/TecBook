@@ -22,6 +22,5 @@ export interface IExpenses extends IBaseFIelds {
   subTotal: number;
   taxTotal: number;
   total: number;
-  isBillable?:boolean;
   projectId?:Types.ObjectId
 }
