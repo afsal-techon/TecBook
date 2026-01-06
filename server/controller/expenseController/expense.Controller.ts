@@ -84,10 +84,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       await this.validateUser(userId);
       await this.validateVendor(dto.vendorId);
       await this.validateBranch(dto.branchId);
-      await this.validateCustomer(dto.customerId);
-      if(dto.projectId){
-        await this.validateProject(dto.projectId)
-      }
 
 
       const items: IItem[] = this.mapItems(dto.items);
@@ -129,7 +125,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         ...dto,
         date: dto.date ? new Date(dto.date) : new Date(),
         expenseNumber,
-        customerId: new Types.ObjectId(dto.customerId),
         branchId: new Types.ObjectId(dto.branchId),
         taxPreference: dto.taxPreference,
         paidAccount: new Types.ObjectId(dto.paidAccount),
@@ -137,7 +132,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         items,
         createdBy: new Types.ObjectId(userId),
         documents: uploadedFiles,
-        projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : undefined,
 
       };
 
@@ -196,12 +190,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       if (req.body.branchId) {
         await this.validateBranch(req.body.branchId);
       }
-      if (req.body.customerId) {
-        await this.validateCustomer(req.body.customerId);
-      }
-      if(req.body.projectId){
-        await this.validateProject(req.body.projectId)
-      }
 
 
       const items: IItem[] = req.body.items
@@ -211,9 +199,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       const payload: Partial<IExpenses> = {
         ...dto,
         date: req.body.date ? new Date(req.body.date) : undefined,
-        customerId: req.body.customerId
-          ? new Types.ObjectId(req.body.customerId)
-          : undefined,
         branchId: req.body.branchId
           ? new Types.ObjectId(req.body.branchId)
           : undefined,
@@ -225,9 +210,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
           ? new Types.ObjectId(req.body.vendorId)
           : undefined,
         items,
-        projectId: req.body.projectId
-          ? new Types.ObjectId(req.body.projectId)
-          : undefined,
       };
 
       await this.genericUpdateOneById(id, payload);
@@ -409,10 +391,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
           path: ExpenseModelConstants.paidAccount,
           select: "accountName",
         })
-        .populate({
-          path: ExpenseModelConstants.customerId,
-          select: "name",
-        });
 
       if (!expense) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -533,16 +511,11 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       accountId: item.accountId
         ? new Types.ObjectId(item.accountId)
         : undefined,
+      projectId: item.projectId
+        ? new Types.ObjectId(item.projectId)
+        : undefined,
+      billable:item?.billable ?? false, 
     }));
-  }
-  private async validateProject(projectId: string) {
-    if(!this.isValidMongoId(projectId)) throw new Error("Invalid project id")
-    const project = await this.projectModel.findOne({
-      _id: projectId,
-      isDeleted: false,
-    });
-    if (!project) throw new Error("Project not found");
-    return project;
   }
 }
 

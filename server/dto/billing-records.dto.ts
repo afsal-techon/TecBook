@@ -26,7 +26,7 @@ export class CreateBillingRecordsDTO {
   @IsNotEmpty()
   billNumber!: string;
 
-  @IsString()
+  @Transform(({ value }) => value === "" || value === null|| value === "undefined" ? undefined : value)
   @IsOptional()
   @IsMongoId()
   purchaseOrderNumber?: string;
@@ -53,6 +53,7 @@ export class CreateBillingRecordsDTO {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items!: ItemDto[];
+  
   @IsOptional()
   @IsString()
   note?: string;
@@ -113,8 +114,8 @@ export class updateBillingRecordsDTO {
   @IsMongoId()
   vendorId?: string;
 
+  @Transform(({ value }) => value === "" || value === null|| value === "undefined" ? undefined : value)
   @IsOptional()
-  @IsString()
   @IsMongoId()
   purchaseOrderNumber?: string;
 

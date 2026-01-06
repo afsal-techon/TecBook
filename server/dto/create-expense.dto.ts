@@ -29,10 +29,6 @@ export class CreateExpenseDto {
 
   @IsMongoId()
   @IsNotEmpty()
-  customerId!: string;
-
-  @IsMongoId()
-  @IsNotEmpty()
   branchId!: string;
 
   @IsEnum(TaxPreferences)
@@ -102,15 +98,6 @@ export class CreateExpenseDto {
   @IsNumber()
   @IsOptional()
   total?: number;
-
-  @Transform(({value}) => value === "" || value === "undefined" || value === null ? undefined : value)
-  @IsOptional()
-  @IsMongoId()
-  projectId?:string
-
-  @IsOptional()
-  @IsBoolean()
-  isBillable?:boolean
 }
 
 export class UpdateExpenseDto {
@@ -121,10 +108,6 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsString()
   expenseNumber?: string;
-
-  @IsOptional()
-  @IsMongoId()
-  customerId?: string;
 
   @IsOptional()
   @IsMongoId()
@@ -198,12 +181,4 @@ export class UpdateExpenseDto {
   @IsOptional()
   total?: number;
 
-  @Transform(({value}) => value === "" || value === "undefined" || value === null ? undefined : value)
-  @IsOptional()
-  @IsMongoId()
-  projectId?:string
-
-  @IsOptional()
-  @IsBoolean()
-  isBillable?:boolean
 }

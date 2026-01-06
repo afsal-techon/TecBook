@@ -16,11 +16,6 @@ const ExpenseModelSchema = new Schema<IExpenses>(
       required: true,
       unique: true,
     },
-    customerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Customer",
-      required: true,
-    },
     branchId: {
       type: Schema.Types.ObjectId,
       ref: "Branch",
@@ -87,15 +82,6 @@ const ExpenseModelSchema = new Schema<IExpenses>(
       required: true,
       default: 0,
     },
-    projectId:{
-      type:Schema.Types.ObjectId,
-      ref:'Project',
-      default:null
-    },
-    isBillable:{
-      type:Boolean,
-      default:false
-    }
   },
   {
     timestamps: true,
@@ -110,7 +96,6 @@ export type ExpenseModelDocument = typeof ExpenseModel;
 export const ExpenseModelConstants = {
   date: "date",
   expenseNumber: "expenseNumber",
-  customerId: "customerId",
   branchId: "branchId",
   taxPreference: "taxPreference",
   paidAccount: "paidAccount",
@@ -128,7 +113,5 @@ export const ExpenseModelConstants = {
   subTotal: "subTotal",
   taxTotal: "taxTotal",
   total: "total",
-  projectId:'projectId',
-  isBillable:'isBillable'
 };
 // export type ExpenseModelField = keyof typeof ExpenseModelConstants;

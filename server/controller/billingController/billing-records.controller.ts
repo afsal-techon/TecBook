@@ -570,6 +570,7 @@ class BillingRecordsController extends GenericDatabaseService<
       projectId: item.projectId
         ? new Types.ObjectId(item.projectId)
         : undefined,
+      billable:item?.billable ?? false,
     }));
   }
 }

@@ -6,7 +6,6 @@ import { TaxPreferences } from "../types/enum.types";
 export interface IExpenses extends IBaseFIelds {
   date: Date;
   expenseNumber: string;
-  customerId: Types.ObjectId;
   taxPreference?: TaxPreferences;
   paidAccount: Types.ObjectId;
   vendorId: Types.ObjectId;
@@ -22,6 +21,4 @@ export interface IExpenses extends IBaseFIelds {
   subTotal: number;
   taxTotal: number;
   total: number;
-  isBillable?:boolean;
-  projectId?:Types.ObjectId
 }
