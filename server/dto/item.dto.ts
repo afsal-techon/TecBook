@@ -1,5 +1,6 @@
 import { Transform } from "class-transformer";
 import {
+  IsBoolean,
   IsMongoId,
   IsNotEmpty,
   IsNumber,
@@ -68,6 +69,8 @@ export class ItemDto {
   @IsMongoId()
   projectId?: string;
 
-  
+  @IsBoolean()
+  @IsOptional()
+  billable?: boolean;
 
 }
