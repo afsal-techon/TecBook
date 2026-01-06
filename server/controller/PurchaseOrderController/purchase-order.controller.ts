@@ -161,6 +161,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           ? new Types.ObjectId(dto.paymentTermsId)
           : undefined,
         billedStatus: PurchaseOrderStatus.YET_TO_BE_BILLED,
+        receivedStatus: PurchaseOrderStatus.YET_TO_BE_RECEIVED,
       };
 
       const purchaseOrder = await this.genericCreateOne(payload);
@@ -539,7 +540,17 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           message: "Invalid status provided",
         });
       }
-      const result = await this.genericUpdateOneById(id, { status, billedStatus:null });
+      const updatePayload: Partial<{
+        status: PurchaseOrderStatus;
+        billedStatus: string | null;
+      }> = {
+        status,
+      };
+
+      if (status === PurchaseOrderStatus.CANCELED) {
+        updatePayload.billedStatus = null;
+      }
+      const result = await this.genericUpdateOneById(id, updatePayload);
       return res.status(HTTP_STATUS.OK).json({
         success: result.data.success,
         message: result.data.message,
