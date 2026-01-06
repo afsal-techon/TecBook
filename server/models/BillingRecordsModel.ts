@@ -132,6 +132,7 @@ export const BillingSchemaModelConstants = {
   subTotal: "subTotal",
   taxTotal: "taxTotal",
   total: "total",
+  balanceDue:"balanceDue",
 } as const;
 
 export type BillingRecordsField = keyof typeof BillingSchemaModelConstants;
