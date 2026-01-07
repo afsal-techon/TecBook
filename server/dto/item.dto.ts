@@ -32,7 +32,6 @@ export class ItemDto {
   prevItemId?: string;
 
   @IsString()
-  @IsNotEmpty()
   @IsOptional()
   itemName?: string;
 
@@ -42,8 +41,9 @@ export class ItemDto {
   qty?: number;
 
   @IsNumber()
+  @IsOptional()
   @Min(0)
-  rate!: number;
+  rate?: number;
 
   @IsNumber()
   @Min(0)
