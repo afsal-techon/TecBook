@@ -14,7 +14,12 @@ import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import branchModel from "../../models/branch";
 import vendorModel from "../../models/vendor";
-import { IBranch, ICustomer, IProject, IVendor } from "../../types/common.types";
+import {
+  IBranch,
+  ICustomer,
+  IProject,
+  IVendor,
+} from "../../types/common.types";
 import { HTTP_STATUS } from "../../constants/http-status";
 import { ItemDto } from "../../dto/item.dto";
 import { IItem } from "../../Interfaces/item.interface";
@@ -26,13 +31,16 @@ import numberSettingModel from "../../models/numberSetting";
 import { numberSettingsDocumentType } from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import projectModel from "../../models/project";
+import itemModel from "../../models/items";
+import taxModel from "../../models/tax";
+import accountModel from "../../models/accounts";
 
 class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
   private readonly userModel: Model<IUser>;
   private readonly branchModel: Model<IBranch>;
   private readonly vendorModel: Model<IVendor>;
   private readonly customerModel: Model<ICustomer>;
-  private readonly projectModel:Model<IProject>
+  private readonly projectModel: Model<IProject>;
 
   constructor() {
     super(ExpenseModel);
@@ -40,7 +48,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     this.branchModel = branchModel;
     this.vendorModel = vendorModel;
     this.customerModel = customerModel;
-    this.projectModel = projectModel
+    this.projectModel = projectModel;
   }
 
   /**
@@ -85,7 +93,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       await this.validateVendor(dto.vendorId);
       await this.validateBranch(dto.branchId);
 
-
+      await this.validateItemReferences(dto.items);
       const items: IItem[] = this.mapItems(dto.items);
 
       const uploadedFiles: string[] = [];
@@ -132,7 +140,6 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         items,
         createdBy: new Types.ObjectId(userId),
         documents: uploadedFiles,
-
       };
 
       const expense = await this.genericCreateOne(payload);
@@ -191,7 +198,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         await this.validateBranch(req.body.branchId);
       }
 
-
+      await this.validateItemReferences(req.body.items || []);
       const items: IItem[] = req.body.items
         ? this.mapItems(req.body.items)
         : [];
@@ -390,7 +397,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         .populate({
           path: ExpenseModelConstants.paidAccount,
           select: "accountName",
-        })
+        });
 
       if (!expense) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -489,15 +496,43 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
     if (!customer) throw new Error("customer not found");
     return customer;
   }
+  private async validateItemReferences(items: ItemDto[]) {
+    await this.validateIdsExist(
+      itemModel,
+      items.map((i) => i.itemId),
+      "itemId"
+    );
+
+    await this.validateIdsExist(
+      taxModel,
+      items.map((i) => i.taxId),
+      "taxId"
+    );
+
+    await this.validateIdsExist(
+      accountModel,
+      items.map((i) => i.accountId),
+      "accountId"
+    );
+
+    await this.validateIdsExist(
+      customerModel,
+      items.map((i) => i.customerId),
+      "customerId"
+    );
+    await this.validateIdsExist(
+      projectModel,
+      items.map((i) => i.projectId),
+      "projectId"
+    );
+  }
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
-      itemId: new Types.ObjectId(item.itemId),
-      taxId: new Types.ObjectId(item.taxId),
+      itemId: item.itemId ? new Types.ObjectId(item.itemId) : null,
+      taxId: item.taxId ? new Types.ObjectId(item.taxId) : null,
 
-      prevItemId: item.prevItemId
-        ? new Types.ObjectId(item.prevItemId)
-        : undefined,
+      prevItemId: item.prevItemId ? new Types.ObjectId(item.prevItemId) : null,
 
       itemName: item.itemName,
       qty: item.qty,
@@ -505,16 +540,10 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId
-        ? new Types.ObjectId(item.customerId)
-        : undefined,
-      accountId: item.accountId
-        ? new Types.ObjectId(item.accountId)
-        : undefined,
-      projectId: item.projectId
-        ? new Types.ObjectId(item.projectId)
-        : undefined,
-      billable:item?.billable ?? false, 
+      customerId: item.customerId ? new Types.ObjectId(item.customerId) : null,
+      accountId: item.accountId ? new Types.ObjectId(item.accountId) : null,
+      projectId: item.projectId ? new Types.ObjectId(item.projectId) : null,
+      billable: item?.billable ?? false,
     }));
   }
 }

@@ -1372,7 +1372,7 @@ export const getItemsList = async (
 
           // Sales info + joined fields
           // "salesInfo.sellingPrice": 1,
-          // "salesInfo.accountId": 1,
+          "salesInfo.accountId": 1,
           // "salesInfo.saleUnitId": 1,
           // "salesInfo.taxId": 1,
           salesAccountName: "$salesAccount.name", // adjust field name

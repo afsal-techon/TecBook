@@ -36,6 +36,10 @@ import {
   numberSettingsDocumentType,
   PurchaseOrderStatus,
 } from "../../types/enum.types";
+import itemModel from "../../models/items";
+import taxModel from "../../models/tax";
+import accountModel from "../../models/accounts";
+import customerModel from "../../models/customer";
 
 class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelDocument> {
   private readonly vendorModel: Model<IVendor>;
@@ -139,6 +143,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           uploadedFiles.push(uploadResponse.url);
         }
       }
+
+      await this.validateItemReferences(dto.items);
 
       const items: IItem[] = this.mapItems(dto.items);
 
@@ -246,6 +252,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       if (dto.paymentTermsId) {
         await this.validatePaymenetTerms(dto.paymentTermsId);
       }
+
+      await this.validateItemReferences(req.body.items || []);
 
       const items: IItem[] = this.mapItems(req.body.items || []);
       const payload: Partial<IPurchaseOrder> = {
@@ -551,11 +559,11 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       if (status === PurchaseOrderStatus.CANCELED) {
         updatePayload.billedStatus = null;
       }
-      if(status === PurchaseOrderStatus.RECEIVED){
-        updatePayload.receivedStatus = PurchaseOrderStatus.RECEIVED
+      if (status === PurchaseOrderStatus.RECEIVED) {
+        updatePayload.receivedStatus = PurchaseOrderStatus.RECEIVED;
       }
-      if(status === PurchaseOrderStatus.UNRECEIVED) {
-        updatePayload.receivedStatus = PurchaseOrderStatus.YET_TO_BE_RECEIVED
+      if (status === PurchaseOrderStatus.UNRECEIVED) {
+        updatePayload.receivedStatus = PurchaseOrderStatus.YET_TO_BE_RECEIVED;
       }
       const result = await this.genericUpdateOneById(id, updatePayload);
       return res.status(HTTP_STATUS.OK).json({
@@ -615,27 +623,45 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
     if (!paymentTerms) throw new Error("Payment terms not found");
   }
 
+  private async validateItemReferences(items: ItemDto[]) {
+    await this.validateIdsExist(
+      itemModel,
+      items.map((i) => i.itemId),
+      "itemId"
+    );
+
+    await this.validateIdsExist(
+      taxModel,
+      items.map((i) => i.taxId),
+      "taxId"
+    );
+
+    await this.validateIdsExist(
+      accountModel,
+      items.map((i) => i.accountId),
+      "accountId"
+    );
+
+    await this.validateIdsExist(
+      customerModel,
+      items.map((i) => i.customerId),
+      "customerId"
+    );
+  }
+
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
-      itemId: new Types.ObjectId(item.itemId),
-      taxId: new Types.ObjectId(item.taxId),
-
-      prevItemId: item.prevItemId
-        ? new Types.ObjectId(item.prevItemId)
-        : undefined,
-
+      itemId: item.itemId ? new Types.ObjectId(item.itemId) : null,
+      taxId: item.taxId ? new Types.ObjectId(item.taxId) : null,
+      prevItemId: item.prevItemId ? new Types.ObjectId(item.prevItemId) : null,
       itemName: item.itemName,
       qty: item.qty,
       rate: item.rate,
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId
-        ? new Types.ObjectId(item.customerId)
-        : undefined,
-      accountId: item.accountId
-        ? new Types.ObjectId(item.accountId)
-        : undefined,
+      customerId: item.customerId ? new Types.ObjectId(item.customerId) : null,
+      accountId: item.accountId ? new Types.ObjectId(item.accountId) : null,
     }));
   }
 }

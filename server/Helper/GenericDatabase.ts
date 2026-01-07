@@ -315,4 +315,26 @@ export class GenericDatabaseService<T extends Model<HydratedDocument<any>>> {
       throw error;
     }
   };
+
+  
+   validateIdsExist = async(
+    model: Model<any>,
+    ids: (string | undefined | null)[],
+    fieldName: string
+  ) => {
+    const validIds = ids
+      .filter(Boolean)
+      .filter((id) => this.isValidMongoId(id as string)) as string[];
+
+    if (!validIds.length) return;
+
+    const count = await model.countDocuments({
+      _id: { $in: validIds },
+      isDeleted: false,
+    });
+
+    if (count !== validIds.length) {
+      throw new Error(`Invalid ${fieldName} in items`);
+    }
+  }
 }

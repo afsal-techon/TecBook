@@ -1,8 +1,8 @@
 import { Types } from "mongoose";
 
 export interface IItem {
-  itemId: Types.ObjectId;
-  taxId?: Types.ObjectId;
+  itemId?: Types.ObjectId | null;
+  taxId?: Types.ObjectId | null;
   prevItemId?: Types.ObjectId | null;
   itemName: string | undefined;
   qty?: number;

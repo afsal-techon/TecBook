@@ -23,6 +23,9 @@ import numberSettingModel from "../../models/numberSetting";
 import { numberSettingsDocumentType } from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import accountModel from "../../models/accounts";
+import taxModel from "../../models/tax";
+import itemModel from "../../models/items";
 
 class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocument> {
   private readonly branchModel: Model<IBranch>;
@@ -74,6 +77,8 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
           uploadedFiles.push(uploadResponse.url);
         }
       }
+
+      await this.validateItemReferences(dto.items);
       const items: IItem[] = this.mapItems(dto.items);
 
       const numberSetting = await numberSettingModel.findOne({
@@ -165,6 +170,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
       if (dto.customerId) await this.validateCustomer(dto.customerId);
       if (dto.salesPersonId) await this.validateSalesPerson(dto.salesPersonId);
 
+      await this.validateItemReferences(dto.items || []);
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
       const payload: Partial<ICreditNote> = {
@@ -442,6 +448,32 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
       throw new Error("Sales person not found");
     }
     return validateSalesPerson;
+  }
+
+  private async validateItemReferences(items: ItemDto[]) {
+    await this.validateIdsExist(
+      itemModel,
+      items.map((i) => i.itemId),
+      "itemId"
+    );
+
+    await this.validateIdsExist(
+      taxModel,
+      items.map((i) => i.taxId),
+      "taxId"
+    );
+
+    await this.validateIdsExist(
+      accountModel,
+      items.map((i) => i.accountId),
+      "accountId"
+    );
+
+    await this.validateIdsExist(
+      customerModel,
+      items.map((i) => i.customerId),
+      "customerId"
+    );
   }
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
