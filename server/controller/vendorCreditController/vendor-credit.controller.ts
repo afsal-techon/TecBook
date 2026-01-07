@@ -137,6 +137,31 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
       });
     }
   };
+
+  /**
+   * Deletes a vendor credit by its ID.
+   * @param req The Express request object, containing the ID of the vendor credit to delete.
+   * @param res The Express response object used to send back the result.
+   */
+  deleteVendorCredit = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { id } = req.params;
+      await this.genericFindOneByIdOrNotFound(id);
+      const result = await this.genericDeleteOneById(id);
+
+      return res.status(result.statusCode).json({
+        success: result.success,
+        message: result.message,
+      });
+    } catch (error: any) {
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
+
+
   private async validateBranch(id: string) {
     if (!this.isValidMongoId(id)) {
       throw new Error("Invalid branch Id");
