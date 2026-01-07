@@ -26,21 +26,27 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import accountModel from "../../models/accounts";
 import taxModel from "../../models/tax";
 import itemModel from "../../models/items";
+import { IUser } from "../../types/user.types";
+import userModel from "../../models/user";
 
 class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocument> {
   private readonly branchModel: Model<IBranch>;
   private readonly customerModel: Model<ICustomer>;
   private readonly salesPersoneModel: Model<ISalesPerson>;
+  private readonly userModel: Model<IUser>;
+  
 
   constructor(
     branchModel: Model<IBranch>,
     customerModel: Model<ICustomer>,
-    salesPersoneModel: Model<ISalesPerson>
+    salesPersoneModel: Model<ISalesPerson>,
+    userModel: Model<IUser>
   ) {
     super(CreditNoteModel);
     this.branchModel = branchModel;
     this.customerModel = customerModel;
     this.salesPersoneModel = salesPersoneModel;
+    this.userModel = userModel;
   }
 
   /**
@@ -232,7 +238,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
-        userModel: undefined as any,
+        userModel: this.userModel,
         branchModel: this.branchModel,
         requestedBranchId: filterBranchId,
       });
@@ -505,5 +511,6 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 export const creditNoteController = new CreditNoteController(
   branchModel,
   customerModel,
-  salesPersonModel
+  salesPersonModel,
+  userModel
 );
