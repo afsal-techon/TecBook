@@ -568,6 +568,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       accountId: item.accountId ? new Types.ObjectId(item.accountId) : null,
       projectId: item.projectId ? new Types.ObjectId(item.projectId) : null,
       billable: item?.billable ?? false,
+      note:item?.note ?? ""
     }));
   }
 }

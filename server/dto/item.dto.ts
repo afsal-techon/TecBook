@@ -10,7 +10,7 @@ import {
 } from "class-validator";
 
 export class ItemDto {
-    @Transform(({ value }) =>
+  @Transform(({ value }) =>
     value === null || value === "" || value === "undefined" ? undefined : value
   )
   @IsOptional()
@@ -24,7 +24,7 @@ export class ItemDto {
   @IsMongoId()
   taxId?: string;
 
-    @Transform(({ value }) =>
+  @Transform(({ value }) =>
     value === "undefined" || value === "" || value === null ? undefined : value
   )
   @IsMongoId()
@@ -32,7 +32,6 @@ export class ItemDto {
   prevItemId?: string;
 
   @IsString()
-  @IsNotEmpty()
   @IsOptional()
   itemName?: string;
 
@@ -42,8 +41,9 @@ export class ItemDto {
   qty?: number;
 
   @IsNumber()
+  @IsOptional()
   @Min(0)
-  rate!: number;
+  rate?: number;
 
   @IsNumber()
   @Min(0)
@@ -60,17 +60,23 @@ export class ItemDto {
   @IsOptional()
   discount?: number;
 
-  @Transform(({ value }) => value === "" || value === null ? undefined : value)
+  @Transform(({ value }) =>
+    value === "" || value === null ? undefined : value
+  )
   @IsOptional()
   @IsMongoId()
   customerId?: string;
 
-  @Transform(({ value }) => value === "" || value === null ? undefined : value)
+  @Transform(({ value }) =>
+    value === "" || value === null ? undefined : value
+  )
   @IsOptional()
   @IsMongoId()
   accountId?: string;
 
-  @Transform(({ value }) => value === "" || value === null ? undefined : value)
+  @Transform(({ value }) =>
+    value === "" || value === null ? undefined : value
+  )
   @IsOptional()
   @IsMongoId()
   projectId?: string;
@@ -79,4 +85,7 @@ export class ItemDto {
   @IsOptional()
   billable?: boolean;
 
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
