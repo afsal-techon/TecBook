@@ -112,6 +112,8 @@ function getDefaultPrefix(docType: string) {
       return "EXP-";
     case "CREDIT_NOTE":
       return "CN-";
+    case "VENDOR_CREDIT":
+      return "VC-";  
     default:
       return "DOC-";
   }
