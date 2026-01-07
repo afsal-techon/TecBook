@@ -27,6 +27,7 @@ import userModel from "../../models/user";
 import numberSettingModel from "../../models/numberSetting";
 import { numberSettingsDocumentType } from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
+import { imagekit } from "../../config/imageKit";
 
 class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
   private readonly branchModel: Model<IBranch>;
@@ -89,6 +90,17 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         Model: vendorCreditModel,
         idField: vendorCreditModelConstants.vendorCreditNoteNumber,
       });
+      const uploadedFiles: string[] = [];
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploadResponse = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          uploadedFiles.push(uploadResponse.url);
+        }
+      }
       const payload: Partial<IVendorCredit> = {
         ...dto,
         vendorId: new Types.ObjectId(dto.vendorId),
@@ -100,6 +112,7 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         isDeleted: false,
         balanceAmount: dto.total,
         vendorCreditNoteNumber,
+        documents: uploadedFiles,
       };
 
       await this.genericCreateOne(payload);
