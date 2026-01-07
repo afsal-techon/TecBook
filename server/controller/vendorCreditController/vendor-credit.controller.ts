@@ -24,6 +24,9 @@ import vendorModel from "../../models/vendor";
 import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
+import numberSettingModel from "../../models/numberSetting";
+import { numberSettingsDocumentType } from "../../types/enum.types";
+import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 
 class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
   private readonly branchModel: Model<IBranch>;
@@ -63,6 +66,29 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
       await this.validateVendor(dto.vendorId);
       await this.validateItemReferences(dto.items);
 
+      const numberSetting = await numberSettingModel.findOne({
+        branchId: new Types.ObjectId(dto.branchId),
+        docType: numberSettingsDocumentType.VENDOR_CREDIT,
+      });
+
+      if (!numberSetting) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message:
+            "Number setting is not configured. Please configure it first.",
+        });
+      }
+
+      const vendorCreditNoteNumber = await generateDocumentNumber({
+        branchId: dto.branchId,
+        manualId:
+          numberSetting.mode !== "Auto"
+            ? dto.vendorCreditNoteNumber
+            : undefined,
+        docType: numberSettingsDocumentType.VENDOR_CREDIT,
+        Model: vendorCreditModel,
+        idField: vendorCreditModelConstants.vendorCreditNoteNumber,
+      });
       const payload: Partial<IVendorCredit> = {
         ...dto,
         vendorId: new Types.ObjectId(dto.vendorId),
@@ -73,6 +99,7 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         createdBy: new Types.ObjectId(req.user?.id),
         isDeleted: false,
         balanceAmount: dto.total,
+        vendorCreditNoteNumber,
       };
 
       await this.genericCreateOne(payload);
