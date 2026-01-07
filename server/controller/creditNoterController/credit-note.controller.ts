@@ -89,7 +89,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       const numberSetting = await numberSettingModel.findOne({
         branchId: new Types.ObjectId(dto.branchId),
-        docType: numberSettingsDocumentType.BILL,
+        docType: numberSettingsDocumentType.CREDIT_NOTE,
       });
 
       if (!numberSetting) {
