@@ -28,6 +28,17 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
     this.vendorModel = vendorModel;
   }
 
+  /**
+   * Creates a new vendor credit.
+   * @description This method handles the creation of a new vendor credit. It performs several validation checks:
+   * - Ensures a user is authenticated.
+   * - Validates the existence of the specified branch and vendor.
+   * - Validates the existence of item references (item, tax, account, customer).
+   * - Maps item DTOs to the required schema format.
+   * It then constructs and saves a new vendor credit document to the database.
+   * @param req The Express request object, containing the `CreateVendorCreditDto` in the body.
+   * @param res The Express response object used to send back the result.
+   */
   createVendorCredit = async (
     req: Request<{}, {}, CreateVendorCreditDto>,
     res: Response
