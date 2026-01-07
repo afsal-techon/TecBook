@@ -79,4 +79,8 @@ export class ItemDto {
   @IsOptional()
   billable?: boolean;
 
+  @IsOptional()
+  @IsString()
+  note?: string;
+
 }
