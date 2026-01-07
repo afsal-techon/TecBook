@@ -34,6 +34,11 @@ import {
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import paymentTermModel from "../../models/paymentTerms";
 import { IPurchaseOrder } from "../../Interfaces/purchase-order.interface";
+import itemModel from "../../models/items";
+import taxModel from "../../models/tax";
+import accountModel from "../../models/accounts";
+import customerModel from "../../models/customer";
+import projectModel from "../../models/project";
 
 class BillingRecordsController extends GenericDatabaseService<
   Model<IBillingRecords>
@@ -106,6 +111,7 @@ class BillingRecordsController extends GenericDatabaseService<
         });
       }
 
+      await this.validateItemReferences(dto.items);
       const items: IItem[] = this.mapItems(dto.items);
 
       let purchaseOrderDoc: HydratedDocument<IPurchaseOrder> | null = null;
@@ -259,6 +265,8 @@ class BillingRecordsController extends GenericDatabaseService<
           dto.purchaseOrderNumber
         );
       }
+
+      await this.validateItemReferences(dto.items || []);
 
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
@@ -546,14 +554,44 @@ class BillingRecordsController extends GenericDatabaseService<
 
     return purchaseOrder;
   }
+  private async validateItemReferences(items: ItemDto[]) {
+    await this.validateIdsExist(
+      itemModel,
+      items.map((i) => i.itemId),
+      "itemId"
+    );
+
+    await this.validateIdsExist(
+      taxModel,
+      items.map((i) => i.taxId),
+      "taxId"
+    );
+
+    await this.validateIdsExist(
+      accountModel,
+      items.map((i) => i.accountId),
+      "accountId"
+    );
+
+    await this.validateIdsExist(
+      customerModel,
+      items.map((i) => i.customerId),
+      "customerId"
+    );
+    await this.validateIdsExist(
+      projectModel,
+      items.map((i) => i.projectId),
+      "projectId"
+    );
+  }
+
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
-      itemId: new Types.ObjectId(item.itemId),
-      taxId: new Types.ObjectId(item.taxId),
-
+      itemId: item.itemId ? new Types.ObjectId(item.itemId) : null,
+      taxId: item.taxId ? new Types.ObjectId(item.taxId) : null,
       prevItemId: item.prevItemId
         ? new Types.ObjectId(item.prevItemId)
-        : undefined,
+        : null,
 
       itemName: item.itemName,
       qty: item.qty,
@@ -563,14 +601,14 @@ class BillingRecordsController extends GenericDatabaseService<
       discount: item.discount,
       customerId: item.customerId
         ? new Types.ObjectId(item.customerId)
-        : undefined,
+        : null,
       accountId: item.accountId
         ? new Types.ObjectId(item.accountId)
-        : undefined,
+        : null,
       projectId: item.projectId
         ? new Types.ObjectId(item.projectId)
-        : undefined,
-      billable:item?.billable ?? false,
+        : null,
+      billable: item?.billable ?? false,
     }));
   }
 }
