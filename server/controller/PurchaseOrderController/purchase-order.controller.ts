@@ -253,6 +253,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         await this.validatePaymenetTerms(dto.paymentTermsId);
       }
 
+      await this.validateItemReferences(req.body.items || []);
+
       const items: IItem[] = this.mapItems(req.body.items || []);
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
