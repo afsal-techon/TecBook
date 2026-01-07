@@ -270,6 +270,29 @@ class BillingRecordsController extends GenericDatabaseService<
 
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
+      let finalDocuments: string[] = [];
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
+
       const payload: Partial<IBillingRecords> = {
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
 
@@ -283,7 +306,7 @@ class BillingRecordsController extends GenericDatabaseService<
         dueDate,
 
         items,
-        documents: dto.existingDocuments ?? [],
+        documents: finalDocuments,
       };
 
       if (purchaseOrderDoc && dto.status === BillingRecordsStatus.OPEN) {
@@ -589,9 +612,7 @@ class BillingRecordsController extends GenericDatabaseService<
     return itemsDto.map((item) => ({
       itemId: item.itemId ? new Types.ObjectId(item.itemId) : null,
       taxId: item.taxId ? new Types.ObjectId(item.taxId) : null,
-      prevItemId: item.prevItemId
-        ? new Types.ObjectId(item.prevItemId)
-        : null,
+      prevItemId: item.prevItemId ? new Types.ObjectId(item.prevItemId) : null,
 
       itemName: item.itemName,
       qty: item.qty,
@@ -599,15 +620,9 @@ class BillingRecordsController extends GenericDatabaseService<
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId
-        ? new Types.ObjectId(item.customerId)
-        : null,
-      accountId: item.accountId
-        ? new Types.ObjectId(item.accountId)
-        : null,
-      projectId: item.projectId
-        ? new Types.ObjectId(item.projectId)
-        : null,
+      customerId: item.customerId ? new Types.ObjectId(item.customerId) : null,
+      accountId: item.accountId ? new Types.ObjectId(item.accountId) : null,
+      projectId: item.projectId ? new Types.ObjectId(item.projectId) : null,
       billable: item?.billable ?? false,
     }));
   }
