@@ -116,6 +116,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
           : undefined,
         items,
         creditNoteNumber,
+        createdBy: new Types.ObjectId(req.user?.id),
       };
       const data = await this.genericCreateOne(payload);
       return res.status(HTTP_STATUS.CREATED).json({
