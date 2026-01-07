@@ -10,8 +10,12 @@ import {
 } from "class-validator";
 
 export class ItemDto {
+    @Transform(({ value }) =>
+    value === null || value === "" || value === "undefined" ? undefined : value
+  )
+  @IsOptional()
   @IsMongoId()
-  itemId!: string;
+  itemId?: string;
 
   @Transform(({ value }) =>
     value === "no-tax" || value === "" || value === null ? undefined : value
@@ -20,10 +24,12 @@ export class ItemDto {
   @IsMongoId()
   taxId?: string;
 
+    @Transform(({ value }) =>
+    value === "undefined" || value === "" || value === null ? undefined : value
+  )
   @IsMongoId()
   @IsOptional()
-
-  prevItemId!: string;
+  prevItemId?: string;
 
   @IsString()
   @IsNotEmpty()
