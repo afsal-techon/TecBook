@@ -14,4 +14,5 @@ export interface IItem {
   accountId?: Types.ObjectId | null;
   projectId?: Types.ObjectId  | null;
   billable?: boolean;
+  note?:string
 }
