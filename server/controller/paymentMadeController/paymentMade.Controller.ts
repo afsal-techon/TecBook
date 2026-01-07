@@ -209,6 +209,29 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           );
         }
       }
+      let finalDocuments: string[] = [];
+      
+            if (dto.existingDocuments) {
+              const parsedDocs = Array.isArray(dto.existingDocuments)
+                ? dto.existingDocuments
+                : JSON.parse(dto.existingDocuments);
+      
+              finalDocuments = parsedDocs
+                .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+                .filter((d: string) => !!d);
+            }
+      
+            if (req.files && Array.isArray(req.files)) {
+              for (const file of req.files) {
+                const uploaded = await imagekit.upload({
+                  file: file.buffer.toString("base64"),
+                  fileName: file.originalname,
+                  folder: "/images",
+                });
+                finalDocuments.push(uploaded.url);
+              }
+            }
+      
 
       const updatedPayload: Partial<IPaymentMade> = {
         ...dto,
@@ -218,7 +241,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
           ? new Types.ObjectId(dto.accountId)
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
-        documents: dto.existingDocuments ?? [],
+        documents: finalDocuments,
         billId: dto.billId ? new Types.ObjectId(dto.billId) : undefined,
       };
       await this.genericUpdateOneById(id, updatedPayload);
