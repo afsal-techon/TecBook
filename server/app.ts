@@ -1,28 +1,24 @@
 import "reflect-metadata";
 console.log("🚀 App starting...");
-import express , { Application, NextFunction, Request,Response } from 'express';
+import express, { Application, NextFunction, Request, Response } from "express";
 console.log("✅ Express imported");
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 console.log("✅ .env loaded");
 import cookieParser from "cookie-parser";
-import mainRouter from './Routes/mainRouter'
-import connectDB from './config/database';
-import cors from 'cors';
-import purchaseOrderRoutes from './Routes/purchase-order.routes';
-import billingRecordsRoutes from './Routes/billing-records.routes';
-import expensesRoutes from './Routes/expense.routes'
-import paymentsMadeRoutes from './Routes/paymentesMade.routes'
-import creditNoteRoutes from './Routes/credit-note.routes';
-import vendorCreditRoutes from './Routes/vendor-credit.routes';
-
-
+import mainRouter from "./Routes/mainRouter";
+import connectDB from "./config/database";
+import cors from "cors";
+import purchaseOrderRoutes from "./Routes/purchase-order.routes";
+import billingRecordsRoutes from "./Routes/billing-records.routes";
+import expensesRoutes from "./Routes/expense.routes";
+import paymentsMadeRoutes from "./Routes/paymentesMade.routes";
+import creditNoteRoutes from "./Routes/credit-note.routes";
+import vendorCreditRoutes from "./Routes/vendor-credit.routes";
 
 dotenv.config();
-const app:Application = express();
+const app: Application = express();
 
-
-const port  = process.env.PORT;
-
+const port = process.env.PORT;
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -33,18 +29,17 @@ app.use(cookieParser());
 //   credentials: true,
 // }));
 
-app.use(cors({
-  origin: "https://www.tecbooks.online",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "https://www.tecbooks.online",
+    credentials: true,
+  })
+);
 
-
- app.use((err:any, req:Request, res:Response, next:NextFunction) => {
-    console.error("Error:", err.message);
-    res.status(500).json({ message: "Internal Server Error" });
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("Error:", err.message);
+  res.status(500).json({ message: "Internal Server Error" });
 });
- 
-
 
 (async () => {
   await connectDB();
@@ -55,15 +50,9 @@ app.use(cors({
   app.use("/api/expenses", expensesRoutes);
   app.use("/api/payments-made", paymentsMadeRoutes);
   app.use("/api/credit-note", creditNoteRoutes);
-  app.use('/api/vendor-credit', vendorCreditRoutes)
+  app.use("/api/vendor-credit", vendorCreditRoutes);
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
 })();
-
-
-
-
-
-
