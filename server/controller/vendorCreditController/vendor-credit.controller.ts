@@ -3,6 +3,7 @@ import { ItemDto } from "../../dto/item.dto";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   vendorCreditModel,
+  vendorCreditModelConstants,
   vendorCreditModelDocument,
 } from "../../models/vendor-credit.model";
 import { IItem } from "../../Interfaces/item.interface";
@@ -20,15 +21,24 @@ import { HTTP_STATUS } from "../../constants/http-status";
 import { IBranch, IVendor } from "../../types/common.types";
 import branchModel from "../../models/branch";
 import vendorModel from "../../models/vendor";
+import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import { IUser } from "../../types/user.types";
+import userModel from "../../models/user";
 
 class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
   private readonly branchModel: Model<IBranch>;
   private readonly vendorModel: Model<IVendor>;
+  private readonly userModel: Model<IUser>;
 
-  constructor(branchModel: Model<IBranch>, vendorModel: Model<IVendor>) {
+  constructor(
+    branchModel: Model<IBranch>,
+    vendorModel: Model<IVendor>,
+    userModel: Model<IUser>
+  ) {
     super(vendorCreditModel);
     this.branchModel = branchModel;
     this.vendorModel = vendorModel;
+    this.userModel = userModel;
   }
 
   /**
@@ -153,14 +163,80 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         success: result.success,
         message: result.message,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete vendor credit", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to delete vendor credit", error);
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
-        message: error.message,
+        message: "Failed to delete vendor credit",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       });
     }
   };
 
+  /**
+   * Retrieves all vendor credits.
+   * @description This method retrieves all vendor credits from the database, with optional filtering by branch ID and search functionality.
+   * It also handles pagination and populates related fields like branch and vendor.
+   * @param req The Express request object, which may contain `limit`, `page`, `search`, and `branchId` as query parameters.
+   * @param res The Express response object used to send back the result.
+   */
+  getVendorCreditById = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid vendor credit id",
+        });
+      }
+
+      await this.genericFindOneByIdOrNotFound(id);
+
+      const data = await vendorCreditModel
+        .findOne({ _id: id, isDeleted: false })
+        .populate({
+          path: vendorCreditModelConstants.vendorId,
+          select: "_id name",
+        })
+        .populate(vendorCreditModelConstants.branchId);
+
+      if (!data) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Vendor credit not found",
+        });
+      }
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch vendor credit", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to fetch vendor credit", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch vendor credit",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
+  
 
   private async validateBranch(id: string) {
     if (!this.isValidMongoId(id)) {
@@ -233,5 +309,6 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
 
 export const vendorCreditController = new vendorCredit(
   branchModel,
-  vendorModel
+  vendorModel,
+  userModel
 );
