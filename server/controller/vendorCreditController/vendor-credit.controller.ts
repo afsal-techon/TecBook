@@ -11,7 +11,10 @@ import taxModel from "../../models/tax";
 import accountModel from "../../models/accounts";
 import customerModel from "../../models/customer";
 import { Request, Response } from "express";
-import { CreateVendorCreditDto } from "../../dto/vendor-credit.dto";
+import {
+  CreateVendorCreditDto,
+  UpdateVendorCreditDto,
+} from "../../dto/vendor-credit.dto";
 import { IVendorCredit } from "../../Interfaces/vendor-credit.interface";
 import { HTTP_STATUS } from "../../constants/http-status";
 import { IBranch, IVendor } from "../../types/common.types";
@@ -84,6 +87,56 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
     }
   };
 
+  updateVendorCredit = async (
+    req: Request<{ id: string }, {}, UpdateVendorCreditDto>,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+      const dto: UpdateVendorCreditDto = req.body;
+
+      if (!this.isValidMongoId(id)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid vendor credit id",
+        });
+      }
+
+      await this.genericFindOneByIdOrNotFound(id);
+
+      if (dto.items?.length) {
+        await this.validateItemReferences(dto.items);
+      }
+
+      const payload: Partial<IVendorCredit> = {
+        ...dto,
+        vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
+        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        date: dto.date ? new Date(dto.date) : undefined,
+        items: dto.items ? this.mapItems(dto.items) : undefined,
+      };
+
+      await this.genericUpdateOneById(id, payload);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Vendor credit updated successfully",
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Failed to update vendor credit", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      console.log("Failed to update vendor credit", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to update vendor credit",
+      });
+    }
+  };
   private async validateBranch(id: string) {
     if (!this.isValidMongoId(id)) {
       throw new Error("Invalid branch Id");
