@@ -124,6 +124,7 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
         items: dto.items ? this.mapItems(dto.items) : undefined,
+        documents: dto.existingDocuments ?? [],
       };
 
       await this.genericUpdateOneById(id, payload);
