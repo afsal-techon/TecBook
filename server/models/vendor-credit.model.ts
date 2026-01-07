@@ -94,7 +94,7 @@ export const vendorCreditModel = model<IVendorCredit>(
   "vendorCredit",
   vendorCreditSchema
 );
-export type vendorModelDocumentType = typeof vendorCreditModel;
+export type vendorCreditModelDocument = typeof vendorCreditModel;
 
 export const vendorCreditModelConstants = {
   vendorId: "vendorId",
@@ -116,4 +116,3 @@ export const vendorCreditModelConstants = {
   balanceAmount: "balanceAmount",
 };
 
-export type vendorModelConstantsType = typeof vendorCreditModelConstants;
