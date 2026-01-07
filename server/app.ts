@@ -12,7 +12,8 @@ import purchaseOrderRoutes from './Routes/purchase-order.routes';
 import billingRecordsRoutes from './Routes/billing-records.routes';
 import expensesRoutes from './Routes/expense.routes'
 import paymentsMadeRoutes from './Routes/paymentesMade.routes'
-import creditNoteRoutes from './Routes/credit-note.routes'
+import creditNoteRoutes from './Routes/credit-note.routes';
+import vendorCreditRoutes from './Routes/vendor-credit.routes';
 
 
 
@@ -54,6 +55,7 @@ app.use(cors({
   app.use("/api/expenses", expensesRoutes);
   app.use("/api/payments-made", paymentsMadeRoutes);
   app.use("/api/credit-note", creditNoteRoutes);
+  app.use('/api/vendor-credit', vendorCreditRoutes)
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
