@@ -236,7 +236,97 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
     }
   };
 
-  
+  /*  Retrieves all vendor credits with optional filtering, search, and pagination.
+   * @param req The Express request object, which may contain `limit`, `page`, `search`, and `branchId` as query parameters.
+   * @param res The Express response object used to send back the result.
+   */
+  getAllVendorCredits = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
+      const skip = (page - 1) * limit;
+      const search = (req.query.search as string) || "";
+      const filterBranchId = req.query.branchId as string | undefined;
+
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: this.userModel,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
+
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+          },
+        },
+
+        {
+          $lookup: {
+            from: "vendors",
+            localField: "vendorId",
+            foreignField: "_id",
+            as: "vendor",
+          },
+        },
+        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
+      ];
+
+      if (search) {
+        pipeline.push({
+          $match: {
+            $or: [
+              { vendorCreditNoteNumber: { $regex: search, $options: "i" } },
+              { status: { $regex: search, $options: "i" } },
+              { "vendor.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        });
+      }
+
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await vendorCreditModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
+
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
+
+      const data = await vendorCreditModel.aggregate(pipeline);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Failed to fetch vendor credit", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+          statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        });
+      }
+      console.log("Failed to fetch vendor credit", error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch vendor credit",
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
 
   private async validateBranch(id: string) {
     if (!this.isValidMongoId(id)) {
