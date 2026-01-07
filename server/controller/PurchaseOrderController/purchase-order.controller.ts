@@ -258,28 +258,28 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const items: IItem[] = this.mapItems(req.body.items || []);
 
       let finalDocuments: string[] = [];
-      
-            if (dto.existingDocuments) {
-              const parsedDocs = Array.isArray(dto.existingDocuments)
-                ? dto.existingDocuments
-                : JSON.parse(dto.existingDocuments);
-      
-              finalDocuments = parsedDocs
-                .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
-                .filter((d: string) => !!d);
-            }
-      
-            if (req.files && Array.isArray(req.files)) {
-              for (const file of req.files) {
-                const uploaded = await imagekit.upload({
-                  file: file.buffer.toString("base64"),
-                  fileName: file.originalname,
-                  folder: "/images",
-                });
-                finalDocuments.push(uploaded.url);
-              }
-            }
-      
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
+
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
         purchaseOrderId: dto.purchaseOrderId ? dto.purchaseOrderId : undefined,
@@ -348,6 +348,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const skip = (page - 1) * limit;
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
+      const projectId = req.query.projectId as string | undefined;
 
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
@@ -359,14 +360,32 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       const pipeline: any[] = [
         {
           $match: {
-            isDeleted: false,
-            branchId: { $in: allowedBranchIds },
+            [PurchaseOrderModelConstants.isDeleted]: false,
+            [PurchaseOrderModelConstants.branchId]: { $in: allowedBranchIds },
           },
         },
+      ];
+
+      if (projectId) {
+        if (!mongoose.isValidObjectId(projectId)) {
+          return res.status(HTTP_STATUS.BAD_REQUEST).json({
+            success: false,
+            message: "Invalid project id",
+          });
+        }
+        pipeline.push({
+          $match: {
+            [PurchaseOrderModelConstants.projectId]: new Types.ObjectId(
+              projectId
+            ),
+          },
+        });
+      }
+      pipeline.push(
         {
           $lookup: {
             from: "vendors",
-            localField: "vendorId",
+            localField: PurchaseOrderModelConstants.vendorId,
             foreignField: "_id",
             as: "vendor",
           },
@@ -375,7 +394,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         {
           $lookup: {
             from: "salespeoples",
-            localField: "salesPersonId",
+            localField: PurchaseOrderModelConstants.salesPersonId,
             foreignField: "_id",
             as: "salesPerson",
           },
@@ -385,21 +404,36 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         {
           $lookup: {
             from: "projects",
-            localField: "projectId",
+            localField: PurchaseOrderModelConstants.projectId,
             foreignField: "_id",
             as: "project",
           },
         },
-        { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
-      ];
+        { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } }
+      );
 
       if (search) {
         pipeline.push({
           $match: {
             $or: [
-              { purchaseOrderId: { $regex: search, $options: "i" } },
-              { quote: { $regex: search, $options: "i" } },
-              { status: { $regex: search, $options: "i" } },
+              {
+                [PurchaseOrderModelConstants.purchaseOrderId]: {
+                  $regex: search,
+                  $options: "i",
+                },
+              },
+              {
+                [PurchaseOrderModelConstants.quote]: {
+                  $regex: search,
+                  $options: "i",
+                },
+              },
+              {
+                [PurchaseOrderModelConstants.status]: {
+                  $regex: search,
+                  $options: "i",
+                },
+              },
               { "vendor.name": { $regex: search, $options: "i" } },
               { "salesPerson.name": { $regex: search, $options: "i" } },
               { "project.name": { $regex: search, $options: "i" } },

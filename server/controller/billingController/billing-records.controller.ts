@@ -363,6 +363,7 @@ class BillingRecordsController extends GenericDatabaseService<
       const skip = (page - 1) * limit;
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
+      const projectId = req.query.projectId as string | undefined;
 
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
@@ -378,7 +379,61 @@ class BillingRecordsController extends GenericDatabaseService<
             branchId: { $in: allowedBranchIds },
           },
         },
+      ];
 
+      if (projectId) {
+        if (!mongoose.isValidObjectId(projectId)) {
+          return res.status(HTTP_STATUS.BAD_REQUEST).json({
+            success: false,
+            message: "Invalid project id",
+          });
+        }
+
+        const projectObjectId = new Types.ObjectId(projectId);
+
+        pipeline.push({
+          $match: {
+            "items.projectId": projectObjectId,
+          },
+        });
+
+        pipeline.push({
+          $project: {
+            vendorId: 1,
+            billNumber: 1,
+            purchaseOrder: 1,
+            billDate: 1,
+            dueDate: 1,
+            branchId: 1,
+            paymentTermsId: 1,
+            note: 1,
+            terms: 1,
+            discountType: 1,
+            discountValue: 1,
+            vatValue: 1,
+            status: 1,
+            documents: 1,
+            subTotal: 1,
+            taxTotal: 1,
+            total: 1,
+            balanceDue: 1,
+            createdBy: 1,
+            isDeleted: 1,
+            createdAt: 1,
+            updatedAt: 1,
+
+            items: {
+              $filter: {
+                input: "$items",
+                as: "item",
+                cond: { $eq: ["$$item.projectId", projectObjectId] },
+              },
+            },
+          },
+        });
+      }
+
+      pipeline.push(
         {
           $lookup: {
             from: "vendors",
@@ -387,8 +442,8 @@ class BillingRecordsController extends GenericDatabaseService<
             as: "vendor",
           },
         },
-        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
-      ];
+        { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } }
+      );
 
       if (search) {
         pipeline.push({

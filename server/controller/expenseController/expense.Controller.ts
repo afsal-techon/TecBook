@@ -297,6 +297,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       const skip = (page - 1) * limit;
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
+      const projectId = req.query.projectId as string | undefined;
 
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
@@ -312,7 +313,53 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
             branchId: { $in: allowedBranchIds },
           },
         },
+      ];
 
+      let projectObjectId: Types.ObjectId | null = null;
+      if (projectId) {
+        if (!mongoose.isValidObjectId(projectId)) {
+          return res.status(HTTP_STATUS.BAD_REQUEST).json({
+            success: false,
+            message: "Invalid project id",
+          });
+        }
+
+        projectObjectId = new Types.ObjectId(projectId);
+
+        pipeline.push({
+          $match: {
+            "items.projectId": projectObjectId,
+          },
+        });
+
+        pipeline.push({
+          $project: {
+            vendorId: 1,
+            expenseNumber: 1,
+            date: 1,
+            branchId: 1,
+            taxPreference: 1,
+            paidAccount: 1,
+            customerId: 1,
+            documents: 1,
+            subTotal: 1,
+            taxTotal: 1,
+            total: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            isDeleted: 1,
+
+            items: {
+              $filter: {
+                input: "$items",
+                as: "item",
+                cond: { $eq: ["$$item.projectId", projectObjectId] },
+              },
+            },
+          },
+        });
+      }
+      pipeline.push(
         {
           $lookup: {
             from: "vendors",
@@ -341,8 +388,8 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
             as: "customer",
           },
         },
-        { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
-      ];
+        { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } }
+      );
 
       if (search) {
         pipeline.push({
@@ -568,7 +615,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       accountId: item.accountId ? new Types.ObjectId(item.accountId) : null,
       projectId: item.projectId ? new Types.ObjectId(item.projectId) : null,
       billable: item?.billable ?? false,
-      note:item?.note ?? ""
+      note: item?.note ?? "",
     }));
   }
 }
