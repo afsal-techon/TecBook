@@ -34,7 +34,6 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
   private readonly customerModel: Model<ICustomer>;
   private readonly salesPersoneModel: Model<ISalesPerson>;
   private readonly userModel: Model<IUser>;
-  
 
   constructor(
     branchModel: Model<IBranch>,
@@ -179,6 +178,28 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       await this.validateItemReferences(dto.items || []);
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
+      let finalDocuments: string[] = [];
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
 
       const payload: Partial<ICreditNote> = {
         ...dto,
@@ -191,7 +212,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
         items,
-        documents: dto.existingDocuments ?? [],
+        documents: finalDocuments,
       };
 
       await this.genericUpdateOneById(id, payload);
