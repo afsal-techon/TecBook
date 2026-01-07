@@ -158,13 +158,36 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         await this.validateItemReferences(dto.items);
       }
 
+      let finalDocuments: string[] = [];
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
+
       const payload: Partial<IVendorCredit> = {
         ...dto,
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
         branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
         items: dto.items ? this.mapItems(dto.items) : undefined,
-        documents: dto.existingDocuments ?? [],
+        documents: finalDocuments,
       };
 
       await this.genericUpdateOneById(id, payload);
