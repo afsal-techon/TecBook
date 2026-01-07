@@ -617,13 +617,11 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
 
   private mapItems(itemsDto: ItemDto[]): IItem[] {
     return itemsDto.map((item) => ({
-      itemId: new Types.ObjectId(item.itemId),
-      taxId: new Types.ObjectId(item.taxId),
-
+      itemId: item.itemId ? new Types.ObjectId(item.itemId) : null,
+      taxId: item.taxId ? new Types.ObjectId(item.taxId) : null,
       prevItemId: item.prevItemId
         ? new Types.ObjectId(item.prevItemId)
-        : undefined,
-
+        : null,
       itemName: item.itemName,
       qty: item.qty,
       rate: item.rate,
@@ -632,10 +630,10 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       discount: item.discount,
       customerId: item.customerId
         ? new Types.ObjectId(item.customerId)
-        : undefined,
+        : null,
       accountId: item.accountId
         ? new Types.ObjectId(item.accountId)
-        : undefined,
+        : null,
     }));
   }
 }
