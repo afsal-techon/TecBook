@@ -527,6 +527,81 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  getVendorCreditBills = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
+      const skip = (page - 1) * limit;
+      const filterBranchId = req.query.branchId as string | undefined;
+
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: this.userModel,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
+
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+            status: { $ne: BillingRecordsStatus.PAID },
+            $expr: { $gt: ["$balanceDue", 0] },
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            billNumber: 1,
+            dueDate: 1,
+            total: 1,
+            balanceDue: 1,
+          },
+        },
+      ];
+
+      // Count
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await BillingSchemaModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
+
+      // Pagination
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
+
+      const bills = await BillingSchemaModel.aggregate(pipeline);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: bills,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while fetching vendor credit bills", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch vendor credit bills",
+      });
+    }
+  };
   private async validateUser(id: string) {
     const user = await this.userModel.findOne({
       _id: id,
