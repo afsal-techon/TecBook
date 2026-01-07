@@ -32,6 +32,7 @@ export enum numberSettingsDocumentType {
   BILL = "BILL",
   EXPENSE = "EXPENSE",
   CREDIT_NOTE = "CREDIT_NOTE",
+  VENDOR_CREDIT = "VENDOR_CREDIT",
 }
 
 export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
@@ -43,6 +44,7 @@ export const PREFIX_MAP: Record<numberSettingsDocumentType, string> = {
   [numberSettingsDocumentType.BILL]: "BILL-",
   [numberSettingsDocumentType.EXPENSE]: "EXP-",
   [numberSettingsDocumentType.CREDIT_NOTE]: "CN-",
+  [numberSettingsDocumentType.VENDOR_CREDIT]: "VC-",
 };
 
 export enum PurchaseOrderStatus {

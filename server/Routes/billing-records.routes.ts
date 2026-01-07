@@ -10,6 +10,7 @@ const router = Router()
 
 router.post("/", verifyUser,checkPermission('admin','BillingRecords','can_create'),upload.array('documents',10),validateDto(CreateBillingRecordsDTO),billingRecordsController.createBillingRecords);
 router.put("/:id",verifyUser, checkPermission('admin','BillingRecords','can_update'),upload.array('documents',10), validateDto(updateBillingRecordsDTO), billingRecordsController.updateBillingRecords);
+router.get('/vendor-credit',verifyUser, checkPermission('admin','BillingRecords','can_read') ,billingRecordsController.getVendorCreditBills);
 router.get("/", verifyUser, checkPermission('admin','BillingRecords','can_read') ,billingRecordsController.getAllBillingRecords);
 router.get("/:id",verifyUser, checkPermission('admin','BillingRecords','can_read') ,billingRecordsController.getBillingRecordById);
 router.delete("/:id",verifyUser,checkPermission('admin','BillingRecords','can_delete') , billingRecordsController.deleteBillingRecordById);

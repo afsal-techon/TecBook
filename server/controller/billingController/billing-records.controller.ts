@@ -270,6 +270,29 @@ class BillingRecordsController extends GenericDatabaseService<
 
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
 
+      let finalDocuments: string[] = [];
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
+
       const payload: Partial<IBillingRecords> = {
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
 
@@ -283,7 +306,7 @@ class BillingRecordsController extends GenericDatabaseService<
         dueDate,
 
         items,
-        documents: dto.existingDocuments ?? [],
+        documents: finalDocuments,
       };
 
       if (purchaseOrderDoc && dto.status === BillingRecordsStatus.OPEN) {
@@ -504,6 +527,81 @@ class BillingRecordsController extends GenericDatabaseService<
     }
   };
 
+  getVendorCreditBills = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.user as { id: string };
+
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
+      const skip = (page - 1) * limit;
+      const filterBranchId = req.query.branchId as string | undefined;
+
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+        userId: authUser.id,
+        userModel: this.userModel,
+        branchModel: this.branchModel,
+        requestedBranchId: filterBranchId,
+      });
+
+      const pipeline: any[] = [
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+            status: { $ne: BillingRecordsStatus.PAID },
+            $expr: { $gt: ["$balanceDue", 0] },
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            billNumber: 1,
+            dueDate: 1,
+            total: 1,
+            balanceDue: 1,
+          },
+        },
+      ];
+
+      // Count
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await BillingSchemaModel.aggregate(countPipeline);
+      const totalCount = countResult[0]?.total || 0;
+
+      // Pagination
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      );
+
+      const bills = await BillingSchemaModel.aggregate(pipeline);
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: bills,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log("Error while fetching vendor credit bills", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch vendor credit bills",
+      });
+    }
+  };
   private async validateUser(id: string) {
     const user = await this.userModel.findOne({
       _id: id,
@@ -589,9 +687,7 @@ class BillingRecordsController extends GenericDatabaseService<
     return itemsDto.map((item) => ({
       itemId: item.itemId ? new Types.ObjectId(item.itemId) : null,
       taxId: item.taxId ? new Types.ObjectId(item.taxId) : null,
-      prevItemId: item.prevItemId
-        ? new Types.ObjectId(item.prevItemId)
-        : null,
+      prevItemId: item.prevItemId ? new Types.ObjectId(item.prevItemId) : null,
 
       itemName: item.itemName,
       qty: item.qty,
@@ -599,15 +695,9 @@ class BillingRecordsController extends GenericDatabaseService<
       amount: item.amount,
       unit: item.unit,
       discount: item.discount,
-      customerId: item.customerId
-        ? new Types.ObjectId(item.customerId)
-        : null,
-      accountId: item.accountId
-        ? new Types.ObjectId(item.accountId)
-        : null,
-      projectId: item.projectId
-        ? new Types.ObjectId(item.projectId)
-        : null,
+      customerId: item.customerId ? new Types.ObjectId(item.customerId) : null,
+      accountId: item.accountId ? new Types.ObjectId(item.accountId) : null,
+      projectId: item.projectId ? new Types.ObjectId(item.projectId) : null,
       billable: item?.billable ?? false,
     }));
   }

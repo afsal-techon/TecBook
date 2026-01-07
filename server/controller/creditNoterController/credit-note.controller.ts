@@ -26,21 +26,26 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import accountModel from "../../models/accounts";
 import taxModel from "../../models/tax";
 import itemModel from "../../models/items";
+import { IUser } from "../../types/user.types";
+import userModel from "../../models/user";
 
 class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocument> {
   private readonly branchModel: Model<IBranch>;
   private readonly customerModel: Model<ICustomer>;
   private readonly salesPersoneModel: Model<ISalesPerson>;
+  private readonly userModel: Model<IUser>;
 
   constructor(
     branchModel: Model<IBranch>,
     customerModel: Model<ICustomer>,
-    salesPersoneModel: Model<ISalesPerson>
+    salesPersoneModel: Model<ISalesPerson>,
+    userModel: Model<IUser>
   ) {
     super(CreditNoteModel);
     this.branchModel = branchModel;
     this.customerModel = customerModel;
     this.salesPersoneModel = salesPersoneModel;
+    this.userModel = userModel;
   }
 
   /**
@@ -83,7 +88,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       const numberSetting = await numberSettingModel.findOne({
         branchId: new Types.ObjectId(dto.branchId),
-        docType: numberSettingsDocumentType.BILL,
+        docType: numberSettingsDocumentType.CREDIT_NOTE,
       });
 
       if (!numberSetting) {
@@ -116,6 +121,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
           : undefined,
         items,
         creditNoteNumber,
+        createdBy: new Types.ObjectId(req.user?.id),
       };
       const data = await this.genericCreateOne(payload);
       return res.status(HTTP_STATUS.CREATED).json({
@@ -172,6 +178,28 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       await this.validateItemReferences(dto.items || []);
       const items: IItem[] = dto.items ? this.mapItems(dto.items) : [];
+      let finalDocuments: string[] = [];
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
 
       const payload: Partial<ICreditNote> = {
         ...dto,
@@ -184,7 +212,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
           : undefined,
         date: dto.date ? new Date(dto.date) : undefined,
         items,
-        documents: dto.existingDocuments ?? [],
+        documents: finalDocuments,
       };
 
       await this.genericUpdateOneById(id, payload);
@@ -231,7 +259,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
-        userModel: undefined as any,
+        userModel: this.userModel,
         branchModel: this.branchModel,
         requestedBranchId: filterBranchId,
       });
@@ -504,5 +532,6 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 export const creditNoteController = new CreditNoteController(
   branchModel,
   customerModel,
-  salesPersonModel
+  salesPersonModel,
+  userModel
 );

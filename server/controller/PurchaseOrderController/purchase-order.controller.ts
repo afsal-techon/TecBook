@@ -256,6 +256,30 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       await this.validateItemReferences(req.body.items || []);
 
       const items: IItem[] = this.mapItems(req.body.items || []);
+
+      let finalDocuments: string[] = [];
+      
+            if (dto.existingDocuments) {
+              const parsedDocs = Array.isArray(dto.existingDocuments)
+                ? dto.existingDocuments
+                : JSON.parse(dto.existingDocuments);
+      
+              finalDocuments = parsedDocs
+                .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+                .filter((d: string) => !!d);
+            }
+      
+            if (req.files && Array.isArray(req.files)) {
+              for (const file of req.files) {
+                const uploaded = await imagekit.upload({
+                  file: file.buffer.toString("base64"),
+                  fileName: file.originalname,
+                  folder: "/images",
+                });
+                finalDocuments.push(uploaded.url);
+              }
+            }
+      
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
         purchaseOrderId: dto.purchaseOrderId ? dto.purchaseOrderId : undefined,
@@ -276,6 +300,8 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         paymentTermsId: req.body.paymentTermsId
           ? new Types.ObjectId(req.body.paymentTermsId)
           : undefined,
+        documents: finalDocuments,
+       
       };
 
       await this.genericUpdateOneById(id, payload);
