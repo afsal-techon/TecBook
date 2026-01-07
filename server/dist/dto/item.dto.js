@@ -16,6 +16,8 @@ class ItemDto {
 }
 exports.ItemDto = ItemDto;
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => value === null || value === "" || value === "undefined" ? undefined : value),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], ItemDto.prototype, "itemId", void 0);
@@ -26,13 +28,13 @@ __decorate([
     __metadata("design:type", String)
 ], ItemDto.prototype, "taxId", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => value === "undefined" || value === "" || value === null ? undefined : value),
     (0, class_validator_1.IsMongoId)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], ItemDto.prototype, "prevItemId", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], ItemDto.prototype, "itemName", void 0);
@@ -44,6 +46,7 @@ __decorate([
 ], ItemDto.prototype, "qty", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], ItemDto.prototype, "rate", void 0);
@@ -88,3 +91,8 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Boolean)
 ], ItemDto.prototype, "billable", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ItemDto.prototype, "note", void 0);

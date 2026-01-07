@@ -156,6 +156,25 @@ class PaymentMadeController extends GenericDatabase_1.GenericDatabaseService {
                         await this.billingRecordService.genericUpdateOneById(billingRecord._id.toString(), { status: finalStatus });
                     }
                 }
+                let finalDocuments = [];
+                if (dto.existingDocuments) {
+                    const parsedDocs = Array.isArray(dto.existingDocuments)
+                        ? dto.existingDocuments
+                        : JSON.parse(dto.existingDocuments);
+                    finalDocuments = parsedDocs
+                        .map((doc) => (typeof doc === "string" ? doc : doc.doc_file))
+                        .filter((d) => !!d);
+                }
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploaded = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        finalDocuments.push(uploaded.url);
+                    }
+                }
                 const updatedPayload = {
                     ...dto,
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
@@ -164,7 +183,7 @@ class PaymentMadeController extends GenericDatabase_1.GenericDatabaseService {
                         ? new mongoose_1.Types.ObjectId(dto.accountId)
                         : undefined,
                     date: dto.date ? new Date(dto.date) : undefined,
-                    documents: dto.existingDocuments ?? [],
+                    documents: finalDocuments,
                     billId: dto.billId ? new mongoose_1.Types.ObjectId(dto.billId) : undefined,
                 };
                 await this.genericUpdateOneById(id, updatedPayload);

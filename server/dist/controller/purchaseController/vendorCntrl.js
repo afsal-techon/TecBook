@@ -179,6 +179,8 @@ const getVendors = async (req, res, next) => {
             : {
                 _id: 1,
                 name: 1,
+                billingInfo: 1,
+                shippingInfo: 1,
             };
         // 🔹 Aggregation pipeline
         const pipeline = [

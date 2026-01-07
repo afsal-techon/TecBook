@@ -1126,7 +1126,7 @@ const getItemsList = async (req, res, next) => {
                     categoryName: "$category.name", // adjust field name if different
                     // Sales info + joined fields
                     // "salesInfo.sellingPrice": 1,
-                    // "salesInfo.accountId": 1,
+                    "salesInfo.accountId": 1,
                     // "salesInfo.saleUnitId": 1,
                     // "salesInfo.taxId": 1,
                     salesAccountName: "$salesAccount.name", // adjust field name

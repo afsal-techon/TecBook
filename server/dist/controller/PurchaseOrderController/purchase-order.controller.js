@@ -51,6 +51,10 @@ const paymentTerms_1 = __importDefault(require("../../models/paymentTerms"));
 const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const enum_types_1 = require("../../types/enum.types");
+const items_1 = __importDefault(require("../../models/items"));
+const tax_1 = __importDefault(require("../../models/tax"));
+const accounts_1 = __importDefault(require("../../models/accounts"));
+const customer_1 = __importDefault(require("../../models/customer"));
 class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
     constructor(vendorModel, userModel, projectModel, branchModel, salesModel, paymentTermsModel) {
         super(purchaseOrderModel_1.PurchaseOrderModel);
@@ -118,6 +122,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         uploadedFiles.push(uploadResponse.url);
                     }
                 }
+                await this.validateItemReferences(dto.items);
                 const items = this.mapItems(dto.items);
                 const payload = {
                     ...dto,
@@ -209,7 +214,27 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 if (dto.paymentTermsId) {
                     await this.validatePaymenetTerms(dto.paymentTermsId);
                 }
+                await this.validateItemReferences(req.body.items || []);
                 const items = this.mapItems(req.body.items || []);
+                let finalDocuments = [];
+                if (dto.existingDocuments) {
+                    const parsedDocs = Array.isArray(dto.existingDocuments)
+                        ? dto.existingDocuments
+                        : JSON.parse(dto.existingDocuments);
+                    finalDocuments = parsedDocs
+                        .map((doc) => (typeof doc === "string" ? doc : doc.doc_file))
+                        .filter((d) => !!d);
+                }
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploaded = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        finalDocuments.push(uploaded.url);
+                    }
+                }
                 const payload = {
                     ...dto,
                     purchaseOrderId: dto.purchaseOrderId ? dto.purchaseOrderId : undefined,
@@ -230,6 +255,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     paymentTermsId: req.body.paymentTermsId
                         ? new mongoose_1.Types.ObjectId(req.body.paymentTermsId)
                         : undefined,
+                    documents: finalDocuments,
                 };
                 await this.genericUpdateOneById(id, payload);
                 return res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -269,6 +295,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 const skip = (page - 1) * limit;
                 const search = req.query.search || "";
                 const filterBranchId = req.query.branchId;
+                const projectId = req.query.projectId;
                 const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
                     userId: authUser.id,
                     userModel: this.userModel,
@@ -278,45 +305,68 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                 const pipeline = [
                     {
                         $match: {
-                            isDeleted: false,
-                            branchId: { $in: allowedBranchIds },
+                            [purchaseOrderModel_1.PurchaseOrderModelConstants.isDeleted]: false,
+                            [purchaseOrderModel_1.PurchaseOrderModelConstants.branchId]: { $in: allowedBranchIds },
                         },
                     },
-                    {
-                        $lookup: {
-                            from: "vendors",
-                            localField: "vendorId",
-                            foreignField: "_id",
-                            as: "vendor",
-                        },
-                    },
-                    { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
-                    {
-                        $lookup: {
-                            from: "salespeoples",
-                            localField: "salesPersonId",
-                            foreignField: "_id",
-                            as: "salesPerson",
-                        },
-                    },
-                    { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } },
-                    {
-                        $lookup: {
-                            from: "projects",
-                            localField: "projectId",
-                            foreignField: "_id",
-                            as: "project",
-                        },
-                    },
-                    { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
                 ];
+                if (projectId) {
+                    if (!mongoose_1.default.isValidObjectId(projectId)) {
+                        return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                            success: false,
+                            message: "Invalid project id",
+                        });
+                    }
+                    pipeline.push({
+                        $match: {
+                            [purchaseOrderModel_1.PurchaseOrderModelConstants.projectId]: new mongoose_1.Types.ObjectId(projectId),
+                        },
+                    });
+                }
+                pipeline.push({
+                    $lookup: {
+                        from: "vendors",
+                        localField: purchaseOrderModel_1.PurchaseOrderModelConstants.vendorId,
+                        foreignField: "_id",
+                        as: "vendor",
+                    },
+                }, { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } }, {
+                    $lookup: {
+                        from: "salespeoples",
+                        localField: purchaseOrderModel_1.PurchaseOrderModelConstants.salesPersonId,
+                        foreignField: "_id",
+                        as: "salesPerson",
+                    },
+                }, { $unwind: { path: "$salesPerson", preserveNullAndEmptyArrays: true } }, {
+                    $lookup: {
+                        from: "projects",
+                        localField: purchaseOrderModel_1.PurchaseOrderModelConstants.projectId,
+                        foreignField: "_id",
+                        as: "project",
+                    },
+                }, { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } });
                 if (search) {
                     pipeline.push({
                         $match: {
                             $or: [
-                                { purchaseOrderId: { $regex: search, $options: "i" } },
-                                { quote: { $regex: search, $options: "i" } },
-                                { status: { $regex: search, $options: "i" } },
+                                {
+                                    [purchaseOrderModel_1.PurchaseOrderModelConstants.purchaseOrderId]: {
+                                        $regex: search,
+                                        $options: "i",
+                                    },
+                                },
+                                {
+                                    [purchaseOrderModel_1.PurchaseOrderModelConstants.quote]: {
+                                        $regex: search,
+                                        $options: "i",
+                                    },
+                                },
+                                {
+                                    [purchaseOrderModel_1.PurchaseOrderModelConstants.status]: {
+                                        $regex: search,
+                                        $options: "i",
+                                    },
+                                },
                                 { "vendor.name": { $regex: search, $options: "i" } },
                                 { "salesPerson.name": { $regex: search, $options: "i" } },
                                 { "project.name": { $regex: search, $options: "i" } },
@@ -540,25 +590,25 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
         if (!paymentTerms)
             throw new Error("Payment terms not found");
     }
+    async validateItemReferences(items) {
+        await this.validateIdsExist(items_1.default, items.map((i) => i.itemId), "itemId");
+        await this.validateIdsExist(tax_1.default, items.map((i) => i.taxId), "taxId");
+        await this.validateIdsExist(accounts_1.default, items.map((i) => i.accountId), "accountId");
+        await this.validateIdsExist(customer_1.default, items.map((i) => i.customerId), "customerId");
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
-            itemId: new mongoose_1.Types.ObjectId(item.itemId),
-            taxId: new mongoose_1.Types.ObjectId(item.taxId),
-            prevItemId: item.prevItemId
-                ? new mongoose_1.Types.ObjectId(item.prevItemId)
-                : undefined,
+            itemId: item.itemId ? new mongoose_1.Types.ObjectId(item.itemId) : null,
+            taxId: item.taxId ? new mongoose_1.Types.ObjectId(item.taxId) : null,
+            prevItemId: item.prevItemId ? new mongoose_1.Types.ObjectId(item.prevItemId) : null,
             itemName: item.itemName,
             qty: item.qty,
             rate: item.rate,
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
-            customerId: item.customerId
-                ? new mongoose_1.Types.ObjectId(item.customerId)
-                : undefined,
-            accountId: item.accountId
-                ? new mongoose_1.Types.ObjectId(item.accountId)
-                : undefined,
+            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : null,
+            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : null,
         }));
     }
 }

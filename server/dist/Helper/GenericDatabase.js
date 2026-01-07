@@ -242,6 +242,20 @@ class GenericDatabaseService {
                 throw error;
             }
         };
+        this.validateIdsExist = async (model, ids, fieldName) => {
+            const validIds = ids
+                .filter(Boolean)
+                .filter((id) => this.isValidMongoId(id));
+            if (!validIds.length)
+                return;
+            const count = await model.countDocuments({
+                _id: { $in: validIds },
+                isDeleted: false,
+            });
+            if (count !== validIds.length) {
+                throw new Error(`Invalid ${fieldName} in items`);
+            }
+        };
     }
     /**
      * Update a record by ID

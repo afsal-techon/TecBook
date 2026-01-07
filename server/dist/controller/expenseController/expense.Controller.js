@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseController = void 0;
-const mongoose_1 = require("mongoose");
+const mongoose_1 = __importStar(require("mongoose"));
 const GenericDatabase_1 = require("../../Helper/GenericDatabase");
 const ExpenseModel_1 = require("../../models/ExpenseModel");
 const user_1 = __importDefault(require("../../models/user"));
@@ -18,6 +51,9 @@ const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const enum_types_1 = require("../../types/enum.types");
 const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 const project_1 = __importDefault(require("../../models/project"));
+const items_1 = __importDefault(require("../../models/items"));
+const tax_1 = __importDefault(require("../../models/tax"));
+const accounts_1 = __importDefault(require("../../models/accounts"));
 class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
     constructor() {
         super(ExpenseModel_1.ExpenseModel);
@@ -57,6 +93,7 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 await this.validateUser(userId);
                 await this.validateVendor(dto.vendorId);
                 await this.validateBranch(dto.branchId);
+                await this.validateItemReferences(dto.items);
                 const items = this.mapItems(dto.items);
                 const uploadedFiles = [];
                 if (req.files && Array.isArray(req.files)) {
@@ -145,9 +182,29 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 if (req.body.branchId) {
                     await this.validateBranch(req.body.branchId);
                 }
+                await this.validateItemReferences(req.body.items || []);
                 const items = req.body.items
                     ? this.mapItems(req.body.items)
                     : [];
+                let finalDocuments = [];
+                if (dto.existingDocuments) {
+                    const parsedDocs = Array.isArray(dto.existingDocuments)
+                        ? dto.existingDocuments
+                        : JSON.parse(dto.existingDocuments);
+                    finalDocuments = parsedDocs
+                        .map((doc) => (typeof doc === "string" ? doc : doc.doc_file))
+                        .filter((d) => !!d);
+                }
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploaded = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        finalDocuments.push(uploaded.url);
+                    }
+                }
                 const payload = {
                     ...dto,
                     date: req.body.date ? new Date(req.body.date) : undefined,
@@ -162,6 +219,7 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                         ? new mongoose_1.Types.ObjectId(req.body.vendorId)
                         : undefined,
                     items,
+                    documents: finalDocuments,
                 };
                 await this.genericUpdateOneById(id, payload);
                 res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -215,6 +273,7 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 const skip = (page - 1) * limit;
                 const search = req.query.search || "";
                 const filterBranchId = req.query.branchId;
+                const projectId = req.query.projectId;
                 const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
                     userId: authUser.id,
                     userModel: this.userModel,
@@ -228,34 +287,69 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                             branchId: { $in: allowedBranchIds },
                         },
                     },
-                    {
-                        $lookup: {
-                            from: "vendors",
-                            localField: "vendorId",
-                            foreignField: "_id",
-                            as: "vendor",
-                        },
-                    },
-                    { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
-                    {
-                        $lookup: {
-                            from: "accounts",
-                            localField: "paidAccount",
-                            foreignField: "_id",
-                            as: "paidAccount",
-                        },
-                    },
-                    { $unwind: { path: "$paidAccount", preserveNullAndEmptyArrays: true } },
-                    {
-                        $lookup: {
-                            from: "customers",
-                            localField: "customerId",
-                            foreignField: "_id",
-                            as: "customer",
-                        },
-                    },
-                    { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } },
                 ];
+                let projectObjectId = null;
+                if (projectId) {
+                    if (!mongoose_1.default.isValidObjectId(projectId)) {
+                        return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                            success: false,
+                            message: "Invalid project id",
+                        });
+                    }
+                    projectObjectId = new mongoose_1.Types.ObjectId(projectId);
+                    pipeline.push({
+                        $match: {
+                            "items.projectId": projectObjectId,
+                        },
+                    });
+                    pipeline.push({
+                        $project: {
+                            vendorId: 1,
+                            expenseNumber: 1,
+                            date: 1,
+                            branchId: 1,
+                            taxPreference: 1,
+                            paidAccount: 1,
+                            customerId: 1,
+                            documents: 1,
+                            subTotal: 1,
+                            taxTotal: 1,
+                            total: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+                            isDeleted: 1,
+                            items: {
+                                $filter: {
+                                    input: "$items",
+                                    as: "item",
+                                    cond: { $eq: ["$$item.projectId", projectObjectId] },
+                                },
+                            },
+                        },
+                    });
+                }
+                pipeline.push({
+                    $lookup: {
+                        from: "vendors",
+                        localField: "vendorId",
+                        foreignField: "_id",
+                        as: "vendor",
+                    },
+                }, { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } }, {
+                    $lookup: {
+                        from: "accounts",
+                        localField: "paidAccount",
+                        foreignField: "_id",
+                        as: "paidAccount",
+                    },
+                }, { $unwind: { path: "$paidAccount", preserveNullAndEmptyArrays: true } }, {
+                    $lookup: {
+                        from: "customers",
+                        localField: "customerId",
+                        foreignField: "_id",
+                        as: "customer",
+                    },
+                }, { $unwind: { path: "$customer", preserveNullAndEmptyArrays: true } });
                 if (search) {
                     pipeline.push({
                         $match: {
@@ -429,29 +523,29 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
             throw new Error("customer not found");
         return customer;
     }
+    async validateItemReferences(items) {
+        await this.validateIdsExist(items_1.default, items.map((i) => i.itemId), "itemId");
+        await this.validateIdsExist(tax_1.default, items.map((i) => i.taxId), "taxId");
+        await this.validateIdsExist(accounts_1.default, items.map((i) => i.accountId), "accountId");
+        await this.validateIdsExist(customer_1.default, items.map((i) => i.customerId), "customerId");
+        await this.validateIdsExist(project_1.default, items.map((i) => i.projectId), "projectId");
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
-            itemId: new mongoose_1.Types.ObjectId(item.itemId),
-            taxId: new mongoose_1.Types.ObjectId(item.taxId),
-            prevItemId: item.prevItemId
-                ? new mongoose_1.Types.ObjectId(item.prevItemId)
-                : undefined,
+            itemId: item.itemId ? new mongoose_1.Types.ObjectId(item.itemId) : null,
+            taxId: item.taxId ? new mongoose_1.Types.ObjectId(item.taxId) : null,
+            prevItemId: item.prevItemId ? new mongoose_1.Types.ObjectId(item.prevItemId) : null,
             itemName: item.itemName,
             qty: item.qty,
             rate: item.rate,
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
-            customerId: item.customerId
-                ? new mongoose_1.Types.ObjectId(item.customerId)
-                : undefined,
-            accountId: item.accountId
-                ? new mongoose_1.Types.ObjectId(item.accountId)
-                : undefined,
-            projectId: item.projectId
-                ? new mongoose_1.Types.ObjectId(item.projectId)
-                : undefined,
+            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : null,
+            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : null,
+            projectId: item.projectId ? new mongoose_1.Types.ObjectId(item.projectId) : null,
             billable: item?.billable ?? false,
+            note: item?.note ?? "",
         }));
     }
 }

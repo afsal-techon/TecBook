@@ -51,6 +51,11 @@ const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const enum_types_1 = require("../../types/enum.types");
 const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 const paymentTerms_1 = __importDefault(require("../../models/paymentTerms"));
+const items_1 = __importDefault(require("../../models/items"));
+const tax_1 = __importDefault(require("../../models/tax"));
+const accounts_1 = __importDefault(require("../../models/accounts"));
+const customer_1 = __importDefault(require("../../models/customer"));
+const project_1 = __importDefault(require("../../models/project"));
 class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService {
     constructor(dbModel, vendorModel, userModel, branchModel, purchaseOrderService = purchase_order_controller_1.default, paymentTermModel, purchaseOrderModel) {
         super(dbModel);
@@ -93,6 +98,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                         message: "Due date must be greater than bill date",
                     });
                 }
+                await this.validateItemReferences(dto.items);
                 const items = this.mapItems(dto.items);
                 let purchaseOrderDoc = null;
                 if (dto.purchaseOrderNumber) {
@@ -212,7 +218,27 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 if (dto.purchaseOrderNumber) {
                     purchaseOrderDoc = await this.validatePurchaseOrder(dto.purchaseOrderNumber);
                 }
+                await this.validateItemReferences(dto.items || []);
                 const items = dto.items ? this.mapItems(dto.items) : [];
+                let finalDocuments = [];
+                if (dto.existingDocuments) {
+                    const parsedDocs = Array.isArray(dto.existingDocuments)
+                        ? dto.existingDocuments
+                        : JSON.parse(dto.existingDocuments);
+                    finalDocuments = parsedDocs
+                        .map((doc) => (typeof doc === "string" ? doc : doc.doc_file))
+                        .filter((d) => !!d);
+                }
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploaded = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        finalDocuments.push(uploaded.url);
+                    }
+                }
                 const payload = {
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
                     branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
@@ -222,7 +248,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                     billDate,
                     dueDate,
                     items,
-                    documents: dto.existingDocuments ?? [],
+                    documents: finalDocuments,
                 };
                 if (purchaseOrderDoc && dto.status === enum_types_1.BillingRecordsStatus.OPEN) {
                     await this.purchaseOrderService.genericUpdateOneById(purchaseOrderDoc._id, {
@@ -268,6 +294,7 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 const skip = (page - 1) * limit;
                 const search = req.query.search || "";
                 const filterBranchId = req.query.branchId;
+                const projectId = req.query.projectId;
                 const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
                     userId: authUser.id,
                     userModel: this.userModel,
@@ -281,16 +308,62 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                             branchId: { $in: allowedBranchIds },
                         },
                     },
-                    {
-                        $lookup: {
-                            from: "vendors",
-                            localField: "vendorId",
-                            foreignField: "_id",
-                            as: "vendor",
-                        },
-                    },
-                    { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } },
                 ];
+                if (projectId) {
+                    if (!mongoose_1.default.isValidObjectId(projectId)) {
+                        return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                            success: false,
+                            message: "Invalid project id",
+                        });
+                    }
+                    const projectObjectId = new mongoose_1.Types.ObjectId(projectId);
+                    pipeline.push({
+                        $match: {
+                            "items.projectId": projectObjectId,
+                        },
+                    });
+                    pipeline.push({
+                        $project: {
+                            vendorId: 1,
+                            billNumber: 1,
+                            purchaseOrder: 1,
+                            billDate: 1,
+                            dueDate: 1,
+                            branchId: 1,
+                            paymentTermsId: 1,
+                            note: 1,
+                            terms: 1,
+                            discountType: 1,
+                            discountValue: 1,
+                            vatValue: 1,
+                            status: 1,
+                            documents: 1,
+                            subTotal: 1,
+                            taxTotal: 1,
+                            total: 1,
+                            balanceDue: 1,
+                            createdBy: 1,
+                            isDeleted: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+                            items: {
+                                $filter: {
+                                    input: "$items",
+                                    as: "item",
+                                    cond: { $eq: ["$$item.projectId", projectObjectId] },
+                                },
+                            },
+                        },
+                    });
+                }
+                pipeline.push({
+                    $lookup: {
+                        from: "vendors",
+                        localField: "vendorId",
+                        foreignField: "_id",
+                        as: "vendor",
+                    },
+                }, { $unwind: { path: "$vendor", preserveNullAndEmptyArrays: true } });
                 if (search) {
                     pipeline.push({
                         $match: {
@@ -410,6 +483,70 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                 });
             }
         };
+        this.getVendorCreditBills = async (req, res) => {
+            try {
+                const authUser = req.user;
+                const limit = Number(req.query.limit) || 20;
+                const page = Number(req.query.page) || 1;
+                const skip = (page - 1) * limit;
+                const filterBranchId = req.query.branchId;
+                const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
+                    userId: authUser.id,
+                    userModel: this.userModel,
+                    branchModel: this.branchModel,
+                    requestedBranchId: filterBranchId,
+                });
+                const pipeline = [
+                    {
+                        $match: {
+                            isDeleted: false,
+                            branchId: { $in: allowedBranchIds },
+                            status: { $ne: enum_types_1.BillingRecordsStatus.PAID },
+                            $expr: { $gt: ["$balanceDue", 0] },
+                        },
+                    },
+                    {
+                        $project: {
+                            _id: 1,
+                            billNumber: 1,
+                            dueDate: 1,
+                            total: 1,
+                            balanceDue: 1,
+                        },
+                    },
+                ];
+                // Count
+                const countPipeline = [...pipeline, { $count: "total" }];
+                const countResult = await BillingRecordsModel_1.BillingSchemaModel.aggregate(countPipeline);
+                const totalCount = countResult[0]?.total || 0;
+                // Pagination
+                pipeline.push({ $sort: { createdAt: -1 } }, { $skip: skip }, { $limit: limit });
+                const bills = await BillingRecordsModel_1.BillingSchemaModel.aggregate(pipeline);
+                return res.status(http_status_1.HTTP_STATUS.OK).json({
+                    success: true,
+                    data: bills,
+                    pagination: {
+                        totalCount,
+                        page,
+                        limit,
+                        totalPages: Math.ceil(totalCount / limit),
+                    },
+                });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.log("Error while fetching vendor credit bills", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to fetch vendor credit bills",
+                });
+            }
+        };
         this.vendorModel = vendorModel;
         this.userModel = userModel;
         this.branchModel = branchModel;
@@ -463,28 +600,27 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
             throw new Error("Purchase order not found");
         return purchaseOrder;
     }
+    async validateItemReferences(items) {
+        await this.validateIdsExist(items_1.default, items.map((i) => i.itemId), "itemId");
+        await this.validateIdsExist(tax_1.default, items.map((i) => i.taxId), "taxId");
+        await this.validateIdsExist(accounts_1.default, items.map((i) => i.accountId), "accountId");
+        await this.validateIdsExist(customer_1.default, items.map((i) => i.customerId), "customerId");
+        await this.validateIdsExist(project_1.default, items.map((i) => i.projectId), "projectId");
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
-            itemId: new mongoose_1.Types.ObjectId(item.itemId),
-            taxId: new mongoose_1.Types.ObjectId(item.taxId),
-            prevItemId: item.prevItemId
-                ? new mongoose_1.Types.ObjectId(item.prevItemId)
-                : undefined,
+            itemId: item.itemId ? new mongoose_1.Types.ObjectId(item.itemId) : null,
+            taxId: item.taxId ? new mongoose_1.Types.ObjectId(item.taxId) : null,
+            prevItemId: item.prevItemId ? new mongoose_1.Types.ObjectId(item.prevItemId) : null,
             itemName: item.itemName,
             qty: item.qty,
             rate: item.rate,
             amount: item.amount,
             unit: item.unit,
             discount: item.discount,
-            customerId: item.customerId
-                ? new mongoose_1.Types.ObjectId(item.customerId)
-                : undefined,
-            accountId: item.accountId
-                ? new mongoose_1.Types.ObjectId(item.accountId)
-                : undefined,
-            projectId: item.projectId
-                ? new mongoose_1.Types.ObjectId(item.projectId)
-                : undefined,
+            customerId: item.customerId ? new mongoose_1.Types.ObjectId(item.customerId) : null,
+            accountId: item.accountId ? new mongoose_1.Types.ObjectId(item.accountId) : null,
+            projectId: item.projectId ? new mongoose_1.Types.ObjectId(item.projectId) : null,
             billable: item?.billable ?? false,
         }));
     }

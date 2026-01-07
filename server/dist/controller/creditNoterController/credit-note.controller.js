@@ -16,8 +16,12 @@ const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const enum_types_1 = require("../../types/enum.types");
 const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 const branch_access_helper_1 = require("../../Helper/branch-access.helper");
+const accounts_1 = __importDefault(require("../../models/accounts"));
+const tax_1 = __importDefault(require("../../models/tax"));
+const items_1 = __importDefault(require("../../models/items"));
+const user_1 = __importDefault(require("../../models/user"));
 class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
-    constructor(branchModel, customerModel, salesPersoneModel) {
+    constructor(branchModel, customerModel, salesPersoneModel, userModel) {
         super(credtiNoteModel_1.CreditNoteModel);
         /**
          * Creates a new credit note.
@@ -51,10 +55,11 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                         uploadedFiles.push(uploadResponse.url);
                     }
                 }
+                await this.validateItemReferences(dto.items);
                 const items = this.mapItems(dto.items);
                 const numberSetting = await numberSetting_1.default.findOne({
                     branchId: new mongoose_1.Types.ObjectId(dto.branchId),
-                    docType: enum_types_1.numberSettingsDocumentType.BILL,
+                    docType: enum_types_1.numberSettingsDocumentType.CREDIT_NOTE,
                 });
                 if (!numberSetting) {
                     return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
@@ -82,6 +87,7 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                         : undefined,
                     items,
                     creditNoteNumber,
+                    createdBy: new mongoose_1.Types.ObjectId(req.user?.id),
                 };
                 const data = await this.genericCreateOne(payload);
                 return res.status(http_status_1.HTTP_STATUS.CREATED).json({
@@ -131,7 +137,27 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                     await this.validateCustomer(dto.customerId);
                 if (dto.salesPersonId)
                     await this.validateSalesPerson(dto.salesPersonId);
+                await this.validateItemReferences(dto.items || []);
                 const items = dto.items ? this.mapItems(dto.items) : [];
+                let finalDocuments = [];
+                if (dto.existingDocuments) {
+                    const parsedDocs = Array.isArray(dto.existingDocuments)
+                        ? dto.existingDocuments
+                        : JSON.parse(dto.existingDocuments);
+                    finalDocuments = parsedDocs
+                        .map((doc) => (typeof doc === "string" ? doc : doc.doc_file))
+                        .filter((d) => !!d);
+                }
+                if (req.files && Array.isArray(req.files)) {
+                    for (const file of req.files) {
+                        const uploaded = await imageKit_1.imagekit.upload({
+                            file: file.buffer.toString("base64"),
+                            fileName: file.originalname,
+                            folder: "/images",
+                        });
+                        finalDocuments.push(uploaded.url);
+                    }
+                }
                 const payload = {
                     ...dto,
                     branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
@@ -143,7 +169,7 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                         : undefined,
                     date: dto.date ? new Date(dto.date) : undefined,
                     items,
-                    documents: dto.existingDocuments ?? [],
+                    documents: finalDocuments,
                 };
                 await this.genericUpdateOneById(id, payload);
                 return res.status(http_status_1.HTTP_STATUS.OK).json({
@@ -186,7 +212,7 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                 const filterBranchId = req.query.branchId;
                 const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
                     userId: authUser.id,
-                    userModel: undefined,
+                    userModel: this.userModel,
                     branchModel: this.branchModel,
                     requestedBranchId: filterBranchId,
                 });
@@ -351,6 +377,7 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
         this.branchModel = branchModel;
         this.customerModel = customerModel;
         this.salesPersoneModel = salesPersoneModel;
+        this.userModel = userModel;
     }
     async validateBranch(id) {
         if (!this.isValidMongoId(id)) {
@@ -388,6 +415,12 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
         }
         return validateSalesPerson;
     }
+    async validateItemReferences(items) {
+        await this.validateIdsExist(items_1.default, items.map((i) => i.itemId), "itemId");
+        await this.validateIdsExist(tax_1.default, items.map((i) => i.taxId), "taxId");
+        await this.validateIdsExist(accounts_1.default, items.map((i) => i.accountId), "accountId");
+        await this.validateIdsExist(customer_1.default, items.map((i) => i.customerId), "customerId");
+    }
     mapItems(itemsDto) {
         return itemsDto.map((item) => ({
             itemId: new mongoose_1.Types.ObjectId(item.itemId),
@@ -410,4 +443,4 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
         }));
     }
 }
-exports.creditNoteController = new CreditNoteController(branch_1.default, customer_1.default, salesPerson_1.default);
+exports.creditNoteController = new CreditNoteController(branch_1.default, customer_1.default, salesPerson_1.default, user_1.default);

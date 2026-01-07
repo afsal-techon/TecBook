@@ -36,6 +36,7 @@ var numberSettingsDocumentType;
     numberSettingsDocumentType["BILL"] = "BILL";
     numberSettingsDocumentType["EXPENSE"] = "EXPENSE";
     numberSettingsDocumentType["CREDIT_NOTE"] = "CREDIT_NOTE";
+    numberSettingsDocumentType["VENDOR_CREDIT"] = "VENDOR_CREDIT";
 })(numberSettingsDocumentType || (exports.numberSettingsDocumentType = numberSettingsDocumentType = {}));
 exports.PREFIX_MAP = {
     [numberSettingsDocumentType.QUOTE]: "QT-",
@@ -46,6 +47,7 @@ exports.PREFIX_MAP = {
     [numberSettingsDocumentType.BILL]: "BILL-",
     [numberSettingsDocumentType.EXPENSE]: "EXP-",
     [numberSettingsDocumentType.CREDIT_NOTE]: "CN-",
+    [numberSettingsDocumentType.VENDOR_CREDIT]: "VC-",
 };
 var PurchaseOrderStatus;
 (function (PurchaseOrderStatus) {

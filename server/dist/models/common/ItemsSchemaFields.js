@@ -60,6 +60,10 @@ exports.ItemsSchemaFields = {
             billable: {
                 type: Boolean,
                 default: false
+            },
+            note: {
+                type: String,
+                default: null
             }
         },
     ],

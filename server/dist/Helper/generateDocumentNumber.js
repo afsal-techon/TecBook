@@ -3,10 +3,38 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateDocumentNumber = void 0;
+exports.generateDocumentNumber = generateDocumentNumber;
 const mongoose_1 = require("mongoose");
 const numberSetting_1 = __importDefault(require("../models/numberSetting"));
-const generateDocumentNumber = async ({ branchId, docType, manualId, Model, idField = "quoteId", }) => {
+/**
+ * Generates a unique document number for a given document type and branch.
+ *
+ * Supports two modes:
+ * - **Auto mode**: Automatically generates the next sequential number based on configured settings
+ * - **Manual mode**: Uses a manually provided document ID
+ *
+ * @param params - The parameters for document number generation
+ * @param params.branchId - The ID of the branch
+ * @param params.docType - The type of document (e.g., "quote", "invoice")
+ * @param params.manualId - The manually provided document ID (required in manual mode)
+ * @param params.Model - The Mongoose model to check for document uniqueness
+ * @param params.idField - The field name to check for uniqueness (default: "quoteId")
+ *
+ * @returns A promise that resolves to the generated document number as a string
+ *
+ * @throws {Error} If the generated ID already exists in the database
+ * @throws {Error} If manual mode is enabled but no valid manualId is provided
+ *
+ * @example
+ * const docNumber = await generateDocumentNumber({
+ *   branchId: "507f1f77bcf86cd799439011",
+ *   docType: "quote",
+ *   manualId: undefined,
+ *   Model: QuoteModel,
+ *   idField: "quoteId"
+ * });
+ */
+async function generateDocumentNumber({ branchId, docType, manualId, Model, idField = "quoteId", }) {
     const setting = await numberSetting_1.default.findOne({
         branchId: new mongoose_1.Types.ObjectId(branchId),
         docType,
@@ -49,5 +77,4 @@ const generateDocumentNumber = async ({ branchId, docType, manualId, Model, idFi
         }
     }
     return finalId;
-};
-exports.generateDocumentNumber = generateDocumentNumber;
+}
