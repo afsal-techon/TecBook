@@ -203,6 +203,29 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
         ? this.mapItems(req.body.items)
         : [];
 
+      let finalDocuments: string[] = [];
+
+      if (dto.existingDocuments) {
+        const parsedDocs = Array.isArray(dto.existingDocuments)
+          ? dto.existingDocuments
+          : JSON.parse(dto.existingDocuments);
+
+        finalDocuments = parsedDocs
+          .map((doc: any) => (typeof doc === "string" ? doc : doc.doc_file))
+          .filter((d: string) => !!d);
+      }
+
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          const uploaded = await imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: file.originalname,
+            folder: "/images",
+          });
+          finalDocuments.push(uploaded.url);
+        }
+      }
+
       const payload: Partial<IExpenses> = {
         ...dto,
         date: req.body.date ? new Date(req.body.date) : undefined,
@@ -217,6 +240,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
           ? new Types.ObjectId(req.body.vendorId)
           : undefined,
         items,
+        documents: finalDocuments,
       };
 
       await this.genericUpdateOneById(id, payload);
