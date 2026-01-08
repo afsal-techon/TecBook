@@ -12,6 +12,8 @@ import SALSE_PERSON from "../../models/salesPerson";
 import TAX from "../../models/tax";
 import QUATATION from "../../models/quotation";
 import PROJECT from "../../models/project";
+import projectModel from "../../models/project";
+import { HTTP_STATUS } from "../../constants/http-status";
 
 export const createInvoice = async (
   req: Request,
@@ -530,6 +532,8 @@ export const getALLInvoices = async (
     const userRole = user.role; // "CompanyAdmin" or "User"
     const filterBranchId = req.query.branchId as string;
     const search = ((req.query.search as string) || "").trim();
+    const projectId = req.query.projectId as string;
+
 
     // Date filters
     const startDate = req.query.startDate as string;
@@ -592,6 +596,21 @@ export const getALLInvoices = async (
       isDeleted: false,
     };
 
+        if (projectId) {
+      if (!Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID!" });
+      }
+      const validateProject = await projectModel.findOne({
+        _id: projectId,
+        isDeleted: false,
+      });
+      if (!validateProject) {
+        return res
+          .status(HTTP_STATUS.BAD_REQUEST)
+          .json({ message: "Project not found!" });
+      }
+      matchStage.projectId = new Types.ObjectId(projectId);
+    }
     // 🔹 Date filter (quoteDate)
     if (startDate && endDate) {
       matchStage.quoteDate = {
