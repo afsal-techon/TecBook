@@ -4,15 +4,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTax = exports.updateTax = exports.getALLTaxes = exports.getTaxes = exports.createTax = void 0;
+const branch_access_helper_1 = require("../../Helper/branch-access.helper");
+const branch_1 = __importDefault(require("../../models/branch"));
 const tax_1 = __importDefault(require("../../models/tax"));
 const user_1 = __importDefault(require("../../models/user"));
-const mongoose_1 = require("mongoose");
+const user_2 = __importDefault(require("../../models/user"));
 const createTax = async (req, res, next) => {
     try {
-        const { branchId, name, type, cgstRate, sgstRate, vatRate, description, } = req.body;
+        const { branchId, name, type, cgstRate, sgstRate, vatRate, description } = req.body;
         const userId = req.user?.id;
         // 1 Validate user
-        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        const user = await user_2.default.findOne({ _id: userId, isDeleted: false });
         if (!user)
             return res.status(400).json({ message: "User not found!" });
         // 2️ Validate input
@@ -32,13 +34,15 @@ const createTax = async (req, res, next) => {
                 .json({ message: "CGST and SGST rates are required for GST type!" });
         }
         if (type === "VAT" && vatRate == null) {
-            return res.status(400).json({ message: "VAT rate is required for VAT type!" });
+            return res
+                .status(400)
+                .json({ message: "VAT rate is required for VAT type!" });
         }
         // 4️ Prevent duplicate (same name under same branch)
         const existingTax = await tax_1.default.findOne({
             branchId,
             name: { $regex: `^${name}$`, $options: "i" },
-            isDeleted: false
+            isDeleted: false,
         });
         if (existingTax)
             return res.status(400).json({ message: `Tax '${name}' already exists!` });
@@ -70,7 +74,7 @@ const getTaxes = async (req, res, next) => {
         const taxes = await tax_1.default.find({
             branchId,
             isActive: true,
-            isDeleted: false
+            isDeleted: false,
         }).sort({ createdAt: -1 });
         return res.status(200).json({
             data: taxes,
@@ -85,24 +89,26 @@ const getALLTaxes = async (req, res, next) => {
     try {
         const userId = req.user?.id;
         // Validate user
-        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        const user = await user_2.default.findOne({ _id: userId, isDeleted: false });
         if (!user) {
             return res.status(400).json({ message: "User not found!" });
-        }
-        // Branch Id required
-        const branchId = req.query.branchId;
-        if (!branchId) {
-            return res.status(400).json({ message: "Branch ID is required!" });
         }
         // Pagination
         const limit = parseInt(req.query.limit) || 20;
         const page = parseInt(req.query.page) || 1;
         const skip = (page - 1) * limit;
+        const filterBranchId = req.query.branchId;
+        const { allowedBranchIds } = await (0, branch_access_helper_1.resolveUserAndAllowedBranchIds)({
+            userId: userId,
+            userModel: user_1.default,
+            branchModel: branch_1.default,
+            requestedBranchId: filterBranchId,
+        });
         // Search filter
         const search = (req.query.search || "").trim();
         const match = {
             isDeleted: false,
-            branchId: new mongoose_1.Types.ObjectId(branchId),
+            branchId: { $in: allowedBranchIds },
         };
         // Add search conditions
         if (search) {
@@ -153,7 +159,7 @@ const updateTax = async (req, res, next) => {
          } = req.body;
         const userId = req.user?.id;
         // 1️ Validate user
-        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        const user = await user_2.default.findOne({ _id: userId, isDeleted: false });
         if (!user)
             return res.status(400).json({ message: "User not found!" });
         // 2️ Validate tax existence
@@ -227,7 +233,7 @@ const deleteTax = async (req, res, next) => {
         const userId = req.user?.id;
         const { taxId } = req.params;
         // Validate user
-        const user = await user_1.default.findOne({ _id: userId, isDeleted: false });
+        const user = await user_2.default.findOne({ _id: userId, isDeleted: false });
         if (!user)
             return res.status(400).json({ message: "User not found!" });
         if (!taxId) {

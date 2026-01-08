@@ -65,10 +65,6 @@ const getAccounts = async (req, res, next) => {
         const userRole = user.role; // "CompanyAdmin" or "User"
         const filterBranchId = req.query.branchId; // optional
         const search = (req.query.search || "").trim();
-        const branchId = req.query.branchId;
-        if (!branchId) {
-            return res.status(400).json({ message: "Branch Id is required!" });
-        }
         // Pagination
         const limit = parseInt(req.query.limit) || 20;
         const page = parseInt(req.query.page) || 1;
