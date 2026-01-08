@@ -93,7 +93,12 @@ const BillngRecordSchema = new Schema<IBillingRecords>(
     balanceDue:{
       type:Number,
       default:0
-    }
+    },
+    vendorCreditAplliedDate:{
+      type:Date,
+      default:null
+    },
+
   },
   {
     timestamps: true,
@@ -133,6 +138,7 @@ export const BillingSchemaModelConstants = {
   taxTotal: "taxTotal",
   total: "total",
   balanceDue:"balanceDue",
+  vendorCreditAplliedDate:"vendorCreditAplliedDate",
 } as const;
 
 export type BillingRecordsField = keyof typeof BillingSchemaModelConstants;
