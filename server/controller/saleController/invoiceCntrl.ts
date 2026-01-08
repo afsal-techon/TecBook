@@ -534,7 +534,6 @@ export const getALLInvoices = async (
     const search = ((req.query.search as string) || "").trim();
     const projectId = req.query.projectId as string;
 
-
     // Date filters
     const startDate = req.query.startDate as string;
     const endDate = req.query.endDate as string;
@@ -596,7 +595,7 @@ export const getALLInvoices = async (
       isDeleted: false,
     };
 
-        if (projectId) {
+    if (projectId) {
       if (!Types.ObjectId.isValid(projectId)) {
         return res.status(400).json({ message: "Invalid project ID!" });
       }
