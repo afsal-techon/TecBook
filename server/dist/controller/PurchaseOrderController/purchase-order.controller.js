@@ -188,6 +188,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                     });
                 }
                 const existingData = await this.genericFindById(id);
+                const result = existingData.data;
                 let quoteDate;
                 let expiryDate;
                 if (req.body.purchaseOrderDate) {
@@ -235,6 +236,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         finalDocuments.push(uploaded.url);
                     }
                 }
+                const existingPurchaseOrder = (await result.findById(id));
                 const payload = {
                     ...dto,
                     purchaseOrderId: dto.purchaseOrderId ? dto.purchaseOrderId : undefined,
@@ -251,7 +253,7 @@ class PurchaseOrderController extends GenericDatabase_1.GenericDatabaseService {
                         ? new mongoose_1.Types.ObjectId(req.body.projectId)
                         : undefined,
                     items,
-                    branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
+                    branchId: existingPurchaseOrder.branchId,
                     paymentTermsId: req.body.paymentTermsId
                         ? new mongoose_1.Types.ObjectId(req.body.paymentTermsId)
                         : undefined,

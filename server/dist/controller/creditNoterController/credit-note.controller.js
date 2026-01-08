@@ -129,7 +129,15 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                         message: "Invalid credit note id",
                     });
                 }
-                await this.genericFindOneByIdOrNotFound(id);
+                const result = await this.genericFindOneByIdOrNotFound(id);
+                const CreditNoteModel = result.data;
+                const existingCreditNote = (await CreditNoteModel.findById(id));
+                if (!existingCreditNote) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Credit note not found",
+                    });
+                }
                 const dto = req.body;
                 if (dto.branchId)
                     await this.validateBranch(dto.branchId);
@@ -160,7 +168,7 @@ class CreditNoteController extends GenericDatabase_1.GenericDatabaseService {
                 }
                 const payload = {
                     ...dto,
-                    branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
+                    branchId: existingCreditNote.branchId,
                     customerId: dto.customerId
                         ? new mongoose_1.Types.ObjectId(dto.customerId)
                         : undefined,

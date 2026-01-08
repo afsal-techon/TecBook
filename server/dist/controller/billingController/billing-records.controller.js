@@ -187,7 +187,8 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                         message: "Invalid billing record id",
                     });
                 }
-                const billingRecord = await this.genericFindOneByIdOrNotFound(id);
+                const result = await this.genericFindOneByIdOrNotFound(id);
+                const billingModel = result.data;
                 const dto = req.body;
                 let billDate;
                 let dueDate;
@@ -239,9 +240,16 @@ class BillingRecordsController extends GenericDatabase_1.GenericDatabaseService 
                         finalDocuments.push(uploaded.url);
                     }
                 }
+                const existingBillRecord = (await billingModel.findById(id));
+                if (!existingBillRecord) {
+                    return res.status(http_status_1.HTTP_STATUS.NOT_FOUND).json({
+                        success: false,
+                        message: "Billing record not found",
+                    });
+                }
                 const payload = {
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
-                    branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
+                    branchId: existingBillRecord.branchId,
                     purchaseOrderNumber: dto.purchaseOrderNumber
                         ? new mongoose_1.Types.ObjectId(dto.purchaseOrderNumber)
                         : undefined,

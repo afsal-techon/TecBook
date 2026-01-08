@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vendorCreditController = void 0;
-const mongoose_1 = require("mongoose");
+const mongoose_1 = __importStar(require("mongoose"));
 const GenericDatabase_1 = require("../../Helper/GenericDatabase");
 const vendor_credit_model_1 = require("../../models/vendor-credit.model");
 const items_1 = __importDefault(require("../../models/items"));
@@ -20,9 +53,12 @@ const numberSetting_1 = __importDefault(require("../../models/numberSetting"));
 const enum_types_1 = require("../../types/enum.types");
 const generateDocumentNumber_1 = require("../../Helper/generateDocumentNumber");
 const imageKit_1 = require("../../config/imageKit");
+const billing_records_controller_1 = __importDefault(require("../billingController/billing-records.controller"));
+const BillingRecordsModel_1 = require("../../models/BillingRecordsModel");
 class vendorCredit extends GenericDatabase_1.GenericDatabaseService {
     constructor(branchModel, vendorModel, userModel) {
         super(vendor_credit_model_1.vendorCreditModel);
+        this.billingService = billing_records_controller_1.default;
         /**
          * Creates a new vendor credit.
          * @description This method handles the creation of a new vendor credit. It performs several validation checks:
@@ -114,7 +150,7 @@ class vendorCredit extends GenericDatabase_1.GenericDatabaseService {
                         message: "Invalid vendor credit id",
                     });
                 }
-                await this.genericFindOneByIdOrNotFound(id);
+                const result = await this.genericFindOneByIdOrNotFound(id);
                 if (dto.items?.length) {
                     await this.validateItemReferences(dto.items);
                 }
@@ -137,10 +173,18 @@ class vendorCredit extends GenericDatabase_1.GenericDatabaseService {
                         finalDocuments.push(uploaded.url);
                     }
                 }
+                const existVendorCredit = result.data;
+                const existBranch = (await existVendorCredit.findById(id));
+                if (!existBranch) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Vendor credit not found",
+                    });
+                }
                 const payload = {
                     ...dto,
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
-                    branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
+                    branchId: existBranch.branchId,
                     date: dto.date ? new Date(dto.date) : undefined,
                     items: dto.items ? this.mapItems(dto.items) : undefined,
                     documents: finalDocuments,
@@ -324,6 +368,112 @@ class vendorCredit extends GenericDatabase_1.GenericDatabaseService {
                     success: false,
                     message: "Failed to fetch vendor credit",
                     statusCode: http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR,
+                });
+            }
+        };
+        /**
+         * Applies a vendor credit to one or more bills.
+         * @description This method handles applying a vendor credit to multiple bills within a single transaction.
+         * - It validates the vendor credit ID and ensures at least one bill application is provided.
+         * - It retrieves the vendor credit and checks for sufficient balance.
+         * - For each bill, it validates the bill ID, retrieves the bill, and ensures the applied amount does not exceed the balance due.
+         * - It updates the balance due and status of each bill.
+         * - It deducts the total applied amount from the vendor credit's balance and updates its status if fully used.
+         * - All database operations are performed within a mongoose transaction to ensure data integrity.
+         * @param req The Express request object, containing the vendor credit ID in params and `applyVendorCreditToBillDto` in the body.
+         * @param res The Express response object used to send back the result.
+         */
+        this.applyCreditToBill = async (req, res) => {
+            const session = await mongoose_1.default.startSession();
+            session.startTransaction();
+            try {
+                const vendorCreditId = req.params.id;
+                const { applications } = req.body;
+                if (!this.isValidMongoId(vendorCreditId)) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Invalid vendor credit id",
+                    });
+                }
+                if (!applications?.length) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "At least one bill is required",
+                    });
+                }
+                const vendorCredit = await vendor_credit_model_1.vendorCreditModel
+                    .findOne({ _id: vendorCreditId, isDeleted: false })
+                    .session(session);
+                if (!vendorCredit) {
+                    return res.status(http_status_1.HTTP_STATUS.NOT_FOUND).json({
+                        success: false,
+                        message: "Vendor credit not found",
+                    });
+                }
+                const totalApplyAmount = applications.reduce((sum, item) => sum + item.amountToApply, 0);
+                if (vendorCredit.balanceAmount < totalApplyAmount) {
+                    return res.status(http_status_1.HTTP_STATUS.BAD_REQUEST).json({
+                        success: false,
+                        message: "Insufficient vendor credit balance",
+                    });
+                }
+                let appliedBills = [];
+                for (const app of applications) {
+                    if (!this.isValidMongoId(app.billId)) {
+                        throw new Error(`Invalid bill id: ${app.billId}`);
+                    }
+                    const bill = await BillingRecordsModel_1.BillingSchemaModel.findOne({
+                        _id: app.billId,
+                        isDeleted: false,
+                    }).session(session);
+                    if (!bill) {
+                        throw new Error(`Bill not found: ${app.billId}`);
+                    }
+                    if (bill && bill.balanceDue && bill.balanceDue < app.amountToApply) {
+                        throw new Error(`Applied amount exceeds balance for bill ${bill.billNumber}`);
+                    }
+                    bill.balanceDue -= app.amountToApply;
+                    bill.vendorCreditAplliedDate = app.date ?? new Date();
+                    if (bill.balanceDue === 0) {
+                        bill.status = enum_types_1.BillingRecordsStatus.PAID;
+                    }
+                    await bill.save({ session });
+                    appliedBills.push({
+                        billId: bill.id,
+                        amount: app.amountToApply,
+                    });
+                }
+                vendorCredit.balanceAmount -= totalApplyAmount;
+                if (vendorCredit.balanceAmount === 0) {
+                    vendorCredit.status = enum_types_1.commonStatus.CLOSED;
+                }
+                await vendorCredit.save({ session });
+                await session.commitTransaction();
+                session.endSession();
+                return res.status(http_status_1.HTTP_STATUS.OK).json({
+                    success: true,
+                    message: "Vendor credit applied to multiple bills successfully",
+                    data: {
+                        vendorCreditId,
+                        totalApplied: totalApplyAmount,
+                        remainingVendorCredit: vendorCredit.balanceAmount,
+                        appliedBills,
+                    },
+                });
+            }
+            catch (error) {
+                await session.abortTransaction();
+                session.endSession();
+                if (error instanceof Error) {
+                    console.error("Apply vendor credit failed:", error.message);
+                    return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: error.message,
+                    });
+                }
+                return res.status(http_status_1.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "Failed to apply vendor credit",
                 });
             }
         };

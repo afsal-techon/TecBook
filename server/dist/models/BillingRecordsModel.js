@@ -89,7 +89,11 @@ const BillngRecordSchema = new mongoose_1.Schema({
     balanceDue: {
         type: Number,
         default: 0
-    }
+    },
+    vendorCreditAplliedDate: {
+        type: Date,
+        default: null
+    },
 }, {
     timestamps: true,
 });
@@ -119,4 +123,5 @@ exports.BillingSchemaModelConstants = {
     taxTotal: "taxTotal",
     total: "total",
     balanceDue: "balanceDue",
+    vendorCreditAplliedDate: "vendorCreditAplliedDate",
 };

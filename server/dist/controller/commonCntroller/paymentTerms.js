@@ -135,7 +135,7 @@ const upsertPaymentModes = async (req, res, next) => {
         // ------------------ Upsert ------------------
         const updatedDoc = await paymentMode_1.default.findOneAndUpdate({ branchId }, {
             $set: {
-                branchId,
+                // branchId,
                 paymentModes: uniquePaymentModes,
                 createdById: existing?.createdById || userId,
                 deletedAt: null,

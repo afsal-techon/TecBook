@@ -16,4 +16,6 @@ router.put("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'v
 router.get("/", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'vendorCredit', 'can_read'), vendor_credit_controller_1.vendorCreditController.getAllVendorCredits);
 router.get("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'vendorCredit', 'can_read'), vendor_credit_controller_1.vendorCreditController.getVendorCreditById);
 router.delete("/:id", auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'vendorCredit', 'can_delete'), vendor_credit_controller_1.vendorCreditController.deleteVendorCredit);
+//apply vendor credit to multiple or single bill
+router.post('/:id/apply-to-bill', auth_1.verifyUser, (0, checkPermission_1.default)('admin', 'vendorCredit', 'can_update'), vendor_credit_controller_1.vendorCreditController.applyCreditToBill);
 exports.default = router;

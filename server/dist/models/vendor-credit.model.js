@@ -8,7 +8,7 @@ const enum_types_1 = require("../types/enum.types");
 exports.vendorCreditSchema = new mongoose_1.Schema({
     vendorId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "vendors",
+        ref: "Vendor",
     },
     vendorCreditNoteNumber: {
         type: String,

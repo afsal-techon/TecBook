@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateVendorCreditDto = exports.CreateVendorCreditDto = void 0;
+exports.applyVendorCreditToBillDto = exports.vendorCreditToBillDto = exports.UpdateVendorCreditDto = exports.CreateVendorCreditDto = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 const item_dto_1 = require("./item.dto");
@@ -215,3 +215,30 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], UpdateVendorCreditDto.prototype, "balanceAmount", void 0);
+class vendorCreditToBillDto {
+}
+exports.vendorCreditToBillDto = vendorCreditToBillDto;
+__decorate([
+    (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], vendorCreditToBillDto.prototype, "billId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], vendorCreditToBillDto.prototype, "amountToApply", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDate)(),
+    __metadata("design:type", Date)
+], vendorCreditToBillDto.prototype, "date", void 0);
+class applyVendorCreditToBillDto {
+}
+exports.applyVendorCreditToBillDto = applyVendorCreditToBillDto;
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => vendorCreditToBillDto),
+    __metadata("design:type", Array)
+], applyVendorCreditToBillDto.prototype, "applications", void 0);

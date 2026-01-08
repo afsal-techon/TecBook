@@ -97,7 +97,7 @@ exports.CreditNoteModelConstants = {
     branchId: "branchId",
     customerId: "customerId",
     date: "date",
-    salesPersonId: "salessPersonId",
+    salesPersonId: "salesPersonId",
     creditNoteNumber: "creditNoteNumber",
     subject: "subject",
     note: "note",

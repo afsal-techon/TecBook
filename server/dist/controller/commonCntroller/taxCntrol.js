@@ -192,7 +192,7 @@ const updateTax = async (req, res, next) => {
         }
         // 5️ Prepare update data
         const updateData = {
-            branchId,
+            // branchId,
             name,
             type,
             cgstRate: type === "GST" ? cgstRate : null,

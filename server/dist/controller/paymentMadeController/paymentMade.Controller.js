@@ -127,7 +127,7 @@ class PaymentMadeController extends GenericDatabase_1.GenericDatabaseService {
         this.updatePaymentMadeByID = async (req, res) => {
             try {
                 const id = req.params.id;
-                await this.genericFindOneByIdOrNotFound(id);
+                const result = await this.genericFindOneByIdOrNotFound(id);
                 const dto = req.body;
                 const userId = req.user?.id;
                 await this.validateUser(userId);
@@ -175,10 +175,12 @@ class PaymentMadeController extends GenericDatabase_1.GenericDatabaseService {
                         finalDocuments.push(uploaded.url);
                     }
                 }
+                const paymentMadeModel = result.data;
+                const existingPaymentMade = (await paymentMadeModel.findById(id));
                 const updatedPayload = {
                     ...dto,
                     vendorId: dto.vendorId ? new mongoose_1.Types.ObjectId(dto.vendorId) : undefined,
-                    branchId: dto.branchId ? new mongoose_1.Types.ObjectId(dto.branchId) : undefined,
+                    branchId: existingPaymentMade.branchId,
                     accountId: dto.accountId
                         ? new mongoose_1.Types.ObjectId(dto.accountId)
                         : undefined,

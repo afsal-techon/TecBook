@@ -16,6 +16,8 @@ const salesPerson_1 = __importDefault(require("../../models/salesPerson"));
 const tax_1 = __importDefault(require("../../models/tax"));
 const searchHelper_1 = require("../../Helper/searchHelper");
 const project_1 = __importDefault(require("../../models/project"));
+const project_2 = __importDefault(require("../../models/project"));
+const http_status_1 = require("../../constants/http-status");
 const createSaleOrder = async (req, res, next) => {
     try {
         const { branchId, saleOrderId, // may be null/ignored in auto mode
@@ -385,6 +387,7 @@ const getAllSaleOrder = async (req, res, next) => {
         const filterBranchId = req.query.branchId;
         let search = (req.query.search || "").trim();
         search = (0, searchHelper_1.escapeRegex)(search);
+        const projectId = req.query.projectId;
         // Date filters
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;
@@ -437,6 +440,21 @@ const getAllSaleOrder = async (req, res, next) => {
             branchId: { $in: allowedBranchIds },
             isDeleted: false,
         };
+        if (projectId) {
+            if (!mongoose_1.Types.ObjectId.isValid(projectId)) {
+                return res.status(400).json({ message: "Invalid project ID!" });
+            }
+            const validateProject = await project_2.default.findOne({
+                _id: projectId,
+                isDeleted: false,
+            });
+            if (!validateProject) {
+                return res
+                    .status(http_status_1.HTTP_STATUS.BAD_REQUEST)
+                    .json({ message: "Project not found!" });
+            }
+            matchStage.projectId = new mongoose_1.Types.ObjectId(projectId);
+        }
         // 🔹 Date filter (quoteDate)
         if (startDate && endDate) {
             matchStage.quoteDate = {

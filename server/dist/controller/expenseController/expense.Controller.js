@@ -175,7 +175,15 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
             try {
                 const { id } = req.params;
                 const dto = req.body;
-                await this.genericFindOneByIdOrNotFound(id);
+                const result = await this.genericFindOneByIdOrNotFound(id);
+                const ExpenseModel = result.data;
+                const existingExpense = (await ExpenseModel.findById(id));
+                if (!existingExpense) {
+                    return res.status(http_status_1.HTTP_STATUS.NOT_FOUND).json({
+                        success: false,
+                        message: "Expense not found",
+                    });
+                }
                 if (req.body.vendorId) {
                     await this.validateVendor(req.body.vendorId);
                 }
@@ -208,9 +216,7 @@ class ExpenseController extends GenericDatabase_1.GenericDatabaseService {
                 const payload = {
                     ...dto,
                     date: req.body.date ? new Date(req.body.date) : undefined,
-                    branchId: req.body.branchId
-                        ? new mongoose_1.Types.ObjectId(req.body.branchId)
-                        : undefined,
+                    branchId: existingExpense.branchId,
                     taxPreference: req.body.taxPreference,
                     paidAccount: req.body.paidAccount
                         ? new mongoose_1.Types.ObjectId(req.body.paidAccount)

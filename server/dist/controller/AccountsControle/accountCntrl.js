@@ -231,9 +231,10 @@ const updateAccount = async (req, res, next) => {
                 });
             }
         }
+        const existBranchId = account.branchId;
         // perform update
         await accounts_1.default.findByIdAndUpdate(accountId, {
-            branchId,
+            existBranchId,
             accountName,
             accountType,
             description,
