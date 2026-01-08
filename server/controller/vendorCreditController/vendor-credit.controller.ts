@@ -401,6 +401,19 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
     }
   };
 
+  
+  /**
+   * Applies a vendor credit to one or more bills.
+   * @description This method handles applying a vendor credit to multiple bills within a single transaction.
+   * - It validates the vendor credit ID and ensures at least one bill application is provided.
+   * - It retrieves the vendor credit and checks for sufficient balance.
+   * - For each bill, it validates the bill ID, retrieves the bill, and ensures the applied amount does not exceed the balance due.
+   * - It updates the balance due and status of each bill.
+   * - It deducts the total applied amount from the vendor credit's balance and updates its status if fully used.
+   * - All database operations are performed within a mongoose transaction to ensure data integrity.
+   * @param req The Express request object, containing the vendor credit ID in params and `applyVendorCreditToBillDto` in the body.
+   * @param res The Express response object used to send back the result.
+   */
   applyCreditToBill = async (
     req: Request<{ id: string }, {}, applyVendorCreditToBillDto>,
     res: Response
