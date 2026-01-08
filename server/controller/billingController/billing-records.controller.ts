@@ -5,6 +5,7 @@ import { IBillingRecords } from "../../Interfaces/billing-records.interface";
 import {
   BillingSchemaModel,
   BillingSchemaModelConstants,
+  BillingSchemaModelDocument,
 } from "../../models/BillingRecordsModel";
 import {
   CreateBillingRecordsDTO,
@@ -220,7 +221,8 @@ class BillingRecordsController extends GenericDatabaseService<
         });
       }
 
-      const billingRecord = await this.genericFindOneByIdOrNotFound(id);
+      const result = await this.genericFindOneByIdOrNotFound(id);
+      const billingModel = result.data;
 
       const dto: updateBillingRecordsDTO = req.body;
 
@@ -293,11 +295,19 @@ class BillingRecordsController extends GenericDatabaseService<
         }
       }
 
+      const existingBillRecord = (await billingModel.findById(
+        id
+      )) as IBillingRecords & Document;
+      if (!existingBillRecord) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Billing record not found",
+        });
+      }
+
       const payload: Partial<IBillingRecords> = {
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
-
-        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
-
+        branchId: existingBillRecord.branchId,
         purchaseOrderNumber: dto.purchaseOrderNumber
           ? new Types.ObjectId(dto.purchaseOrderNumber)
           : undefined,

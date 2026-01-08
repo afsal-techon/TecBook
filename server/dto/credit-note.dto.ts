@@ -116,7 +116,7 @@ export class UpdateCreditNoteDto {
 
   @IsOptional()
   @IsDateString()
-  date?: string;
+  date?: Date;
 
   @IsOptional()
   @IsMongoId()

@@ -221,6 +221,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
       }
 
       const existingData = await this.genericFindById(id);
+      const result = existingData.data
 
       let quoteDate: Date | undefined;
       let expiryDate: Date | undefined;
@@ -280,6 +281,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
         }
       }
 
+      const existingPurchaseOrder = (await result.findById(id)) as IPurchaseOrder & Document
       const payload: Partial<IPurchaseOrder> = {
         ...dto,
         purchaseOrderId: dto.purchaseOrderId ? dto.purchaseOrderId : undefined,
@@ -296,7 +298,7 @@ class PurchaseOrderController extends GenericDatabaseService<PurchaseOrderModelD
           ? new Types.ObjectId(req.body.projectId)
           : undefined,
         items,
-        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        branchId:existingPurchaseOrder.branchId,
         paymentTermsId: req.body.paymentTermsId
           ? new Types.ObjectId(req.body.paymentTermsId)
           : undefined,

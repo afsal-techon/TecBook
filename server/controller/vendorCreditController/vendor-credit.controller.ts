@@ -161,7 +161,7 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         });
       }
 
-      await this.genericFindOneByIdOrNotFound(id);
+      const result = await this.genericFindOneByIdOrNotFound(id);
 
       if (dto.items?.length) {
         await this.validateItemReferences(dto.items);
@@ -190,10 +190,19 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         }
       }
 
+      const existVendorCredit = result.data;
+      const existBranch = (await existVendorCredit.findById(id)) as IVendorCredit & Document
+      if(!existBranch){
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Vendor credit not found",
+        });
+      }
+
       const payload: Partial<IVendorCredit> = {
         ...dto,
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
-        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        branchId: existBranch.branchId,
         date: dto.date ? new Date(dto.date) : undefined,
         items: dto.items ? this.mapItems(dto.items) : undefined,
         documents: finalDocuments,

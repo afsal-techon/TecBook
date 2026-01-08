@@ -1,4 +1,4 @@
-import { FilterQuery, Model, Types } from "mongoose";
+import { Document, FilterQuery, Model, Types } from "mongoose";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   CreditNoteModel,
@@ -168,7 +168,20 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
         });
       }
 
-      await this.genericFindOneByIdOrNotFound(id);
+      const result = await this.genericFindOneByIdOrNotFound(id);
+
+      const CreditNoteModel = result.data;
+
+      const existingCreditNote = (await CreditNoteModel.findById(
+        id
+      )) as ICreditNote & Document;
+
+      if (!existingCreditNote) {
+        return res.status(404).json({
+          success: false,
+          message: "Credit note not found",
+        });
+      }
 
       const dto: UpdateCreditNoteDto = req.body;
 
@@ -203,7 +216,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
 
       const payload: Partial<ICreditNote> = {
         ...dto,
-        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        branchId: existingCreditNote.branchId,
         customerId: dto.customerId
           ? new Types.ObjectId(dto.customerId)
           : undefined,

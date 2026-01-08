@@ -184,7 +184,7 @@ export const upsertPaymentModes = async (
       { branchId },
       {
         $set: {
-          branchId,
+          // branchId,
           paymentModes: uniquePaymentModes,
           createdById: existing?.createdById || userId,
           deletedAt: null,
