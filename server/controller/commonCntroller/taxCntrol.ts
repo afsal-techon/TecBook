@@ -1,13 +1,10 @@
-import { resolveUserAndAllowedBranchIds } from '../../Helper/branch-access.helper';
-import branchModel from '../../models/branch';
-import TAX from '../../models/tax';
-import userModel from '../../models/user';
-import USER from '../../models/user'
+import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helper";
+import branchModel from "../../models/branch";
+import TAX from "../../models/tax";
+import userModel from "../../models/user";
+import USER from "../../models/user";
 import { Request, Response, NextFunction } from "express";
-import { Types } from 'mongoose';
-
-
-
+import { Types } from "mongoose";
 
 export const createTax = async (
   req: Request,
@@ -15,15 +12,8 @@ export const createTax = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const {
-      branchId,
-      name,
-      type,
-      cgstRate,
-      sgstRate,
-      vatRate,
-      description,
-    } = req.body;
+    const { branchId, name, type, cgstRate, sgstRate, vatRate, description } =
+      req.body;
 
     const userId = req.user?.id;
 
@@ -32,16 +22,16 @@ export const createTax = async (
     if (!user) return res.status(400).json({ message: "User not found!" });
 
     // 2️ Validate input
-     if(!name){
-        return res.status(400).json({ message:"Tax name is required!"})
-     }
-       if(!type){
-        return res.status(400).json({ message:"Tax type is required!"})
-     }
+    if (!name) {
+      return res.status(400).json({ message: "Tax name is required!" });
+    }
+    if (!type) {
+      return res.status(400).json({ message: "Tax type is required!" });
+    }
 
-     if(!branchId){
-      return res.status(400).json({ message:"Branch Id is required!"})
-     }
+    if (!branchId) {
+      return res.status(400).json({ message: "Branch Id is required!" });
+    }
     // 3️ Validate tax type logic
     if (type === "GST" && (cgstRate == null || sgstRate == null)) {
       return res
@@ -49,14 +39,16 @@ export const createTax = async (
         .json({ message: "CGST and SGST rates are required for GST type!" });
     }
     if (type === "VAT" && vatRate == null) {
-      return res.status(400).json({ message: "VAT rate is required for VAT type!" });
+      return res
+        .status(400)
+        .json({ message: "VAT rate is required for VAT type!" });
     }
 
     // 4️ Prevent duplicate (same name under same branch)
     const existingTax = await TAX.findOne({
       branchId,
       name: { $regex: `^${name}$`, $options: "i" },
-      isDeleted:false
+      isDeleted: false,
     });
     if (existingTax)
       return res.status(400).json({ message: `Tax '${name}' already exists!` });
@@ -84,32 +76,27 @@ export const createTax = async (
   }
 };
 
-
-
 export const getTaxes = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-
     const { branchId } = req.query;
 
-        const taxes = await TAX.find({
+    const taxes = await TAX.find({
       branchId,
       isActive: true,
-      isDeleted:false
+      isDeleted: false,
     }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       data: taxes,
     });
-
   } catch (err) {
     next(err);
   }
 };
-
 
 export const getALLTaxes = async (
   req: Request,
@@ -137,13 +124,12 @@ export const getALLTaxes = async (
     const skip = (page - 1) * limit;
     const filterBranchId = req.query.branchId as string | undefined;
 
-          const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
-            userId: userId as string,
-            userModel: userModel,
-            branchModel: branchModel,
-            requestedBranchId: filterBranchId,
-          });
-
+    const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+      userId: userId as string,
+      userModel: userModel,
+      branchModel: branchModel,
+      requestedBranchId: filterBranchId,
+    });
 
     // Search filter
     const search = ((req.query.search as string) || "").trim();
@@ -172,9 +158,9 @@ export const getALLTaxes = async (
           sgstRate: 1,
           vatRate: 1,
           description: 1,
-          isActive:1,
+          isActive: 1,
           createdAt: 1,
-          updatedAt:1,
+          updatedAt: 1,
         },
       },
 
@@ -194,13 +180,10 @@ export const getALLTaxes = async (
       page,
       limit,
     });
-
   } catch (err) {
     next(err);
   }
 };
-
-
 
 export const updateTax = async (
   req: Request,
@@ -217,12 +200,10 @@ export const updateTax = async (
       sgstRate,
       vatRate,
       description,
-    //   isActive,
+      //   isActive,
     } = req.body;
 
     const userId = req.user?.id;
-
-    
 
     // 1️ Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
@@ -239,7 +220,7 @@ export const updateTax = async (
         _id: { $ne: taxId },
         branchId,
         name: { $regex: `^${name}$`, $options: "i" },
-        isDeleted:false,
+        isDeleted: false,
         // isActive: true,
       });
       if (duplicateTax) {
@@ -275,7 +256,7 @@ export const updateTax = async (
       sgstRate: type === "GST" ? sgstRate : null,
       vatRate: type === "VAT" ? vatRate : null,
       description,
-    //   isActive,
+      //   isActive,
       updatedById: userId,
       updatedAt: new Date(),
     };
@@ -300,8 +281,6 @@ export const updateTax = async (
   }
 };
 
-
-
 export const deleteTax = async (
   req: Request,
   res: Response,
@@ -310,13 +289,13 @@ export const deleteTax = async (
   try {
     const userId = req.user?.id;
 
-    const { taxId }  =req.params;
+    const { taxId } = req.params;
 
     // Validate user
     const user = await USER.findOne({ _id: userId, isDeleted: false });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
-     if (!taxId) {
+    if (!taxId) {
       return res.status(400).json({ message: "Tax Id is required!" });
     }
 
@@ -324,7 +303,6 @@ export const deleteTax = async (
     if (!tax) {
       return res.status(404).json({ message: "Tax not found!" });
     }
-  
 
     await TAX.findByIdAndUpdate(taxId, {
       isDeleted: true,
@@ -336,11 +314,7 @@ export const deleteTax = async (
     return res.status(200).json({
       message: "Tax deleted successfully!",
     });
-    
-
   } catch (err) {
     next(err);
   }
 };
-
-
