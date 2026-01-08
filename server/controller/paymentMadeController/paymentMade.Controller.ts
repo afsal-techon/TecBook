@@ -174,7 +174,7 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
   ) => {
     try {
       const id: string = req.params.id;
-      await this.genericFindOneByIdOrNotFound(id);
+      const result = await this.genericFindOneByIdOrNotFound(id);
       const dto: UpdatePaymentMadeDto = req.body;
       const userId = req.user?.id;
 
@@ -232,11 +232,14 @@ class PaymentMadeController extends GenericDatabaseService<PaymentMadeModelDocum
               }
             }
       
+            const paymentMadeModel = result.data
+
+            const existingPaymentMade = (await paymentMadeModel.findById(id)) as IPaymentMade &Document;
 
       const updatedPayload: Partial<IPaymentMade> = {
         ...dto,
         vendorId: dto.vendorId ? new Types.ObjectId(dto.vendorId) : undefined,
-        branchId: dto.branchId ? new Types.ObjectId(dto.branchId) : undefined,
+        branchId: existingPaymentMade.branchId,
         accountId: dto.accountId
           ? new Types.ObjectId(dto.accountId)
           : undefined,

@@ -293,12 +293,14 @@ export const updateAccount = async (
         });
       }
     }
+    const existBranchId = account.branchId;
+
 
     // perform update
     await ACCOUNTS.findByIdAndUpdate(
       accountId,
       {
-        branchId,
+        existBranchId,
         accountName,
         accountType,
         description,

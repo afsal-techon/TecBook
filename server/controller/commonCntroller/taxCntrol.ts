@@ -256,7 +256,7 @@ export const updateTax = async (
 
     // 5️ Prepare update data
     const updateData: any = {
-      branchId,
+      // branchId,
       name,
       type,
       cgstRate: type === "GST" ? cgstRate : null,

@@ -188,7 +188,19 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       const { id } = req.params;
       const dto: UpdateExpenseDto = req.body;
 
-      await this.genericFindOneByIdOrNotFound(id);
+      const result = await this.genericFindOneByIdOrNotFound(id);
+      const ExpenseModel = result.data;
+
+      const existingExpense = (await ExpenseModel.findById(
+        id
+      )) as IExpenses & Document;
+
+      if (!existingExpense) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Expense not found",
+        });
+      }
 
       if (req.body.vendorId) {
         await this.validateVendor(req.body.vendorId);
@@ -229,9 +241,7 @@ class ExpenseController extends GenericDatabaseService<ExpenseModelDocument> {
       const payload: Partial<IExpenses> = {
         ...dto,
         date: req.body.date ? new Date(req.body.date) : undefined,
-        branchId: req.body.branchId
-          ? new Types.ObjectId(req.body.branchId)
-          : undefined,
+        branchId:existingExpense.branchId,
         taxPreference: req.body.taxPreference,
         paidAccount: req.body.paidAccount
           ? new Types.ObjectId(req.body.paidAccount)
