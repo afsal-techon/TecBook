@@ -112,12 +112,6 @@ export const getALLTaxes = async (
       return res.status(400).json({ message: "User not found!" });
     }
 
-    // Branch Id required
-    const branchId = req.query.branchId as string;
-    if (!branchId) {
-      return res.status(400).json({ message: "Branch ID is required!" });
-    }
-
     // Pagination
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
