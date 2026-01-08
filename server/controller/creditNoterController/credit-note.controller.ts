@@ -258,38 +258,37 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
       const projectId = req.query.projectId as string | undefined;
-            const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+      const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
         userModel: this.userModel,
         branchModel: this.branchModel,
         requestedBranchId: filterBranchId,
       });
 
-          const matchStage: any = {
-      branchId: { $in: allowedBranchIds },
-      isDeleted: false,
-    };
-          if (projectId) {
-      if (!Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ message: "Invalid project ID!" });
-      }
-      const validateProject = await projectModel.findOne({
-        _id: projectId,
+      const matchStage: any = {
+        branchId: { $in: allowedBranchIds },
         isDeleted: false,
-      });
-      if (!validateProject) {
-        return res
-          .status(HTTP_STATUS.BAD_REQUEST)
-          .json({ message: "Project not found!" });
+      };
+      if (projectId) {
+        if (!Types.ObjectId.isValid(projectId)) {
+          return res.status(400).json({ message: "Invalid project ID!" });
+        }
+        const validateProject = await projectModel.findOne({
+          _id: projectId,
+          isDeleted: false,
+        });
+        if (!validateProject) {
+          return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ message: "Project not found!" });
+        }
+        matchStage.projectId = new Types.ObjectId(projectId);
       }
-      matchStage.projectId = new Types.ObjectId(projectId);
-    }
-
-
 
       const pipeline: any[] = [
-  { $match: matchStage },,
+        { $match: matchStage },
 
+        ,
         {
           $lookup: {
             from: "customers",
