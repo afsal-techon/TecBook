@@ -8,7 +8,7 @@ export const vendorCreditSchema = new Schema<IVendorCredit>(
   {
     vendorId: {
       type: Schema.Types.ObjectId,
-      ref: "vendors",
+      ref: "Vendor",
     },
     vendorCreditNoteNumber: {
       type: String,

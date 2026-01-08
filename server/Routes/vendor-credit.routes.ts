@@ -15,6 +15,9 @@ router.get("/", verifyUser, checkPermission('admin','vendorCredit','can_read') ,
 router.get("/:id",verifyUser, checkPermission('admin','vendorCredit','can_read') ,vendorCreditController.getVendorCreditById);
 router.delete("/:id",verifyUser,checkPermission('admin','vendorCredit','can_delete') , vendorCreditController.deleteVendorCredit);
 
+//apply vendor credit to multiple or single bill
+router.post('/:id/apply-to-bill',verifyUser,checkPermission('admin','vendorCredit','can_update'), vendorCreditController.applyCreditToBill);
+
 
 
 

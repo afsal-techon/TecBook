@@ -1,6 +1,7 @@
 import { Transform, Type } from "class-transformer";
 import {
   IsArray,
+  IsDate,
   IsEnum,
   IsMongoId,
   IsNotEmpty,
@@ -96,7 +97,6 @@ export class CreateVendorCreditDto {
   balanceAmount?: number;
 }
 
-
 export class UpdateVendorCreditDto {
   @IsMongoId()
   @IsOptional()
@@ -180,4 +180,25 @@ export class UpdateVendorCreditDto {
   @IsOptional()
   @IsNumber()
   balanceAmount?: number;
+}
+
+export class vendorCreditToBillDto {
+  @IsMongoId()
+  @IsNotEmpty()
+  billId!: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  amountToApply!: number;
+
+  @IsOptional()
+  @IsDate()
+  date?: Date;
+}
+
+export class applyVendorCreditToBillDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => vendorCreditToBillDto)
+  applications!: vendorCreditToBillDto[];
 }
