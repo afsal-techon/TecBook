@@ -1,4 +1,4 @@
-import { Model, Types } from "mongoose";
+import mongoose, { Model, Types } from "mongoose";
 import { ItemDto } from "../../dto/item.dto";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
@@ -13,8 +13,10 @@ import accountModel from "../../models/accounts";
 import customerModel from "../../models/customer";
 import { Request, Response } from "express";
 import {
+  applyVendorCreditToBillDto,
   CreateVendorCreditDto,
   UpdateVendorCreditDto,
+  vendorCreditToBillDto,
 } from "../../dto/vendor-credit.dto";
 import { IVendorCredit } from "../../Interfaces/vendor-credit.interface";
 import { HTTP_STATUS } from "../../constants/http-status";
@@ -25,14 +27,21 @@ import { resolveUserAndAllowedBranchIds } from "../../Helper/branch-access.helpe
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
 import numberSettingModel from "../../models/numberSetting";
-import { numberSettingsDocumentType } from "../../types/enum.types";
+import {
+  BillingRecordsStatus,
+  commonStatus,
+  numberSettingsDocumentType,
+} from "../../types/enum.types";
 import { generateDocumentNumber } from "../../Helper/generateDocumentNumber";
 import { imagekit } from "../../config/imageKit";
+import billingRecordsController from "../billingController/billing-records.controller";
+import { BillingSchemaModel } from "../../models/BillingRecordsModel";
 
 class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
   private readonly branchModel: Model<IBranch>;
   private readonly vendorModel: Model<IVendor>;
   private readonly userModel: Model<IUser>;
+  private readonly billingService = billingRecordsController;
 
   constructor(
     branchModel: Model<IBranch>,
@@ -388,6 +397,134 @@ class vendorCredit extends GenericDatabaseService<vendorCreditModelDocument> {
         success: false,
         message: "Failed to fetch vendor credit",
         statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  };
+
+  applyCreditToBill = async (
+    req: Request<{ id: string }, {}, applyVendorCreditToBillDto>,
+    res: Response
+  ) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const vendorCreditId = req.params.id;
+      const { applications } = req.body;
+
+      if (!this.isValidMongoId(vendorCreditId)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid vendor credit id",
+        });
+      }
+
+      if (!applications?.length) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "At least one bill is required",
+        });
+      }
+
+      const vendorCredit = await vendorCreditModel
+        .findOne({ _id: vendorCreditId, isDeleted: false })
+        .session(session);
+
+      if (!vendorCredit) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: "Vendor credit not found",
+        });
+      }
+
+      const totalApplyAmount = applications.reduce(
+        (sum, item) => sum + item.amountToApply,
+        0
+      );
+
+      if (vendorCredit.balanceAmount < totalApplyAmount) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: "Insufficient vendor credit balance",
+        });
+      }
+
+      let appliedBills: {
+        billId: string;
+        amount: number;
+      }[] = [];
+
+      for (const app of applications) {
+        if (!this.isValidMongoId(app.billId)) {
+          throw new Error(`Invalid bill id: ${app.billId}`);
+        }
+
+        const bill = await BillingSchemaModel.findOne({
+          _id: app.billId,
+          isDeleted: false,
+        }).session(session);
+
+        if (!bill) {
+          throw new Error(`Bill not found: ${app.billId}`);
+        }
+
+        if (bill && bill.balanceDue && bill.balanceDue < app.amountToApply) {
+          throw new Error(
+            `Applied amount exceeds balance for bill ${bill.billNumber}`
+          );
+        }
+
+        bill.balanceDue -= app.amountToApply;
+        bill.vendorCreditAplliedDate = app.date ?? new Date();
+
+        if (bill.balanceDue === 0) {
+          bill.status = BillingRecordsStatus.PAID;
+        }
+
+        await bill.save({ session });
+
+        appliedBills.push({
+          billId: bill.id,
+          amount: app.amountToApply,
+        });
+      }
+
+      vendorCredit.balanceAmount -= totalApplyAmount;
+
+      if (vendorCredit.balanceAmount === 0) {
+        vendorCredit.status = commonStatus.CLOSED;
+      }
+
+      await vendorCredit.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: "Vendor credit applied to multiple bills successfully",
+        data: {
+          vendorCreditId,
+          totalApplied: totalApplyAmount,
+          remainingVendorCredit: vendorCredit.balanceAmount,
+          appliedBills,
+        },
+      });
+    } catch (error: unknown) {
+      await session.abortTransaction();
+      session.endSession();
+
+      if (error instanceof Error) {
+        console.error("Apply vendor credit failed:", error.message);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to apply vendor credit",
       });
     }
   };
