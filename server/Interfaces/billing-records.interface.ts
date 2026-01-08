@@ -24,4 +24,5 @@ export interface IBillingRecords extends IBaseFIelds {
   taxTotal: number;
   total: number;
   balanceDue?:number;
+  vendorCreditAplliedDate?:Date;
 }
