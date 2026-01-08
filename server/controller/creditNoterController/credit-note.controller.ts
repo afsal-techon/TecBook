@@ -28,7 +28,6 @@ import taxModel from "../../models/tax";
 import itemModel from "../../models/items";
 import { IUser } from "../../types/user.types";
 import userModel from "../../models/user";
-import projectModel from "../../models/project";
 
 class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocument> {
   private readonly branchModel: Model<IBranch>;
@@ -257,7 +256,7 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
       const skip = (page - 1) * limit;
       const search = (req.query.search as string) || "";
       const filterBranchId = req.query.branchId as string | undefined;
-      const projectId = req.query.projectId as string | undefined;
+
       const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
         userId: authUser.id,
         userModel: this.userModel,
@@ -265,30 +264,14 @@ class CreditNoteController extends GenericDatabaseService<CreditNoteModelDocumen
         requestedBranchId: filterBranchId,
       });
 
-      const matchStage: any = {
-        branchId: { $in: allowedBranchIds },
-        isDeleted: false,
-      };
-      if (projectId) {
-        if (!Types.ObjectId.isValid(projectId)) {
-          return res.status(400).json({ message: "Invalid project ID!" });
-        }
-        const validateProject = await projectModel.findOne({
-          _id: projectId,
-          isDeleted: false,
-        });
-        if (!validateProject) {
-          return res
-            .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ message: "Project not found!" });
-        }
-        matchStage.projectId = new Types.ObjectId(projectId);
-      }
-
       const pipeline: any[] = [
-        { $match: matchStage },
+        {
+          $match: {
+            isDeleted: false,
+            branchId: { $in: allowedBranchIds },
+          },
+        },
 
-        ,
         {
           $lookup: {
             from: "customers",
