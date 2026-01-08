@@ -1,4 +1,7 @@
+import { resolveUserAndAllowedBranchIds } from '../../Helper/branch-access.helper';
+import branchModel from '../../models/branch';
 import TAX from '../../models/tax';
+import userModel from '../../models/user';
 import USER from '../../models/user'
 import { Request, Response, NextFunction } from "express";
 import { Types } from 'mongoose';
@@ -132,13 +135,22 @@ export const getALLTaxes = async (
     const limit = parseInt(req.query.limit as string) || 20;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
+    const filterBranchId = req.query.branchId as string | undefined;
+
+          const { allowedBranchIds } = await resolveUserAndAllowedBranchIds({
+            userId: userId as string,
+            userModel: userModel,
+            branchModel: branchModel,
+            requestedBranchId: filterBranchId,
+          });
+
 
     // Search filter
     const search = ((req.query.search as string) || "").trim();
 
     const match: any = {
       isDeleted: false,
-      branchId: new Types.ObjectId(branchId),
+      branchId: { $in: allowedBranchIds },
     };
 
     // Add search conditions
