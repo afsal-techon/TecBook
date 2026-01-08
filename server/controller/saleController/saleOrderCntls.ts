@@ -12,6 +12,8 @@ import SALSE_PERSON from "../../models/salesPerson";
 import TAX from "../../models/tax";
 import { escapeRegex } from "../../Helper/searchHelper";
 import PROJECT from "../../models/project";
+import projectModel from "../../models/project";
+import { HTTP_STATUS } from "../../constants/http-status";
 
 export const createSaleOrder = async (
   req: Request,
@@ -505,6 +507,9 @@ export const getAllSaleOrder = async (
     let search = ((req.query.search as string) || "").trim();
     search = escapeRegex(search);
 
+    const projectId= req.query.projectId as string;
+
+
     // Date filters
     const startDate = req.query.startDate as string;
     const endDate = req.query.endDate as string;
@@ -565,6 +570,21 @@ export const getAllSaleOrder = async (
       isDeleted: false,
     };
 
+        if (projectId) {
+      if (!Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID!" });
+      }
+      const validateProject = await projectModel.findOne({
+        _id: projectId,
+        isDeleted: false,
+      });
+      if (!validateProject) {
+        return res
+          .status(HTTP_STATUS.BAD_REQUEST)
+          .json({ message: "Project not found!" });
+      }
+      matchStage.projectId = new Types.ObjectId(projectId);
+    }
     // 🔹 Date filter (quoteDate)
     if (startDate && endDate) {
       matchStage.quoteDate = {
