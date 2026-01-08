@@ -467,7 +467,7 @@ export const updateSaleOrder = async (
     saleOrder.salesPersonId = salesPersonId || null;
     saleOrder.saleOrderDate = saleOrderDate;
     saleOrder.deliveryDate = deliveryDate;
-    saleOrder.projectId = projectId || null
+    saleOrder.projectId = projectId || null;
     saleOrder.status = status;
     saleOrder.items = parsedItems;
     saleOrder.paymentTerms = parsedTerms; // now always assigned
@@ -507,8 +507,7 @@ export const getAllSaleOrder = async (
     let search = ((req.query.search as string) || "").trim();
     search = escapeRegex(search);
 
-    const projectId= req.query.projectId as string;
-
+    const projectId = req.query.projectId as string;
 
     // Date filters
     const startDate = req.query.startDate as string;
@@ -570,7 +569,7 @@ export const getAllSaleOrder = async (
       isDeleted: false,
     };
 
-        if (projectId) {
+    if (projectId) {
       if (!Types.ObjectId.isValid(projectId)) {
         return res.status(400).json({ message: "Invalid project ID!" });
       }
