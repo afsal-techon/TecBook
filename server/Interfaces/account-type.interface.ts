@@ -6,5 +6,5 @@ export interface IAccountType extends IBaseFIelds {
   code?: string;
   category: accountTypesCategory;
   description?: string;
-  isDeletable?: boolean;
+  isSystemGenerated?: boolean;
 }

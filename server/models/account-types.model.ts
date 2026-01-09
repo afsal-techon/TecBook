@@ -23,9 +23,9 @@ const accountTypesSchema = new Schema<IAccountType>(
       type: String,
       required: false,
     },
-    isDeletable: {
+    isSystemGenerated: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   {
