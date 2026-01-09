@@ -19,6 +19,8 @@ const expense_routes_1 = __importDefault(require("./Routes/expense.routes"));
 const paymentesMade_routes_1 = __importDefault(require("./Routes/paymentesMade.routes"));
 const credit_note_routes_1 = __importDefault(require("./Routes/credit-note.routes"));
 const vendor_credit_routes_1 = __importDefault(require("./Routes/vendor-credit.routes"));
+// import { accountTypeController } from "./controller/accountTypeController/account-types.controller";
+const account_type_routes_1 = __importDefault(require("./Routes/account-type.routes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT;
@@ -38,6 +40,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: "Internal Server Error" });
 });
 (async () => {
+    // accountTypeController.autoCreateCommonAccountTypes() // in future move to register company function
+    // accountTypeController.autoCreateCommonAccounts();
     await (0, database_1.default)();
     app.use("/api", mainRouter_1.default);
     app.use("/api/purchase-orders", purchase_order_routes_1.default);
@@ -46,6 +50,7 @@ app.use((err, req, res, next) => {
     app.use("/api/payments-made", paymentesMade_routes_1.default);
     app.use("/api/credit-note", credit_note_routes_1.default);
     app.use("/api/vendor-credit", vendor_credit_routes_1.default);
+    app.use("/api/account-types", account_type_routes_1.default);
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);
     });

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreditNoteStatus = exports.BillingRecordsStatus = exports.PurchaseOrderStatus = exports.PREFIX_MAP = exports.numberSettingsDocumentType = exports.commonStatus = exports.TaxPreferences = exports.PurchaseOrderDiscountType = void 0;
+exports.accountTypesCategory = exports.CreditNoteStatus = exports.BillingRecordsStatus = exports.PurchaseOrderStatus = exports.PREFIX_MAP = exports.numberSettingsDocumentType = exports.commonStatus = exports.TaxPreferences = exports.PurchaseOrderDiscountType = void 0;
 var PurchaseOrderDiscountType;
 (function (PurchaseOrderDiscountType) {
     PurchaseOrderDiscountType["PERCENTAGE"] = "%";
@@ -77,3 +77,11 @@ var CreditNoteStatus;
     CreditNoteStatus["OPEN"] = "Open";
     CreditNoteStatus["CLOSED"] = "Closed";
 })(CreditNoteStatus || (exports.CreditNoteStatus = CreditNoteStatus = {}));
+var accountTypesCategory;
+(function (accountTypesCategory) {
+    accountTypesCategory["ASSET"] = "Asset";
+    accountTypesCategory["LIABILITY"] = "Liability";
+    accountTypesCategory["INCOME"] = "Income";
+    accountTypesCategory["EQUITY"] = "Equity";
+    accountTypesCategory["EXPENSE"] = "Expense";
+})(accountTypesCategory || (exports.accountTypesCategory = accountTypesCategory = {}));
