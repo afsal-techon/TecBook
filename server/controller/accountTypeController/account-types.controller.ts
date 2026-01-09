@@ -1,13 +1,20 @@
+import { Model } from "mongoose";
 import { DEFAULT_ACCOUNT_TYPES } from "../../constants/default-account-types.constant";
+import { DEFAULT_ACCOUNTS } from "../../constants/default-account.constant";
 import { GenericDatabaseService } from "../../Helper/GenericDatabase";
 import {
   accountTypeModel,
   accountTypeModelDocument,
 } from "../../models/account-types.model";
+import accountModel from "../../models/accounts";
+import { IAccounts } from "../../types/common.types";
 
 export class AccountType extends GenericDatabaseService<accountTypeModelDocument> {
-  constructor() {
+  private readonly accountModel: Model<IAccounts>;
+
+  constructor(accountModel: Model<IAccounts>) {
     super(accountTypeModel);
+    this.accountModel = accountModel;
   }
 
   autoCreateCommonAccountTypes = async () => {
@@ -36,6 +43,52 @@ export class AccountType extends GenericDatabaseService<accountTypeModelDocument
       return "Failed to create common account types";
     }
   };
+
+  autoCreateCommonAccounts = async () => {
+    try {
+      for (const account of DEFAULT_ACCOUNTS) {
+        if (!account.accountName || !account.accountTypeName) continue;
+
+        const accountType = await accountTypeModel.findOne({
+          name: account.accountTypeName,
+          isDeleted: false,
+          isSystemGenerated: true,
+        });
+
+        if (!accountType) {
+          console.warn(`⚠️ AccountType not found: ${account.accountTypeName}`);
+          continue;
+        }
+
+        const existingAccount = await this.genericFindOne({
+          accountName: account.accountName,
+          accountType: accountType._id,
+          isDeleted: false,
+          isSystemGenerated: true,
+        });
+
+        if (existingAccount) continue;
+
+        await this.accountModel.create({
+          accountName: account.accountName,
+          accountType: accountType._id,
+          isSystemGenerated: true,
+        });
+      }
+
+      return {
+        success: true,
+        message: "System default accounts created successfully",
+      };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to create system accounts", error.message);
+        return error.message;
+      }
+      console.error("Failed to create system accounts", error);
+      return "Failed to create system accounts";
+    }
+  };
 }
 
-export const accountTypeController = new AccountType();
+export const accountTypeController = new AccountType(accountModel);
