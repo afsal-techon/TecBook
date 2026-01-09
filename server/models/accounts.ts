@@ -40,7 +40,7 @@ const accountSchema = new Schema<IAccounts>(
       type: String,
       default: null,
     },
-        isSystemGenerated: {
+    isSystemGenerated: {
       type: Boolean,
       default: false,
     },
