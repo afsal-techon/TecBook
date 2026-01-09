@@ -1,6 +1,5 @@
 import { Document, model, Schema } from "mongoose";
 import { accountTypesCategory } from "../types/enum.types";
-import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { IAccountType } from "../Interfaces/account-type.interface";
 
 const accountTypesSchema = new Schema<IAccountType>(
@@ -27,17 +26,25 @@ const accountTypesSchema = new Schema<IAccountType>(
       type: Boolean,
       default: false,
     },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-accountTypesSchema.add(BaseSchemaFields);
-
 export const accountTypeModel = model<IAccountType>(
   "AccountType",
   accountTypesSchema
 );
 
-export type accountTypeModelDocument = typeof accountTypeModel
+export type accountTypeModelDocument = typeof accountTypeModel;
