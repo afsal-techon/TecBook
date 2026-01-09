@@ -5,6 +5,7 @@ import TRANSACTION from "../../models/transactions";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
 import BRANCH from '../../models/branch';
+import { HTTP_STATUS } from "../../constants/http-status";
 
 
 export const createAccounts = async (
@@ -332,6 +333,9 @@ export const deleteAcccount = async (
     const account = await ACCOUNTS.findOne({ _id: accountId });
     if (!account) {
       return res.status(404).json({ message: "Account not found!" });
+    }
+    if(account.isSystemGenerated){
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ message: "System generated account cannot be deleted!" });
     }
 
     await ACCOUNTS.findByIdAndUpdate(accountId, {
