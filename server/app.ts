@@ -15,6 +15,7 @@ import paymentsMadeRoutes from "./Routes/paymentesMade.routes";
 import creditNoteRoutes from "./Routes/credit-note.routes";
 import vendorCreditRoutes from "./Routes/vendor-credit.routes";
 // import { accountTypeController } from "./controller/accountTypeController/account-types.controller";
+import accountTypeRoute from './Routes/account-type.routes'
 
 dotenv.config();
 const app: Application = express();
@@ -54,6 +55,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   app.use("/api/payments-made", paymentsMadeRoutes);
   app.use("/api/credit-note", creditNoteRoutes);
   app.use("/api/vendor-credit", vendorCreditRoutes);
+  app.use("/api/account-types", accountTypeRoute);
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
