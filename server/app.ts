@@ -14,6 +14,7 @@ import expensesRoutes from "./Routes/expense.routes";
 import paymentsMadeRoutes from "./Routes/paymentesMade.routes";
 import creditNoteRoutes from "./Routes/credit-note.routes";
 import vendorCreditRoutes from "./Routes/vendor-credit.routes";
+// import { accountTypeController } from "./controller/accountTypeController/account-types.controller";
 
 dotenv.config();
 const app: Application = express();
@@ -42,6 +43,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 (async () => {
+  // accountTypeController.autoCreateCommonAccountTypes() // in future move to register company function
   await connectDB();
 
   app.use("/api", mainRouter);
