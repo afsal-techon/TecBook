@@ -8,6 +8,9 @@ import {
 } from "../../models/account-types.model";
 import accountModel from "../../models/accounts";
 import { IAccounts } from "../../types/common.types";
+import { HTTP_STATUS } from "../../constants/http-status";
+import { Request, Response } from "express";
+import userModel from "../../models/user";
 
 export class AccountType extends GenericDatabaseService<accountTypeModelDocument> {
   private readonly accountModel: Model<IAccounts>;
@@ -99,6 +102,95 @@ export class AccountType extends GenericDatabaseService<accountTypeModelDocument
       }
       console.error("Failed to create system accounts", error);
       return "Failed to create system accounts";
+    }
+  };
+
+  /*  * List all account types with optional pagination and search
+   ----------------------------------
+   This method lists all account types with optional pagination and search.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   * @returns A JSON response with the list of account types or an error message.
+   */
+  listAllAccountTypes = async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+
+      const user = await userModel.findOne({ _id: userId, isDeleted: false });
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: "User not found!",
+        });
+      }
+
+      const search = ((req.query.search as string) || "").trim();
+
+      const paginate: boolean = req.query.paginate !== "false";
+
+      const page = paginate ? Math.max(Number(req.query.page) || 1, 1) : 1;
+      const limit = paginate ? Math.max(Number(req.query.limit) || 10, 1) : 10;
+      const skip = paginate ? (page - 1) * limit : 0;
+
+      const matchStage: any = {
+        isDeleted: false,
+      };
+
+      if (search) {
+        matchStage.name = { $regex: search, $options: "i" };
+      }
+
+      const projectStage = paginate
+        ? {
+            _id: 1,
+            name: 1,
+            category: 1,
+            isSystemGenerated: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          }
+        : {
+            _id: 1,
+            name: 1,
+            category: 1,
+            isSystemGenerated: 1,
+          };
+
+      const pipeline: any[] = [
+        { $match: matchStage },
+        { $project: projectStage },
+        { $sort: { createdAt: -1 } },
+      ];
+
+      if (paginate) {
+        pipeline.push({ $skip: skip }, { $limit: limit });
+      }
+
+      const accountTypes = await accountTypeModel.aggregate(pipeline);
+
+      const totalCount = await accountTypeModel.countDocuments(matchStage);
+
+      return res.status(200).json({
+        success: true,
+        data: accountTypes,
+        totalCount,
+        page,
+        limit,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error while listing account types:", error.message);
+        return res.status(500).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      console.error("Unknown error while listing account types:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong",
+      });
     }
   };
 }
