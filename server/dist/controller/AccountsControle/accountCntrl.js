@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAcccount = exports.updateAccount = exports.getAccounts = exports.createAccounts = void 0;
 const accounts_1 = __importDefault(require("../../models/accounts"));
 const user_1 = __importDefault(require("../../models/user"));
-const mongoose_1 = __importDefault(require("mongoose"));
-const branch_1 = __importDefault(require("../../models/branch"));
+const http_status_1 = require("../../constants/http-status");
 const createAccounts = async (req, res, next) => {
     try {
         const { branchId, accountName, accountType, description, parentAccountId } = req.body;
@@ -63,44 +62,44 @@ const getAccounts = async (req, res, next) => {
             return res.status(400).json({ message: "User not found!" });
         }
         const userRole = user.role; // "CompanyAdmin" or "User"
-        const filterBranchId = req.query.branchId; // optional
+        // const filterBranchId = req.query.branchId as string; // optional
         const search = (req.query.search || "").trim();
         // Pagination
         const limit = parseInt(req.query.limit) || 20;
         const page = parseInt(req.query.page) || 1;
         const skip = (page - 1) * limit;
         // 🔹 Determine allowed branches
-        let allowedBranchIds = [];
-        if (userRole === "CompanyAdmin") {
-            const branches = await branch_1.default.find({
-                companyAdminId: userId,
-                isDeleted: false,
-            }).select("_id");
-            allowedBranchIds = branches.map((b) => new mongoose_1.default.Types.ObjectId(b._id));
-        }
-        else if (userRole === "User") {
-            if (!user.branchId) {
-                return res
-                    .status(400)
-                    .json({ message: "User is not assigned to any branch!" });
-            }
-            allowedBranchIds = [user.branchId];
-        }
-        else {
-            return res.status(403).json({ message: "Unauthorized role!" });
-        }
+        // let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+        // if (userRole === "CompanyAdmin") {
+        //   const branches = await BRANCH.find({
+        //     companyAdminId: userId,
+        //     isDeleted: false,
+        //   }).select("_id");
+        //   allowedBranchIds = branches.map(
+        //     (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+        //   );
+        // } else if (userRole === "User") {
+        //   if (!user.branchId) {
+        //     return res
+        //       .status(400)
+        //       .json({ message: "User is not assigned to any branch!" });
+        //   }
+        //   allowedBranchIds = [user.branchId];
+        // } else {
+        //   return res.status(403).json({ message: "Unauthorized role!" });
+        // }
         // 🔹 Apply branch filter if passed
-        if (filterBranchId) {
-            const filterId = new mongoose_1.default.Types.ObjectId(filterBranchId);
-            if (!allowedBranchIds.some((id) => id.equals(filterId))) {
-                return res.status(403).json({
-                    message: "You are not authorized to view customers for this branch!",
-                });
-            }
-            allowedBranchIds = [filterId];
-        }
+        // if (filterBranchId) {
+        //   const filterId = new mongoose.Types.ObjectId(filterBranchId);
+        //   if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+        //     return res.status(403).json({
+        //       message: "You are not authorized to view customers for this branch!",
+        //     });
+        //   }
+        //   allowedBranchIds = [filterId];
+        // }
         const match = {
-            branchId: { $in: allowedBranchIds },
+            //  branchId: { $in: allowedBranchIds },
             isDeleted: false,
         };
         // only add search filter when search has value
@@ -127,6 +126,20 @@ const getAccounts = async (req, res, next) => {
                     preserveNullAndEmptyArrays: true,
                 },
             },
+            {
+                $lookup: {
+                    from: "accounttypes",
+                    localField: "accountType",
+                    foreignField: "_id",
+                    as: "accountType",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$accountType",
+                    preserveNullAndEmptyArrays: true,
+                },
+            }
         ];
         // allow search on parent name too
         if (search.length > 0) {
@@ -152,6 +165,7 @@ const getAccounts = async (req, res, next) => {
                 parentAccountId: "$parentAccount._id",
                 parentAccountName: "$parentAccount.accountName",
                 updatedAt: 1,
+                isSystemGenerated: 1
             },
         });
         // sorting & pagination
@@ -258,6 +272,9 @@ const deleteAcccount = async (req, res, next) => {
         const account = await accounts_1.default.findOne({ _id: accountId });
         if (!account) {
             return res.status(404).json({ message: "Account not found!" });
+        }
+        if (account.isSystemGenerated) {
+            return res.status(http_status_1.HTTP_STATUS.FORBIDDEN).json({ message: "System generated account cannot be deleted!" });
         }
         await accounts_1.default.findByIdAndUpdate(accountId, {
             isDeleted: true,

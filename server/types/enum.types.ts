@@ -74,3 +74,11 @@ export enum CreditNoteStatus {
   OPEN = "Open",
   CLOSED = "Closed",
 }
+
+export enum accountTypesCategory {
+  ASSET = "Asset",
+  LIABILITY = "Liability",
+  INCOME = "Income",
+  EQUITY = "Equity",
+  EXPENSE = "Expense",
+}

@@ -14,29 +14,8 @@ const accountSchema = new Schema<IAccounts>(
       trim: true,
     },
     accountType: {
-      type: String,
-      enum: [
-        "Asset",
-        "Current Asset",
-        "Cash",
-        "Bank",
-        "Card",
-        "Due",
-        "Online",
-        "Fixed Asset",
-        "Stock",
-        "Other Current Liabilities",
-        "Credit Card",
-        "Liabilities",
-        "Equity",
-        "Income",
-        "Other Income",
-        "Purchase",
-        "Expense",
-        "Cost of Goods Sold",
-        "Other Expenses",
-        "Credit",
-      ],
+      type: Schema.Types.ObjectId,
+      ref: "AccountType",
       required: true,
     },
     parentAccountId: {
@@ -60,6 +39,10 @@ const accountSchema = new Schema<IAccounts>(
     deletedBy: {
       type: String,
       default: null,
+    },
+    isSystemGenerated: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true } //  automatically adds createdAt & updatedAt

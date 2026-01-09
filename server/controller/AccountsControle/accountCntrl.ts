@@ -5,6 +5,7 @@ import TRANSACTION from "../../models/transactions";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
 import BRANCH from '../../models/branch';
+import { HTTP_STATUS } from "../../constants/http-status";
 
 
 export const createAccounts = async (
@@ -81,7 +82,7 @@ export const getAccounts = async (
     }
 
     const userRole = user.role; // "CompanyAdmin" or "User"
-    const filterBranchId = req.query.branchId as string; // optional
+    // const filterBranchId = req.query.branchId as string; // optional
     const search = ((req.query.search as string) || "").trim();
 
     // Pagination
@@ -91,42 +92,42 @@ export const getAccounts = async (
 
 
     // 🔹 Determine allowed branches
-    let allowedBranchIds: mongoose.Types.ObjectId[] = [];
+    // let allowedBranchIds: mongoose.Types.ObjectId[] = [];
 
-    if (userRole === "CompanyAdmin") {
-      const branches = await BRANCH.find({
-        companyAdminId: userId,
-        isDeleted: false,
-      }).select("_id");
+    // if (userRole === "CompanyAdmin") {
+    //   const branches = await BRANCH.find({
+    //     companyAdminId: userId,
+    //     isDeleted: false,
+    //   }).select("_id");
 
-      allowedBranchIds = branches.map(
-        (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
-      );
-    } else if (userRole === "User") {
-      if (!user.branchId) {
-        return res
-          .status(400)
-          .json({ message: "User is not assigned to any branch!" });
-      }
-      allowedBranchIds = [user.branchId];
-    } else {
-      return res.status(403).json({ message: "Unauthorized role!" });
-    }
+    //   allowedBranchIds = branches.map(
+    //     (b) => new mongoose.Types.ObjectId(b._id as mongoose.Types.ObjectId)
+    //   );
+    // } else if (userRole === "User") {
+    //   if (!user.branchId) {
+    //     return res
+    //       .status(400)
+    //       .json({ message: "User is not assigned to any branch!" });
+    //   }
+    //   allowedBranchIds = [user.branchId];
+    // } else {
+    //   return res.status(403).json({ message: "Unauthorized role!" });
+    // }
 
     // 🔹 Apply branch filter if passed
-    if (filterBranchId) {
-      const filterId = new mongoose.Types.ObjectId(filterBranchId);
-      if (!allowedBranchIds.some((id) => id.equals(filterId))) {
-        return res.status(403).json({
-          message: "You are not authorized to view customers for this branch!",
-        });
-      }
-      allowedBranchIds = [filterId];
-    }
+    // if (filterBranchId) {
+    //   const filterId = new mongoose.Types.ObjectId(filterBranchId);
+    //   if (!allowedBranchIds.some((id) => id.equals(filterId))) {
+    //     return res.status(403).json({
+    //       message: "You are not authorized to view customers for this branch!",
+    //     });
+    //   }
+    //   allowedBranchIds = [filterId];
+    // }
 
 
     const match: any = {
-     branchId: { $in: allowedBranchIds },
+    //  branchId: { $in: allowedBranchIds },
       isDeleted: false,
     };
 
@@ -156,6 +157,20 @@ export const getAccounts = async (
           preserveNullAndEmptyArrays: true,
         },
       },
+      {
+        $lookup: {
+          from: "accounttypes",
+          localField: "accountType",
+          foreignField: "_id",
+          as: "accountType",
+        },
+      },
+      {
+        $unwind: {
+          path: "$accountType",
+          preserveNullAndEmptyArrays: true,
+        },
+      }
     ];
 
     // allow search on parent name too
@@ -183,6 +198,7 @@ export const getAccounts = async (
         parentAccountId: "$parentAccount._id",
         parentAccountName: "$parentAccount.accountName",
         updatedAt: 1,
+        isSystemGenerated:1
       },
     });
 
@@ -332,6 +348,9 @@ export const deleteAcccount = async (
     const account = await ACCOUNTS.findOne({ _id: accountId });
     if (!account) {
       return res.status(404).json({ message: "Account not found!" });
+    }
+    if(account.isSystemGenerated){
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ message: "System generated account cannot be deleted!" });
     }
 
     await ACCOUNTS.findByIdAndUpdate(accountId, {

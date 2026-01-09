@@ -148,7 +148,7 @@ export interface IDocumentType extends Document {
 export interface IAccounts extends Document {
   branchId?: Types.ObjectId | null;
   accountName?: string;
-  accountType?: string;
+  accountType?: Types.ObjectId | null;
   description?: string;
   openingBalance?: string;
   isDeleted?: boolean;
@@ -165,6 +165,8 @@ export interface IAccounts extends Document {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  isSystemGenerated?: boolean;
+
 }
 
 
