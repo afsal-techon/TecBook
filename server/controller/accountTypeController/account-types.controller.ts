@@ -17,6 +17,12 @@ export class AccountType extends GenericDatabaseService<accountTypeModelDocument
     this.accountModel = accountModel;
   }
 
+  /*  * Auto create common account types
+   ----------------------------------
+   This method checks for the existence of common account types and creates them if they don't exist.
+   * It relies on `DEFAULT_ACCOUNT_TYPES` constant.
+   * @returns A success message or an error message.
+   */
   autoCreateCommonAccountTypes = async () => {
     try {
       for (const accountType of DEFAULT_ACCOUNT_TYPES) {
@@ -44,6 +50,12 @@ export class AccountType extends GenericDatabaseService<accountTypeModelDocument
     }
   };
 
+  /*  * Auto create system default accounts
+   ----------------------------------
+   This method checks for the existence of system default accounts and creates them if they don't exist.
+   * It relies on `DEFAULT_ACCOUNTS` constant and `accountTypeModel` to link accounts to their types.
+   * @returns A success message or an error message.
+   */
   autoCreateCommonAccounts = async () => {
     try {
       for (const account of DEFAULT_ACCOUNTS) {
