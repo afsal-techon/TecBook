@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { Document, model, Schema } from "mongoose";
 import { accountTypesCategory } from "../types/enum.types";
 import { BaseSchemaFields } from "./common/BaseSchemaFields";
 import { IAccountType } from "../Interfaces/account-type.interface";
@@ -34,7 +34,10 @@ const accountTypesSchema = new Schema<IAccountType>(
 );
 
 accountTypesSchema.add(BaseSchemaFields);
+
 export const accountTypeModel = model<IAccountType>(
   "AccountType",
   accountTypesSchema
 );
+
+export type accountTypeModelDocument = typeof accountTypeModel
