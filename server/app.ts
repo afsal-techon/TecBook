@@ -44,6 +44,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 (async () => {
   // accountTypeController.autoCreateCommonAccountTypes() // in future move to register company function
+  // accountTypeController.autoCreateCommonAccounts();
   await connectDB();
 
   app.use("/api", mainRouter);
